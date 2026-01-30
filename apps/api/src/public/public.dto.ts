@@ -1,4 +1,6 @@
-﻿export interface DraftResponse {
+import type { DocumentType } from '@prisma/client';
+
+export interface DraftResponse {
   draftId: string;
   draftToken: string;
   expiresAt: string;
@@ -34,4 +36,27 @@ export interface UpdateDraftDto {
 export interface SubmitProposalDto {
   draftId: string;
   draftToken: string;
+}
+
+export interface UploadPresignDto {
+  draftId?: string;
+  draftToken?: string;
+  proposalId?: string;
+  proposalToken?: string;
+  docType: DocumentType;
+  fileName: string;
+  contentType: string;
+  size: number;
+  imageWidth?: number;
+  imageHeight?: number;
+  checksum?: string;
+}
+
+export interface UploadPresignResponse {
+  documentId: string;
+  storageKey: string;
+  uploadUrl: string;
+  expiresIn: number;
+  method: 'PUT';
+  headers: Record<string, string>;
 }

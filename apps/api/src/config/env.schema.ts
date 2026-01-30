@@ -16,6 +16,18 @@ export const envSchema = z.object({
   DATA_ENCRYPTION_KEY: z.string().min(32),
 
   CORS_ORIGINS: z.string().optional(),
+
+  S3_ENDPOINT: z.string().optional(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().default('us-east-1'),
+  S3_FORCE_PATH_STYLE: z.coerce.boolean().optional(),
+
+  UPLOAD_PRESIGN_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  UPLOAD_MAX_SIZE_MB: z.coerce.number().int().positive().default(10),
+  UPLOAD_MIN_WIDTH: z.coerce.number().int().positive().default(600),
+  UPLOAD_MIN_HEIGHT: z.coerce.number().int().positive().default(600),
 });
 
 export type Env = z.infer<typeof envSchema>;

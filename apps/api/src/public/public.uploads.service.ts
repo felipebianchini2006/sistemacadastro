@@ -1,0 +1,229 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { DocumentType } from '@prisma/client';
+import { createHash } from 'crypto';
+
+import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
+import { buildDocumentStorageKey } from '../storage/storage.naming';
+import {
+  ALLOWED_MIME_TYPES,
+  ALLOWED_PUBLIC_DOC_TYPES,
+  IMAGE_MIME_TYPES,
+  UploadPresignPayload,
+  uploadPresignSchema,
+} from './public.uploads.validation';
+import type { UploadPresignDto } from './public.dto';
+
+type UploadTokens = {
+  draftToken?: string;
+  proposalToken?: string;
+};
+
+@Injectable()
+export class PublicUploadsService {
+  private readonly maxSizeBytes: number;
+  private readonly minWidth: number;
+  private readonly minHeight: number;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+    private readonly configService: ConfigService,
+  ) {
+    const maxSizeMb =
+      this.configService.get<number>('UPLOAD_MAX_SIZE_MB', {
+        infer: true,
+      }) ?? 10;
+    this.maxSizeBytes = maxSizeMb * 1024 * 1024;
+    this.minWidth =
+      this.configService.get<number>('UPLOAD_MIN_WIDTH', {
+        infer: true,
+      }) ?? 600;
+    this.minHeight =
+      this.configService.get<number>('UPLOAD_MIN_HEIGHT', {
+        infer: true,
+      }) ?? 600;
+  }
+
+  async createPresign(dto: UploadPresignDto, tokens: UploadTokens) {
+    const payload = this.validatePayload(dto, tokens);
+
+    const owner = await this.resolveOwner(payload);
+    const env =
+      this.configService.get<string>('NODE_ENV', { infer: true }) ??
+      'development';
+    const storageKey = buildDocumentStorageKey({
+      env,
+      owner,
+      docType: payload.docType,
+      fileName: payload.fileName,
+      contentType: payload.contentType,
+    });
+
+    const metadata = this.buildMetadata(owner, payload.docType);
+    const document = await this.prisma.documentFile.create({
+      data: {
+        draftId: owner.kind === 'draft' ? owner.id : null,
+        proposalId: owner.kind === 'proposal' ? owner.id : null,
+        type: payload.docType,
+        storageKey,
+        fileName: payload.fileName,
+        contentType: payload.contentType,
+        size: payload.size,
+        checksum: payload.checksum,
+      },
+    });
+
+    const presign = await this.storage.presignPutObject({
+      key: storageKey,
+      contentType: payload.contentType,
+      metadata,
+    });
+
+    return {
+      documentId: document.id,
+      storageKey,
+      uploadUrl: presign.url,
+      expiresIn: presign.expiresIn,
+      method: 'PUT',
+      headers: {
+        'Content-Type': payload.contentType,
+        ...this.metadataHeaders(metadata),
+      },
+    };
+  }
+
+  private buildMetadata(
+    owner: { kind: 'draft' | 'proposal'; id: string },
+    docType: DocumentType,
+  ) {
+    return {
+      docType,
+      ...(owner.kind === 'draft'
+        ? { draftId: owner.id }
+        : { proposalId: owner.id }),
+    };
+  }
+
+  private metadataHeaders(metadata: Record<string, string>) {
+    return Object.fromEntries(
+      Object.entries(metadata).map(([key, value]) => [
+        `x-amz-meta-${key.toLowerCase()}`,
+        value,
+      ]),
+    );
+  }
+
+  private validatePayload(dto: UploadPresignDto, tokens: UploadTokens) {
+    let payload: UploadPresignPayload;
+    try {
+      payload = uploadPresignSchema.parse(dto);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Payload invalido';
+      throw new BadRequestException(message);
+    }
+
+    const draftToken = payload.draftToken ?? tokens.draftToken;
+    const proposalToken = payload.proposalToken ?? tokens.proposalToken;
+    const contentType = payload.contentType.toLowerCase();
+    const fileName = payload.fileName.trim();
+
+    if (!fileName) {
+      throw new BadRequestException('Nome do arquivo invalido');
+    }
+
+    if (
+      (payload.draftId && payload.proposalId) ||
+      (!payload.draftId && !payload.proposalId)
+    ) {
+      throw new BadRequestException('Informe draftId ou proposalId');
+    }
+
+    if (payload.draftId && !draftToken) {
+      throw new UnauthorizedException('Draft token ausente');
+    }
+
+    if (payload.proposalId && !proposalToken) {
+      throw new UnauthorizedException('Proposal token ausente');
+    }
+
+    if (!ALLOWED_PUBLIC_DOC_TYPES.has(payload.docType)) {
+      throw new BadRequestException('Tipo de documento nao permitido');
+    }
+
+    if (!ALLOWED_MIME_TYPES.has(contentType)) {
+      throw new BadRequestException('Tipo de arquivo nao permitido');
+    }
+
+    if (payload.size > this.maxSizeBytes) {
+      throw new BadRequestException('Arquivo excede o tamanho maximo');
+    }
+
+    if (IMAGE_MIME_TYPES.has(contentType)) {
+      if (!payload.imageWidth || !payload.imageHeight) {
+        throw new BadRequestException('Resolucao da imagem obrigatoria');
+      }
+      if (
+        payload.imageWidth < this.minWidth ||
+        payload.imageHeight < this.minHeight
+      ) {
+        throw new BadRequestException('Resolucao da imagem insuficiente');
+      }
+    }
+
+    return {
+      ...payload,
+      contentType,
+      fileName,
+      draftToken,
+      proposalToken,
+    };
+  }
+
+  private async resolveOwner(payload: UploadPresignPayload) {
+    if (payload.draftId) {
+      const draftToken = payload.draftToken!;
+      const draft = await this.prisma.draft.findUnique({
+        where: { id: payload.draftId },
+      });
+
+      if (!draft) {
+        throw new NotFoundException('Draft nao encontrado');
+      }
+      if (draft.expiresAt < new Date()) {
+        throw new UnauthorizedException('Draft expirado');
+      }
+      if (draft.tokenHash !== this.hashToken(draftToken)) {
+        throw new UnauthorizedException('Token invalido');
+      }
+
+      return { kind: 'draft' as const, id: draft.id };
+    }
+
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: payload.proposalId! },
+      select: { id: true, publicToken: true },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    if (proposal.publicToken !== payload.proposalToken) {
+      throw new UnauthorizedException('Token invalido');
+    }
+
+    return { kind: 'proposal' as const, id: proposal.id };
+  }
+
+  private hashToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+}
