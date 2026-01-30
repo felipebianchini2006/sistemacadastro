@@ -1,8 +1,15 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f1ea;
+  --foreground: #1c1c1c;
+  --card: #fffdf6;
+  --muted: #efe6d7;
+  --accent: #2f5e4e;
+  --accent-strong: #204639;
+  --warning: #d97706;
+  --success: #15803d;
+  --danger: #dc2626;
 }
 
 @theme inline {
@@ -22,5 +29,46 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fade-up 0.45s ease-out both;
+  }
+
+  .bg-soft-gradient {
+    background-image:
+      radial-gradient(circle at top right, rgba(47, 94, 78, 0.12), transparent 45%),
+      radial-gradient(circle at 20% 20%, rgba(201, 166, 107, 0.18), transparent 50%);
+  }
+
+  .bg-sheen {
+    background-size: 200% 200%;
+    animation: shimmer 6s ease infinite;
+  }
 }

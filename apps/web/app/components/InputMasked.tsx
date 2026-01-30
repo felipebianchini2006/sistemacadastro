@@ -1,0 +1,76 @@
+'use client';
+
+import { forwardRef } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
+import { cn } from '../lib/utils';
+import { maskCep, maskCpf, maskPhone } from '../lib/masks';
+
+export type InputMask = 'cpf' | 'phone' | 'cep';
+export type FieldStatus = 'idle' | 'valid' | 'invalid';
+
+type InputMaskedProps = Omit<ComponentPropsWithoutRef<'input'>, 'onChange' | 'value'> & {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  mask?: InputMask;
+  status?: FieldStatus;
+  hint?: string;
+};
+
+const StatusDot = ({ status }: { status?: FieldStatus }) => {
+  const base =
+    'inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold uppercase';
+  if (status === 'valid') {
+    return <span className={cn(base, 'bg-emerald-500 text-white')}>ok</span>;
+  }
+  if (status === 'invalid') {
+    return <span className={cn(base, 'bg-red-500 text-white')}>x</span>;
+  }
+  return <span className={cn(base, 'bg-zinc-200 text-zinc-500')}>-</span>;
+};
+
+const applyMask = (value: string, mask?: InputMask) => {
+  if (!mask) return value;
+  if (mask === 'cpf') return maskCpf(value);
+  if (mask === 'phone') return maskPhone(value);
+  if (mask === 'cep') return maskCep(value);
+  return value;
+};
+
+export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
+  ({ label, value, onChange, mask, status, hint, className, id, ...props }, ref) => {
+    const inputId = id ?? `input-${label.replace(/\s+/g, '-').toLowerCase()}`;
+
+    return (
+      <label htmlFor={inputId} className="flex flex-col gap-2 text-sm text-zinc-700">
+        <span className="font-medium">{label}</span>
+        <div className="flex items-center gap-3">
+          <input
+            {...props}
+            ref={ref}
+            id={inputId}
+            value={value}
+            onChange={(event) => onChange(applyMask(event.target.value, mask))}
+            className={cn(
+              'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm',
+              'focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-200',
+              status === 'invalid' && 'border-red-300 focus:ring-red-200',
+              status === 'valid' && 'border-emerald-300 focus:ring-emerald-200',
+              className,
+            )}
+            aria-invalid={status === 'invalid'}
+            aria-describedby={hint ? `${inputId}-hint` : undefined}
+          />
+          <StatusDot status={status} />
+        </div>
+        {hint ? (
+          <span id={`${inputId}-hint`} className="text-xs text-zinc-500">
+            {hint}
+          </span>
+        ) : null}
+      </label>
+    );
+  },
+);
+
+InputMasked.displayName = 'InputMasked';
