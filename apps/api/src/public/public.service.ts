@@ -15,7 +15,11 @@ import {
   SubmitProposalDto,
   UpdateDraftDto,
 } from './public.dto';
-import { validateDraftData, DraftData } from './public.validation';
+import {
+  validateDraftData,
+  DraftData,
+  validateEmailMx,
+} from './public.validation';
 
 const DRAFT_TTL_DAYS = 7;
 
@@ -93,6 +97,7 @@ export class PublicService {
     const draft = await this.getDraftOrThrow(dto.draftId, dto.draftToken);
 
     const data = this.safeValidate(draft.data ?? {}, true);
+    await this.ensureEmailMx(data.email);
 
     const protocol = await this.generateProtocol();
     const now = new Date();
@@ -272,6 +277,20 @@ export class PublicService {
       const message =
         error instanceof Error ? error.message : 'Dados invalidos';
       throw new BadRequestException(message);
+    }
+  }
+
+  private async ensureEmailMx(email?: string) {
+    const shouldCheck =
+      this.configService.get<boolean>('EMAIL_MX_CHECK', {
+        infer: true,
+      }) ?? false;
+
+    if (!shouldCheck || !email) return;
+
+    const ok = await validateEmailMx(email);
+    if (!ok) {
+      throw new BadRequestException('Email invalido');
     }
   }
 

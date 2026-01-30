@@ -28,6 +28,8 @@ export const envSchema = z.object({
   UPLOAD_MAX_SIZE_MB: z.coerce.number().int().positive().default(10),
   UPLOAD_MIN_WIDTH: z.coerce.number().int().positive().default(600),
   UPLOAD_MIN_HEIGHT: z.coerce.number().int().positive().default(600),
+
+  EMAIL_MX_CHECK: z.coerce.boolean().optional().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

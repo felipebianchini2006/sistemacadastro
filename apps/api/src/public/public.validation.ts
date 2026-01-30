@@ -1,40 +1,18 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 import { ProposalType } from '@prisma/client';
-
-const digitsOnly = (value: string) => value.replace(/\D/g, '');
-
-export const isValidCpf = (value: string) => {
-  const cpf = digitsOnly(value);
-  if (cpf.length !== 11 || /^([0-9])\1+$/.test(cpf)) {
-    return false;
-  }
-
-  let sum = 0;
-  for (let i = 0; i < 9; i += 1) {
-    sum += Number(cpf[i]) * (10 - i);
-  }
-  let check = (sum * 10) % 11;
-  if (check === 10) check = 0;
-  if (check !== Number(cpf[9])) return false;
-
-  sum = 0;
-  for (let i = 0; i < 10; i += 1) {
-    sum += Number(cpf[i]) * (11 - i);
-  }
-  check = (sum * 10) % 11;
-  if (check === 10) check = 0;
-  return check === Number(cpf[10]);
-};
-
-export const isValidPhone = (value: string) => {
-  const phone = digitsOnly(value);
-  return phone.length === 10 || phone.length === 11;
-};
-
-export const isValidCep = (value: string) => {
-  const cep = digitsOnly(value);
-  return cep.length === 8;
-};
+import {
+  getEmailDomain,
+  isValidCep,
+  isValidCpf,
+  isValidEmailFormat,
+  isValidPhone,
+  normalizeCep,
+  normalizeCpf,
+  normalizeEmail,
+  normalizePhone,
+  normalizePhoneToE164,
+} from '@sistemacadastro/shared';
+import { resolveMx } from 'node:dns/promises';
 
 const addressSchema = z.object({
   cep: z.string().min(1),
@@ -50,7 +28,7 @@ export const draftDataSchema = z
   .object({
     fullName: z.string().min(2).optional(),
     cpf: z.string().min(11).optional(),
-    email: z.string().email().optional(),
+    email: z.string().min(5).optional(),
     phone: z.string().min(8).optional(),
     birthDate: z.string().optional(),
     type: z.nativeEnum(ProposalType).optional(),
@@ -63,16 +41,32 @@ export type DraftData = z.infer<typeof draftDataSchema>;
 export const normalizeDraftData = (data: DraftData) => {
   const normalized: DraftData = { ...data };
 
-  if (normalized.cpf) normalized.cpf = digitsOnly(normalized.cpf);
-  if (normalized.phone) normalized.phone = digitsOnly(normalized.phone);
+  if (normalized.cpf) normalized.cpf = normalizeCpf(normalized.cpf);
+  if (normalized.email) normalized.email = normalizeEmail(normalized.email);
+  if (normalized.phone) {
+    const phone = normalizePhoneToE164(normalized.phone);
+    normalized.phone = phone.e164 ?? normalizePhone(normalized.phone);
+  }
   if (normalized.address?.cep) {
     normalized.address = {
       ...normalized.address,
-      cep: digitsOnly(normalized.address.cep),
+      cep: normalizeCep(normalized.address.cep),
     };
   }
 
   return normalized;
+};
+
+export const validateEmailMx = async (email: string) => {
+  const domain = getEmailDomain(email);
+  if (!domain) return false;
+
+  try {
+    const records = await resolveMx(domain);
+    return records.length > 0;
+  } catch (error) {
+    return false;
+  }
 };
 
 export const validateDraftData = (payload: unknown, required = false) => {
@@ -81,6 +75,10 @@ export const validateDraftData = (payload: unknown, required = false) => {
 
   if (normalized.cpf && !isValidCpf(normalized.cpf)) {
     throw new Error('CPF invalido');
+  }
+
+  if (normalized.email && !isValidEmailFormat(normalized.email)) {
+    throw new Error('Email invalido');
   }
 
   if (normalized.phone && !isValidPhone(normalized.phone)) {

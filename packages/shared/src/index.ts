@@ -1,6 +1,9 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
+import { isValidCpf } from './validators/cpf';
 
-export const cpfSchema = z.string().regex(/^\d{11}$/, 'CPF deve ter 11 digitos');
+export * from './validators';
+
+export const cpfSchema = z.string().refine(isValidCpf, 'CPF invalido');
 
 export type Cpf = z.infer<typeof cpfSchema>;
 

@@ -36,6 +36,7 @@
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/throttler": "^6.5.0",
     "@prisma/client": "^6.10.0",
+    "@sistemacadastro/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.67.2",
     "cookie-parser": "^1.4.7",
