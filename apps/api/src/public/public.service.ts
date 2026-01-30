@@ -222,6 +222,7 @@ export class PublicService {
     });
 
     return {
+      proposalId: proposal.id,
       protocol: proposal.protocol,
       status: proposal.status,
       timeline: proposal.statusHistory.map((entry) => ({
