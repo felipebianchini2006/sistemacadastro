@@ -11,7 +11,7 @@ import {
   Prisma,
   SignatureStatus,
 } from '@prisma/client';
-import { createHash, createDecipheriv } from 'crypto';
+import { createHash, createDecipheriv, randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -77,6 +77,10 @@ export class AdminProposalsService {
       include: {
         person: true,
         assignedAnalyst: { select: { id: true, name: true, email: true } },
+        statusHistory: {
+          select: { toStatus: true, createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        },
       },
       take: 100,
     });
@@ -92,6 +96,7 @@ export class AdminProposalsService {
         status: proposal.status,
         type: proposal.type,
         createdAt: proposal.createdAt,
+        statusHistory: proposal.statusHistory,
         sla: {
           startedAt: proposal.slaStartedAt,
           dueAt: proposal.slaDueAt,
@@ -361,6 +366,38 @@ export class AdminProposalsService {
     });
 
     return { ok: true };
+  }
+
+  async exportPdf(proposalId: string, adminUserId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { person: true },
+    });
+
+    if (!proposal || !proposal.person) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const email = this.decrypt(proposal.person.emailEncrypted);
+    const phone = this.decrypt(proposal.person.phoneEncrypted);
+    const requestId = randomUUID();
+
+    await this.jobs.enqueuePdf({
+      proposalId: proposal.id,
+      protocol: proposal.protocol,
+      candidate: {
+        name: proposal.person.fullName,
+        email,
+        phone: phone || undefined,
+      },
+      requestId,
+    });
+
+    await this.createAuditLog(adminUserId, proposal.id, 'EXPORT_PDF', {
+      requestId,
+    });
+
+    return { ok: true, requestId };
   }
 
   private applySlaFilter(where: Prisma.ProposalWhereInput, sla?: string) {

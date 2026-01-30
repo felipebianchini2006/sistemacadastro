@@ -95,4 +95,13 @@ export class AdminProposalsController {
       req.user?.id ?? 'system',
     );
   }
+
+  @Post(':proposalId/export-pdf')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  exportPdf(
+    @Param('proposalId') proposalId: string,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    return this.service.exportPdf(proposalId, req.user?.id ?? 'system');
+  }
 }
