@@ -16,6 +16,11 @@ describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
+    process.env.JWT_ACCESS_SECRET = 'test-access-secret';
+    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
+    process.env.DATA_ENCRYPTION_KEY = Buffer.alloc(32).toString('base64');
+    process.env.CLICKSIGN_ACCESS_TOKEN = 'test-clicksign-token';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })

@@ -99,6 +99,7 @@ describe('Public flow (e2e)', () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.DATA_ENCRYPTION_KEY = Buffer.alloc(32).toString('base64');
+    process.env.CLICKSIGN_ACCESS_TOKEN = 'test-clicksign-token';
 
     const prismaStub = buildPrismaStub();
     const jobsStub = {

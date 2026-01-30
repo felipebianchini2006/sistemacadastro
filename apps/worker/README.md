@@ -23,3 +23,17 @@ Optional tuning:
 - OCR_LIMITER_MAX (default 10)
 - OCR_LIMITER_DURATION_MS (default 60000)
 - OCR_CONCURRENCY (default 2)
+
+Signature env (Clicksign):
+
+- CLICKSIGN_ACCESS_TOKEN
+- CLICKSIGN_BASE_URL (default https://sandbox.clicksign.com)
+- CLICKSIGN_AUTH_METHOD (email|sms|whatsapp)
+- SIGNATURE_DEADLINE_DAYS (default 7)
+- SIGNATURE_INTERNAL_REQUIRED (default false)
+- SIGNATURE_INTERNAL_SIGNER_NAME/EMAIL/PHONE
+
+Notifications:
+
+- SENDGRID_API_KEY / SENDGRID_FROM
+- TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM

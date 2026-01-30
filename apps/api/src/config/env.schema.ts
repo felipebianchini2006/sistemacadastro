@@ -30,6 +30,20 @@ export const envSchema = z.object({
   UPLOAD_MIN_HEIGHT: z.coerce.number().int().positive().default(600),
 
   EMAIL_MX_CHECK: z.coerce.boolean().optional().default(false),
+
+  CLICKSIGN_ACCESS_TOKEN: z.string().min(10),
+  CLICKSIGN_BASE_URL: z.string().url().optional(),
+  CLICKSIGN_WEBHOOK_SECRET: z.string().optional(),
+  CLICKSIGN_AUTH_METHOD: z
+    .enum(['email', 'sms', 'whatsapp'])
+    .optional()
+    .default('email'),
+  SIGNATURE_DEADLINE_DAYS: z.coerce.number().int().positive().default(7),
+
+  SIGNATURE_INTERNAL_SIGNER_NAME: z.string().optional(),
+  SIGNATURE_INTERNAL_SIGNER_EMAIL: z.string().optional(),
+  SIGNATURE_INTERNAL_SIGNER_PHONE: z.string().optional(),
+  SIGNATURE_INTERNAL_REQUIRED: z.coerce.boolean().optional().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

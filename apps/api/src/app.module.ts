@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { AdminModule } from './admin/admin.module';
 import { PublicModule } from './public/public.module';
+import { SignatureModule } from './signature/signature.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PublicModule } from './public/public.module';
     AuthModule,
     AdminModule,
     PublicModule,
+    SignatureModule,
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60, limit: 100 }],
     }),

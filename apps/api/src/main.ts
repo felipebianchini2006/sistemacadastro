@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
+import type { Request } from 'express';
 
 import { AppModule } from './app.module';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter';
@@ -10,6 +11,13 @@ import { ProblemDetailsFilter } from './common/filters/problem-details.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+  app.useBodyParser('json', {
+    verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
+      if (req.originalUrl?.startsWith('/webhooks/clicksign')) {
+        req.rawBody = buf;
+      }
+    },
+  });
   app.use(cookieParser());
   app.useGlobalFilters(new ProblemDetailsFilter());
 

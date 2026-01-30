@@ -1,4 +1,4 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 export type StorageConfig = {
   bucket: string;
@@ -45,6 +45,17 @@ export class StorageClient {
 
     const buffer = await streamToBuffer(response.Body as AsyncIterable<Buffer>);
     return buffer;
+  }
+
+  async upload(input: { key: string; buffer: Buffer; contentType: string }) {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.config.bucket,
+        Key: input.key,
+        Body: input.buffer,
+        ContentType: input.contentType,
+      }),
+    );
   }
 
   private resolveConfig(): StorageConfig {
