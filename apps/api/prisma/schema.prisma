@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProposalStatus {
+  DRAFT
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  PENDING_DOCS
+  PENDING_SIGNATURE
+  SIGNED
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+enum ProposalType {
+  NOVO
+  MIGRACAO
+}
+
+enum DocumentType {
+  RG_FRENTE
+  RG_VERSO
+  CNH
+  SELFIE
+  DESFILIACAO
+  OUTROS
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  OTP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum SignatureStatus {
+  CREATED
+  SENT
+  SIGNED
+  EXPIRED
+  CANCELED
+}
+
+enum SignatureProvider {
+  CLICKSIGN
+}
+
+enum RoleName {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum SocialProvider {
+  SPOTIFY
+  YOUTUBE
+  INSTAGRAM
+  FACEBOOK
+}
+
+enum BankVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum TotvsSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model Proposal {
+  id            String         @id @default(uuid())
+  protocol      String         @unique
+  publicToken   String         @unique @default(cuid())
+  type          ProposalType
+  status        ProposalStatus @default(DRAFT)
+
+  slaStartedAt  DateTime?
+  slaDueAt      DateTime?
+  slaBreachedAt DateTime?
+
+  submittedAt   DateTime?
+  signedAt      DateTime?
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+  canceledAt    DateTime?
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  person        Person?
+  address       Address?
+  documents     DocumentFile[]
+  ocrResults    OcrResult[]
+  signatures    SignatureEnvelope[]
+  notifications Notification[]
+  statusHistory StatusHistory[]
+  auditLogs     AuditLog[]
+  totvsSync     TotvsSync?
+
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+}
+
+model Person {
+  id            String   @id @default(uuid())
+  proposalId    String   @unique
+
+  fullName      String
+  cpfEncrypted  String
+  cpfHash       String
+  emailEncrypted String
+  emailHash     String
+  phoneEncrypted String
+  phoneHash     String
+  birthDate     DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  proposal      Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  socialAccounts SocialAccount[]
+  bankAccounts  BankAccount[]
+
+  @@index([cpfHash])
+  @@index([emailHash])
+  @@index([phoneHash])
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  proposalId String   @unique
+
+  cep        String
+  street     String
+  number     String?
+  complement String?
+  district   String
+  city       String
+  state      String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([cep])
+}
+
+model DocumentFile {
+  id          String      @id @default(uuid())
+  proposalId  String
+  type        DocumentType
+  storageKey  String
+  fileName    String
+  contentType String
+  size        Int?
+  checksum    String?
+
+  createdAt   DateTime    @default(now())
+
+  proposal    Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  ocrResults  OcrResult[]
+
+  @@index([proposalId, type])
+  @@index([createdAt])
+}
+
+model OcrResult {
+  id             String      @id @default(uuid())
+  proposalId     String
+  documentFileId String?
+
+  structuredData Json?
+  rawText        String?
+  score          Float?
+  heuristics     Json?
+
+  createdAt      DateTime    @default(now())
+
+  proposal       Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  documentFile   DocumentFile? @relation(fields: [documentFileId], references: [id], onDelete: SetNull)
+
+  @@index([proposalId, createdAt])
+}
+
+model SignatureEnvelope {
+  id           String            @id @default(uuid())
+  proposalId   String
+  provider     SignatureProvider @default(CLICKSIGN)
+  envelopeId   String
+  status       SignatureStatus
+  deadline     DateTime?
+
+  signerName   String
+  signerEmail  String
+  signerPhone  String?
+  link         String?
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  proposal     Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, status])
+}
+
+model Notification {
+  id                String             @id @default(uuid())
+  proposalId        String
+  channel           NotificationChannel
+  status            NotificationStatus @default(PENDING)
+  providerMessageId String?
+  payloadRedacted   Json?
+
+  createdAt         DateTime           @default(now())
+
+  proposal          Proposal           @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, channel])
+  @@index([status, createdAt])
+}
+
+model StatusHistory {
+  id         String         @id @default(uuid())
+  proposalId String
+  fromStatus ProposalStatus?
+  toStatus   ProposalStatus
+  reason     String?
+  createdAt  DateTime       @default(now())
+
+  proposal   Proposal       @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  adminUserId String?
+  proposalId String?
+
+  action     String
+  entityType String
+  entityId   String
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+
+  createdAt  DateTime @default(now())
+
+  adminUser  AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  proposal   Proposal?  @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt])
+  @@index([proposalId, createdAt])
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  roles        AdminUserRole[]
+  auditLogs    AuditLog[]
+
+  @@index([isActive])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        RoleName @unique
+  description String?
+
+  users       AdminUserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String @id @default(uuid())
+  key         String @unique
+  description String?
+
+  roles       RolePermission[]
+}
+
+model AdminUserRole {
+  adminUserId String
+  roleId      String
+  createdAt   DateTime @default(now())
+
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([adminUserId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model SocialAccount {
+  id                   String         @id @default(uuid())
+  personId             String
+  provider             SocialProvider
+  accessTokenEncrypted String
+  refreshTokenEncrypted String?
+  tokenMeta            Json?
+
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  person               Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, provider])
+}
+
+model BankAccount {
+  id                 String                @id @default(uuid())
+  personId           String
+  bankCode           String?
+  accountEncrypted   String
+  verificationStatus BankVerificationStatus @default(PENDING)
+  metadata           Json?
+
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  person             Person                @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, verificationStatus])
+}
+
+model TotvsSync {
+  id          String         @id @default(uuid())
+  proposalId  String         @unique
+  externalId  String?
+  lastSyncAt  DateTime?
+  status      TotvsSyncStatus @default(PENDING)
+  map         Json?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  proposal    Proposal       @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([status, lastSyncAt])
+}

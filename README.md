@@ -55,7 +55,7 @@ pnpm dev
 
 - Web: http://localhost:3000
 - API: http://localhost:3001
-- Postgres: 5432
+- Postgres: 5433
 - Redis: 6379
 - MinIO: http://localhost:9000 (console: 9001)
 
@@ -63,3 +63,27 @@ pnpm dev
 
 - Ajuste as variaveis de ambiente conforme os provedores (Clicksign, Twilio, SendGrid etc.).
 - O arquivo `packages/contracts/openapi.yaml` eh o contrato base da API.
+
+## ER Diagram (texto)
+
+```
+Proposal (1) ── (1) Person
+Proposal (1) ── (1) Address
+Proposal (1) ── (N) DocumentFile ── (N) OcrResult
+Proposal (1) ── (N) SignatureEnvelope
+Proposal (1) ── (N) Notification
+Proposal (1) ── (N) StatusHistory
+Proposal (1) ── (N) AuditLog
+Proposal (1) ── (N) SocialAccount
+Proposal (1) ── (N) BankAccount
+Proposal (1) ── (1) TotvsSync
+
+AdminUser (1) ── (N) AuditLog
+AdminUser (N) ── (N) Role (via AdminUserRole)
+Role (N) ── (N) Permission (via RolePermission)
+```
+
+Notas:
+
+- `Proposal.protocol` eh humano e unico; acesso publico deve usar `Proposal.publicToken` (nao enumeravel).
+- Campos sensiveis ficam em `*_Encrypted` com `*_Hash` para busca.
