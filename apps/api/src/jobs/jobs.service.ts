@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 export class JobsService implements OnModuleDestroy {
   private readonly queue: Queue;
   private readonly signatureQueue: Queue;
+  private readonly notificationQueue: Queue;
   private readonly connection: IORedis;
 
   constructor(private readonly configService: ConfigService) {
@@ -17,6 +18,9 @@ export class JobsService implements OnModuleDestroy {
     this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
     this.queue = new Queue('public-jobs', { connection: this.connection });
     this.signatureQueue = new Queue('signature-jobs', {
+      connection: this.connection,
+    });
+    this.notificationQueue = new Queue('notification-jobs', {
       connection: this.connection,
     });
   }
@@ -103,9 +107,87 @@ export class JobsService implements OnModuleDestroy {
     );
   }
 
+  async enqueueEmailNotification(payload: {
+    notificationId: string;
+    to: string;
+    template: string;
+    data: Record<string, unknown>;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.notificationQueue.add(
+      'notify.email',
+      {
+        notificationId: payload.notificationId,
+        to: payload.to,
+        template: payload.template,
+        data: payload.data,
+        requestId,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
+  }
+
+  async enqueueSmsNotification(payload: {
+    notificationId: string;
+    to: string;
+    template: string;
+    data: Record<string, unknown>;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.notificationQueue.add(
+      'notify.sms',
+      {
+        notificationId: payload.notificationId,
+        to: payload.to,
+        template: payload.template,
+        data: payload.data,
+        requestId,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
+  }
+
+  async enqueueWhatsappNotification(payload: {
+    notificationId: string;
+    to: string;
+    template: string;
+    data: Record<string, unknown>;
+    requestId?: string;
+    optIn?: boolean;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.notificationQueue.add(
+      'notify.whatsapp',
+      {
+        notificationId: payload.notificationId,
+        to: payload.to,
+        template: payload.template,
+        data: payload.data,
+        requestId,
+        optIn: payload.optIn,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
+  }
+
   async onModuleDestroy() {
     await this.queue.close();
     await this.signatureQueue.close();
+    await this.notificationQueue.close();
     await this.connection.quit();
   }
 }

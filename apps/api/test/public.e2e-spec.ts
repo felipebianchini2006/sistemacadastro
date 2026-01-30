@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JobsService } from '../src/jobs/jobs.service';
+import { NotificationsService } from '../src/notifications/notifications.service';
 import { DocumentType, ProposalStatus, ProposalType } from '@prisma/client';
 
 const buildPrismaStub = () => {
@@ -106,6 +107,9 @@ describe('Public flow (e2e)', () => {
       enqueueOcr: jest.fn(),
       enqueueReceivedNotification: jest.fn(),
     } as unknown as JobsService;
+    const notificationsStub = {
+      notifyProposalReceived: jest.fn(),
+    } as unknown as NotificationsService;
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -114,6 +118,8 @@ describe('Public flow (e2e)', () => {
       .useValue(prismaStub)
       .overrideProvider(JobsService)
       .useValue(jobsStub)
+      .overrideProvider(NotificationsService)
+      .useValue(notificationsStub)
       .compile();
 
     app = moduleRef.createNestApplication();

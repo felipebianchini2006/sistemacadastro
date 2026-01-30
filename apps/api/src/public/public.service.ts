@@ -10,6 +10,7 @@ import { createHash, createCipheriv, randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateDraftDto,
   SubmitProposalDto,
@@ -28,6 +29,7 @@ export class PublicService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: JobsService,
+    private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -177,9 +179,14 @@ export class PublicService {
       );
     }
 
-    await this.jobs.enqueueReceivedNotification({
+    const slaDays = 7;
+    await this.notifications.notifyProposalReceived({
       proposalId: proposal.id,
+      email: data.email!,
+      phone: data.phone,
       protocol: proposal.protocol,
+      deadlineDays: slaDays,
+      whatsappOptIn: true,
     });
 
     await this.prisma.draft.delete({ where: { id: draft.id } });

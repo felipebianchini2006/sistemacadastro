@@ -13,7 +13,10 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.useBodyParser('json', {
     verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
-      if (req.originalUrl?.startsWith('/webhooks/clicksign')) {
+      if (
+        req.originalUrl?.startsWith('/webhooks/clicksign') ||
+        req.originalUrl?.startsWith('/webhooks/sendgrid')
+      ) {
         req.rawBody = buf;
       }
     },

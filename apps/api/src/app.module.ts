@@ -14,6 +14,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
 import { AdminModule } from './admin/admin.module';
 import { PublicModule } from './public/public.module';
 import { SignatureModule } from './signature/signature.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SignatureModule } from './signature/signature.module';
     AdminModule,
     PublicModule,
     SignatureModule,
+    NotificationsModule,
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60, limit: 100 }],
     }),

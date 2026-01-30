@@ -1,7 +1,13 @@
-﻿import { Queue, QueueScheduler, Worker, Job } from 'bullmq';
+import { Queue, QueueScheduler, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { DocumentType, SignatureProvider, SignatureStatus } from '@prisma/client';
+import {
+  DocumentType,
+  NotificationChannel,
+  NotificationStatus,
+  SignatureProvider,
+  SignatureStatus,
+} from '@prisma/client';
 
 import { prisma } from '../prisma';
 import { StorageClient } from '../services/storage-client';
@@ -13,6 +19,7 @@ export class SignatureWorker {
   private readonly worker: Worker;
   private readonly scheduler: QueueScheduler;
   private readonly queue: Queue;
+  private readonly notificationQueue: Queue;
   private readonly storage: StorageClient;
   private readonly clicksign: ClicksignClient;
 
@@ -26,6 +33,9 @@ export class SignatureWorker {
       connection: this.connection,
     });
     this.queue = new Queue('signature-jobs', { connection: this.connection });
+    this.notificationQueue = new Queue('notification-jobs', {
+      connection: this.connection,
+    });
     this.storage = new StorageClient();
     this.clicksign = new ClicksignClient();
 
@@ -42,6 +52,7 @@ export class SignatureWorker {
   async shutdown() {
     await this.worker.close();
     await this.queue.close();
+    await this.notificationQueue.close();
     await this.scheduler.close();
     await this.connection.quit();
     await prisma.$disconnect();
@@ -221,11 +232,71 @@ export class SignatureWorker {
       },
     });
 
-    await sendNotifications({
-      email: candidate.email,
-      phone: candidate.phone,
-      link: signerLink,
+    await this.queueNotification({
+      proposalId,
+      channel: NotificationChannel.EMAIL,
+      to: candidate.email,
+      template: 'proposal_approved',
+      data: { signatureLink: signerLink },
     });
+
+    if (candidate.phone) {
+      await this.queueNotification({
+        proposalId,
+        channel: NotificationChannel.WHATSAPP,
+        to: candidate.phone,
+        template: 'proposal_approved',
+        data: { signatureLink: signerLink },
+        optIn: true,
+      });
+    }
+  }
+
+  private async queueNotification(input: {
+    proposalId: string;
+    channel: NotificationChannel;
+    to: string;
+    template: string;
+    data: Record<string, unknown>;
+    optIn?: boolean;
+  }) {
+    const notification = await prisma.notification.create({
+      data: {
+        proposalId: input.proposalId,
+        channel: input.channel,
+        status: NotificationStatus.PENDING,
+        payloadRedacted: {
+          to: input.to,
+          template: input.template,
+          data: input.data,
+          optIn: input.optIn ?? null,
+        },
+      },
+    });
+
+    const jobName =
+      input.channel === NotificationChannel.EMAIL
+        ? 'notify.email'
+        : input.channel === NotificationChannel.SMS
+          ? 'notify.sms'
+          : 'notify.whatsapp';
+
+    await this.notificationQueue.add(
+      jobName,
+      {
+        notificationId: notification.id,
+        to: input.to,
+        template: input.template,
+        data: input.data,
+        requestId: notification.id,
+        optIn: input.optIn,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
   }
 }
 
@@ -296,65 +367,4 @@ const extractSignerLink = (response: any) => {
     response?.data?.attributes?.url ??
     response?.data?.links?.self
   );
-};
-
-const sendNotifications = async (input: { email?: string; phone?: string; link?: string }) => {
-  if (!input.link) return;
-
-  await Promise.all([
-    sendSendgridEmail(input.email, input.link),
-    sendTwilioWhatsapp(input.phone, input.link),
-  ]);
-};
-
-const sendSendgridEmail = async (email?: string, link?: string) => {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  const from = process.env.SENDGRID_FROM ?? 'no-reply@sistemacadastro.local';
-  if (!apiKey || !email || !link) return;
-
-  const payload = {
-    personalizations: [{ to: [{ email }] }],
-    from: { email: from },
-    subject: 'Assinatura do contrato',
-    content: [
-      {
-        type: 'text/plain',
-        value: `Olá! Assine seu contrato aqui: ${link}`,
-      },
-    ],
-  };
-
-  await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-};
-
-const sendTwilioWhatsapp = async (phone?: string, link?: string) => {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_FROM;
-
-  if (!accountSid || !authToken || !from || !phone || !link) return;
-
-  const body = new URLSearchParams({
-    From: `whatsapp:${from}`,
-    To: `whatsapp:${phone}`,
-    Body: `Assine seu contrato: ${link}`,
-  });
-
-  const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-
-  await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body,
-  });
 };

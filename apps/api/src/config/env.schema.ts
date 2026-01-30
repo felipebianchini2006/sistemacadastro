@@ -44,6 +44,22 @@ export const envSchema = z.object({
   SIGNATURE_INTERNAL_SIGNER_EMAIL: z.string().optional(),
   SIGNATURE_INTERNAL_SIGNER_PHONE: z.string().optional(),
   SIGNATURE_INTERNAL_REQUIRED: z.coerce.boolean().optional().default(false),
+
+  SENDGRID_API_KEY: z.string().optional(),
+  SENDGRID_FROM: z.string().optional(),
+  SENDGRID_WEBHOOK_PUBLIC_KEY: z.string().optional(),
+  SENDGRID_TEMPLATE_PROPOSAL_RECEIVED: z.string().optional(),
+  SENDGRID_TEMPLATE_PROPOSAL_PENDING: z.string().optional(),
+  SENDGRID_TEMPLATE_PROPOSAL_APPROVED: z.string().optional(),
+  SENDGRID_TEMPLATE_PROPOSAL_REJECTED: z.string().optional(),
+  SENDGRID_TEMPLATE_PROPOSAL_SIGNED: z.string().optional(),
+
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().optional(),
+  TWILIO_SMS_FROM: z.string().optional(),
+  TWILIO_VERIFY_SERVICE_SID: z.string().optional(),
+  TWILIO_WHATSAPP_CONTENT_SID: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
