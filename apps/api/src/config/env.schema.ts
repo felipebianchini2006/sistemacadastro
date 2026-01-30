@@ -60,6 +60,11 @@ export const envSchema = z.object({
   TWILIO_SMS_FROM: z.string().optional(),
   TWILIO_VERIFY_SERVICE_SID: z.string().optional(),
   TWILIO_WHATSAPP_CONTENT_SID: z.string().optional(),
+
+  SLA_DAYS: z.coerce.number().int().positive().default(7),
+  SLA_DUE_SOON_HOURS: z.coerce.number().int().positive().default(24),
+  AUTO_ASSIGN_ANALYST: z.coerce.boolean().optional().default(false),
+  PUBLIC_TRACKING_BASE_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -4,7 +4,20 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "setupFiles": ["<rootDir>/jest-e2e.setup.ts"],
+  "moduleNameMapper": {
+    "^@sistemacadastro/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
+    "^@sistemacadastro/shared/(.*)$": "<rootDir>/../../../packages/shared/src/$1"
+  },
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "moduleResolution": "node16",
+          "resolvePackageJsonExports": false
+        }
+      }
+    ]
   }
 }

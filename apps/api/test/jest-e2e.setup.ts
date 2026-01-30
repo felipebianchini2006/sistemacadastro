@@ -10,3 +10,5 @@ process.env.JWT_REFRESH_SECRET =
   process.env.JWT_REFRESH_SECRET ?? 'test-refresh-secret';
 process.env.DATA_ENCRYPTION_KEY =
   process.env.DATA_ENCRYPTION_KEY ?? Buffer.alloc(32).toString('base64');
+process.env.CLICKSIGN_ACCESS_TOKEN =
+  process.env.CLICKSIGN_ACCESS_TOKEN ?? 'test-clicksign-token';

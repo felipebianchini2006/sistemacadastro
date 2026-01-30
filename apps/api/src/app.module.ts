@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,6 +27,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     PublicModule,
     SignatureModule,
     NotificationsModule,
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60, limit: 100 }],
     }),

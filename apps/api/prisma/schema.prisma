@@ -92,6 +92,7 @@ model Proposal {
   type          ProposalType
   status        ProposalStatus @default(DRAFT)
   draftId       String?
+  assignedAnalystId String?
 
   slaStartedAt  DateTime?
   slaDueAt      DateTime?
@@ -116,8 +117,10 @@ model Proposal {
   auditLogs     AuditLog[]
   totvsSync     TotvsSync?
   draft         Draft?         @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  assignedAnalyst AdminUser?   @relation("ProposalAssignedAnalyst", fields: [assignedAnalystId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
+  @@index([assignedAnalystId])
   @@index([type, createdAt])
 }
 
@@ -304,6 +307,7 @@ model AdminUser {
 
   roles        AdminUserRole[]
   auditLogs    AuditLog[]
+  assignedProposals Proposal[] @relation("ProposalAssignedAnalyst")
 
   @@index([isActive])
 }
