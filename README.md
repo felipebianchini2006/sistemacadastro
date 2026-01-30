@@ -63,6 +63,8 @@ pnpm dev
 
 - Ajuste as variaveis de ambiente conforme os provedores (Clicksign, Twilio, SendGrid etc.).
 - O arquivo `packages/contracts/openapi.yaml` eh o contrato base da API.
+- Swagger disponivel em `http://localhost:3001/docs` (quando a API estiver rodando).
+- Colecao Postman em `docs/postman_collection.json`.
 
 ## ER Diagram (texto)
 
