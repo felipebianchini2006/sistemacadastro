@@ -55,7 +55,7 @@ pnpm dev
 
 - Web: http://localhost:3000
 - API: http://localhost:3001
-- Postgres: 5433
+- Postgres: 5432
 - Redis: 6379
 - MinIO: http://localhost:9000 (console: 9001)
 

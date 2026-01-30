@@ -3,7 +3,7 @@
     image: postgres:16
     restart: unless-stopped
     ports:
-      - '5433:5432'
+      - '5432:5432'
     environment:
       POSTGRES_DB: sistemacadastro
       POSTGRES_USER: sistemacadastro
