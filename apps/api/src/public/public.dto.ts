@@ -22,6 +22,11 @@ export interface DraftDataPayload {
     city?: string;
     state?: string;
   };
+  consent?: {
+    accepted?: boolean;
+    version?: string;
+    at?: string;
+  };
 }
 
 export interface CreateDraftDto {

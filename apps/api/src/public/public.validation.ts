@@ -33,6 +33,13 @@ export const draftDataSchema = z
     birthDate: z.string().optional(),
     type: z.nativeEnum(ProposalType).optional(),
     address: addressSchema.optional(),
+    consent: z
+      .object({
+        accepted: z.boolean().optional(),
+        version: z.string().optional(),
+        at: z.string().optional(),
+      })
+      .optional(),
   })
   .strict();
 
@@ -117,6 +124,7 @@ export const validateDraftData = (payload: unknown, required = false) => {
     if (!normalized.address?.district) missing.push('address.district');
     if (!normalized.address?.city) missing.push('address.city');
     if (!normalized.address?.state) missing.push('address.state');
+    if (!normalized.consent?.accepted) missing.push('consent.accepted');
 
     if (missing.length > 0) {
       throw new Error(`Campos obrigatorios: ${missing.join(', ')}`);

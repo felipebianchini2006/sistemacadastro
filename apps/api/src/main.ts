@@ -4,11 +4,15 @@ import { Logger } from 'nestjs-pino';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import type { Request } from 'express';
+import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter';
+import { createCsrfMiddleware } from './common/middleware/csrf.middleware';
+import { initOpenTelemetry } from './observability/otel';
 
 async function bootstrap() {
+  await initOpenTelemetry();
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
   app.useBodyParser('json', {
@@ -22,16 +26,33 @@ async function bootstrap() {
     },
   });
   app.use(cookieParser());
+  app.use(helmet());
   app.useGlobalFilters(new ProblemDetailsFilter());
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', { infer: true }) ?? 3001;
   const corsOrigins = configService.get<string[]>('corsOrigins') ?? [];
+  const nodeEnv =
+    configService.get<string>('NODE_ENV', { infer: true }) ?? 'development';
+  const allowCredentials =
+    configService.get<boolean>('CORS_ALLOW_CREDENTIALS', { infer: true }) ??
+    true;
 
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : true,
-    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (corsOrigins.length === 0 && nodeEnv !== 'production') {
+        return callback(null, true);
+      }
+      if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: allowCredentials,
   });
+
+  app.use(createCsrfMiddleware(configService));
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Sistema Cadastro API')

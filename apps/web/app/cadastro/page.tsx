@@ -49,6 +49,8 @@ type DraftFormState = {
   email: string;
   phone: string;
   birthDate: string;
+  consentAccepted: boolean;
+  consentAt: string;
   address: {
     cep: string;
     street: string;
@@ -80,6 +82,7 @@ type TrackingResponse = {
 
 const STORAGE_KEY = 'cadastro-draft-v1';
 const AUTO_SAVE_INTERVAL = 15000;
+const CONSENT_VERSION = process.env.NEXT_PUBLIC_CONSENT_VERSION ?? 'v1';
 
 const steps = [
   { id: 'perfil', title: 'Perfil', subtitle: 'Quem esta solicitando' },
@@ -96,6 +99,8 @@ const defaultForm: DraftFormState = {
   email: '',
   phone: '',
   birthDate: '',
+  consentAccepted: false,
+  consentAt: '',
   address: {
     cep: '',
     street: '',
@@ -127,6 +132,11 @@ const buildDraftPayload = (form: DraftFormState) => {
   }
   if (form.birthDate) payload.birthDate = form.birthDate;
   if (form.proposalType) payload.type = form.proposalType;
+  payload.consent = {
+    accepted: form.consentAccepted,
+    version: CONSENT_VERSION,
+    at: form.consentAccepted ? form.consentAt || new Date().toISOString() : undefined,
+  };
 
   const address = {
     cep: safeTrim(form.address.cep) ? normalizeCep(form.address.cep) : undefined,
@@ -227,7 +237,20 @@ export default function CadastroPage() {
           draftMeta?: DraftMeta | null;
           stepIndex?: number;
         };
-        if (parsed.form) setForm(parsed.form);
+        if (parsed.form) {
+          setForm({
+            ...defaultForm,
+            ...parsed.form,
+            address: {
+              ...defaultForm.address,
+              ...(parsed.form.address ?? {}),
+            },
+            documents: {
+              ...defaultForm.documents,
+              ...(parsed.form.documents ?? {}),
+            },
+          });
+        }
         if (parsed.draftMeta) setDraftMeta(parsed.draftMeta);
         if (typeof parsed.stepIndex === 'number') setStepIndex(parsed.stepIndex);
       } catch {
@@ -398,6 +421,13 @@ export default function CadastroPage() {
     }
   };
 
+  const handleConsentChange = (accepted: boolean) => {
+    updateForm({
+      consentAccepted: accepted,
+      consentAt: accepted ? new Date().toISOString() : '',
+    });
+  };
+
   useEffect(() => {
     if (!submission) return;
     let attempts = 0;
@@ -434,6 +464,8 @@ export default function CadastroPage() {
       cpf,
     };
   }, [tracking, form.fullName, form.cpf]);
+
+  const canSubmit = form.consentAccepted && submitStatus !== 'submitting';
 
   const AddressFields = (
     <>
@@ -791,7 +823,7 @@ export default function CadastroPage() {
                   <Button variant="secondary" onClick={handleBack}>
                     Voltar
                   </Button>
-                  <Button onClick={submitProposal} disabled={submitStatus === 'submitting'}>
+                  <Button onClick={submitProposal} disabled={!canSubmit}>
                     {submitStatus === 'submitting' ? 'Enviando...' : 'Enviar proposta'}
                   </Button>
                 </>
@@ -832,6 +864,26 @@ export default function CadastroPage() {
                   OCR ainda nao processado. Assim que concluido, alertas aparecem aqui.
                 </div>
               )}
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-200"
+                    checked={form.consentAccepted}
+                    onChange={(event) => handleConsentChange(event.target.checked)}
+                  />
+                  <span>
+                    Li e concordo com o uso dos meus dados para analise e contato conforme a
+                    politica de privacidade.
+                  </span>
+                </label>
+                {!form.consentAccepted ? (
+                  <p className="mt-2 text-xs text-amber-600">
+                    Aceite o consentimento para enviar a proposta.
+                  </p>
+                ) : null}
+              </div>
 
               {submitStatus === 'done' && submission ? (
                 <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-sm text-emerald-800">

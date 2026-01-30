@@ -1,4 +1,9 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 export type StorageConfig = {
   bucket: string;
@@ -54,6 +59,15 @@ export class StorageClient {
         Key: input.key,
         Body: input.buffer,
         ContentType: input.contentType,
+      }),
+    );
+  }
+
+  async delete(key: string) {
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key,
       }),
     );
   }

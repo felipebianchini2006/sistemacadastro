@@ -20,6 +20,10 @@ import {
   ListProposalsQuery,
   RejectProposalDto,
   RequestChangesDto,
+  assignProposalSchema,
+  listProposalsQuerySchema,
+  rejectProposalSchema,
+  requestChangesSchema,
 } from './admin.proposals.dto';
 
 type RequestUser = { id: string; roles?: RoleName[] };
@@ -32,7 +36,8 @@ export class AdminProposalsController {
   @Get()
   @Roles(RoleName.ADMIN, RoleName.ANALYST, RoleName.VIEWER)
   list(@Query() query: ListProposalsQuery) {
-    return this.service.list(query);
+    const parsed = listProposalsQuerySchema.parse(query);
+    return this.service.list(parsed);
   }
 
   @Get(':proposalId')
@@ -48,7 +53,8 @@ export class AdminProposalsController {
     @Body() body: AssignProposalDto,
     @Req() req: Request & { user?: RequestUser },
   ) {
-    return this.service.assign(proposalId, body, req.user?.id ?? 'system');
+    const parsed = assignProposalSchema.parse(body);
+    return this.service.assign(proposalId, parsed, req.user?.id ?? 'system');
   }
 
   @Post(':proposalId/request-changes')
@@ -58,9 +64,10 @@ export class AdminProposalsController {
     @Body() body: RequestChangesDto,
     @Req() req: Request & { user?: RequestUser },
   ) {
+    const parsed = requestChangesSchema.parse(body);
     return this.service.requestChanges(
       proposalId,
-      body,
+      parsed,
       req.user?.id ?? 'system',
     );
   }
@@ -81,7 +88,8 @@ export class AdminProposalsController {
     @Body() body: RejectProposalDto,
     @Req() req: Request & { user?: RequestUser },
   ) {
-    return this.service.reject(proposalId, body, req.user?.id ?? 'system');
+    const parsed = rejectProposalSchema.parse(body);
+    return this.service.reject(proposalId, parsed, req.user?.id ?? 'system');
   }
 
   @Post(':proposalId/resend-signature-link')

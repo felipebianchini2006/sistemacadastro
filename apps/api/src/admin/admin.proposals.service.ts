@@ -11,12 +11,13 @@ import {
   Prisma,
   SignatureStatus,
 } from '@prisma/client';
-import { createHash, createDecipheriv, randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SignatureService } from '../signature/signature.service';
 import { JobsService } from '../jobs/jobs.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import {
   AssignProposalDto,
   ListProposalsQuery,
@@ -32,6 +33,7 @@ export class AdminProposalsService {
     private readonly signatureService: SignatureService,
     private readonly jobs: JobsService,
     private readonly configService: ConfigService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async list(query: ListProposalsQuery) {
@@ -87,7 +89,7 @@ export class AdminProposalsService {
 
     return proposals.map((proposal) => {
       const cpfMasked = proposal.person?.cpfEncrypted
-        ? maskCpf(this.decrypt(proposal.person.cpfEncrypted))
+        ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
         : null;
 
       return {
@@ -134,7 +136,7 @@ export class AdminProposalsService {
     }
 
     const cpfMasked = proposal.person?.cpfEncrypted
-      ? maskCpf(this.decrypt(proposal.person.cpfEncrypted))
+      ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
       : null;
 
     return {
@@ -228,8 +230,8 @@ export class AdminProposalsService {
       message: dto.message,
     });
 
-    const email = this.decrypt(proposal.person.emailEncrypted);
-    const phone = this.decrypt(proposal.person.phoneEncrypted);
+    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
+    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
     const link = this.buildTrackingLink(
       proposal.protocol,
       proposal.publicToken,
@@ -290,7 +292,7 @@ export class AdminProposalsService {
       reason: dto.reason,
     });
 
-    const email = this.decrypt(proposal.person.emailEncrypted);
+    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
     await this.notifications.notifyRejected({
       proposalId: proposal.id,
       email,
@@ -334,8 +336,8 @@ export class AdminProposalsService {
       throw new BadRequestException('Contrato PDF nao encontrado');
     }
 
-    const email = this.decrypt(proposal.person.emailEncrypted);
-    const phone = this.decrypt(proposal.person.phoneEncrypted);
+    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
+    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
 
     await this.jobs.enqueueSignature({
       proposalId: proposal.id,
@@ -378,8 +380,8 @@ export class AdminProposalsService {
       throw new NotFoundException('Proposta nao encontrada');
     }
 
-    const email = this.decrypt(proposal.person.emailEncrypted);
-    const phone = this.decrypt(proposal.person.phoneEncrypted);
+    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
+    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
     const requestId = randomUUID();
 
     await this.jobs.enqueuePdf({
@@ -461,39 +463,6 @@ export class AdminProposalsService {
 
   private hashSearch(value: string) {
     return createHash('sha256').update(value).digest('hex');
-  }
-
-  private decrypt(value: string) {
-    const key = this.getEncryptionKey();
-    const buffer = Buffer.from(value, 'base64');
-    const iv = buffer.subarray(0, 12);
-    const tag = buffer.subarray(12, 28);
-    const encrypted = buffer.subarray(28);
-
-    const decipher = createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
-
-    return decrypted.toString('utf8');
-  }
-
-  private getEncryptionKey() {
-    const key = this.configService.get<string>('DATA_ENCRYPTION_KEY', {
-      infer: true,
-    });
-    if (!key) {
-      throw new Error('DATA_ENCRYPTION_KEY not set');
-    }
-
-    const buffer = Buffer.from(key, 'base64');
-    if (buffer.length !== 32) {
-      throw new Error('DATA_ENCRYPTION_KEY must be 32 bytes (base64)');
-    }
-
-    return buffer;
   }
 }
 

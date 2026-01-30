@@ -2,7 +2,9 @@
 import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 import { AuthService } from './auth.service';
+import { z } from 'zod';
 import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
@@ -19,14 +21,16 @@ export class AuthController {
     @Body() body: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const parsed = loginSchema.parse(body);
     const { user, accessToken, refreshToken } = await this.authService.login(
-      body.email,
-      body.password,
+      parsed.email,
+      parsed.password,
     );
 
     this.setRefreshCookie(res, refreshToken);
+    const csrfToken = this.setCsrfCookie(res);
 
-    return { user, accessToken };
+    return { user, accessToken, csrfToken };
   }
 
   @Post('refresh')
@@ -45,8 +49,9 @@ export class AuthController {
     } = this.authService.refresh(token);
 
     this.setRefreshCookie(res, newRefreshToken);
+    const csrfToken = this.setCsrfCookie(res);
 
-    return { user, accessToken };
+    return { user, accessToken, csrfToken };
   }
 
   @Post('logout')
@@ -54,6 +59,11 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('refresh_token', {
       httpOnly: true,
+      sameSite: 'lax',
+      secure: this.isProduction(),
+    });
+    res.clearCookie(this.getCsrfCookieName(), {
+      httpOnly: false,
       sameSite: 'lax',
       secure: this.isProduction(),
     });
@@ -69,7 +79,29 @@ export class AuthController {
     });
   }
 
+  private setCsrfCookie(res: Response) {
+    const token = randomBytes(32).toString('hex');
+    res.cookie(this.getCsrfCookieName(), token, {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: this.isProduction(),
+    });
+    return token;
+  }
+
+  private getCsrfCookieName() {
+    return (
+      this.configService.get<string>('CSRF_COOKIE_NAME', { infer: true }) ??
+      'csrf_token'
+    );
+  }
+
   private isProduction() {
     return this.configService.get('NODE_ENV') === 'production';
   }
 }
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});

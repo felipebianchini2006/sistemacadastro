@@ -81,6 +81,7 @@ export class ClicksignWebhookService {
     const eventType = extractEventType(payload);
 
     if (!envelopeId || !eventType) {
+      const payloadHash = createHash('sha256').update(rawBody).digest('hex');
       await this.prisma.auditLog.create({
         data: {
           action: 'CLICKSIGN_WEBHOOK',
@@ -88,7 +89,7 @@ export class ClicksignWebhookService {
           entityId: envelopeId ?? 'unknown',
           metadata: {
             eventId,
-            payload,
+            payloadHash,
             note: 'missing envelopeId or eventType',
           },
         },
@@ -103,12 +104,13 @@ export class ClicksignWebhookService {
     });
 
     if (!envelope) {
+      const payloadHash = createHash('sha256').update(rawBody).digest('hex');
       await this.prisma.auditLog.create({
         data: {
           action: 'CLICKSIGN_WEBHOOK',
           entityType: 'SignatureEnvelope',
           entityId: envelopeId,
-          metadata: { eventId, payload, note: 'envelope not found' },
+          metadata: { eventId, payloadHash, note: 'envelope not found' },
         },
       });
 
@@ -156,7 +158,7 @@ export class ClicksignWebhookService {
         entityType: 'SignatureEnvelope',
         entityId: envelope.id,
         proposalId: envelope.proposalId,
-        metadata: { eventId, eventType, payload },
+        metadata: { eventId, eventType },
       },
     });
 

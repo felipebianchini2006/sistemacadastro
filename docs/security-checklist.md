@@ -1,0 +1,33 @@
+﻿# Security Checklist
+
+- Network hardening
+  - CORS restricted via `CORS_ORIGINS` and credentials flag.
+  - `helmet()` enabled and throttling applied.
+  - CSRF protection enforced for `/admin` non-GET requests.
+- Input validation
+  - DTOs validated via zod where exposed.
+  - Strict validation for CPF/email/phone/CEP in shared validators.
+- Secrets and crypto
+  - `DATA_ENCRYPTION_KEY` must be 32 bytes base64; rotate periodically.
+  - Optional envelope key wrapping via AWS KMS (`KMS_KEY_ID`).
+  - Prefer sourcing secrets from Vault or a managed secret manager in production.
+  - Avoid storing PII in logs or external webhook payloads.
+- Webhooks
+  - Clicksign + SendGrid signed webhook verification enabled.
+  - Twilio signature verification enabled when auth token set.
+  - Idempotency enforced via eventId hashing.
+- Observability
+  - Structured logs with PII redaction.
+  - Prometheus metrics exposed at `/metrics` (configurable).
+  - OpenTelemetry tracing optional via `OTEL_EXPORTER_OTLP_ENDPOINT`.
+- Retention & minimization (LGPD)
+  - Drafts: `RETENTION_DAYS_DRAFTS` (default 7 days).
+  - Audit logs: `RETENTION_DAYS_AUDIT_LOGS` (default 365 days).
+  - Notifications: `RETENTION_DAYS_NOTIFICATIONS` (default 180 days).
+  - Documents: `RETENTION_DAYS_DOCUMENTS` (default 365 days).
+- Consent
+  - Consent acceptance required on submit and logged to `ConsentLog`.
+  - `CONSENT_VERSION` should be bumped when text changes.
+- Backups
+  - `BACKUP_COMMAND` configured and scheduled via maintenance queue.
+  - Verify backup integrity periodically.

@@ -7,6 +7,7 @@ export type AdminUser = {
 };
 
 const ACCESS_COOKIE = 'admin_access';
+const CSRF_COOKIE = 'csrf_token';
 const USER_STORAGE = 'admin_user';
 
 const getCookieValue = (name: string) => {
@@ -45,6 +46,7 @@ export const decodeJwt = <T extends Record<string, unknown>>(token: string): T |
 };
 
 export const getAdminAccessToken = () => getCookieValue(ACCESS_COOKIE);
+export const getCsrfToken = () => getCookieValue(CSRF_COOKIE);
 
 export const setAdminSession = (token: string, user: AdminUser) => {
   const payload = decodeJwt<{ exp?: number }>(token);

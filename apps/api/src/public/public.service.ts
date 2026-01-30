@@ -6,11 +6,12 @@
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentType, ProposalStatus, ProposalType } from '@prisma/client';
-import { createHash, createCipheriv, randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import {
   CreateDraftDto,
   SubmitProposalDto,
@@ -22,7 +23,12 @@ import {
   validateEmailMx,
 } from './public.validation';
 
-const DRAFT_TTL_DAYS = 7;
+const DEFAULT_DRAFT_TTL_DAYS = 7;
+
+type SubmitRequestContext = {
+  ip?: string;
+  userAgent?: string;
+};
 
 @Injectable()
 export class PublicService {
@@ -31,6 +37,7 @@ export class PublicService {
     private readonly jobs: JobsService,
     private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async createDraft(dto: CreateDraftDto) {
@@ -38,9 +45,8 @@ export class PublicService {
 
     const token = randomBytes(32).toString('hex');
     const tokenHash = this.hashToken(token);
-    const expiresAt = new Date(
-      Date.now() + DRAFT_TTL_DAYS * 24 * 60 * 60 * 1000,
-    );
+    const ttlDays = this.getDraftTtlDays();
+    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
 
     const draft = await this.prisma.draft.create({
       data: {
@@ -95,7 +101,10 @@ export class PublicService {
     };
   }
 
-  async submitProposal(dto: SubmitProposalDto) {
+  async submitProposal(
+    dto: SubmitProposalDto,
+    context: SubmitRequestContext = {},
+  ) {
     const draft = await this.getDraftOrThrow(dto.draftId, dto.draftToken);
 
     const data = this.safeValidate(draft.data ?? {}, true);
@@ -106,11 +115,11 @@ export class PublicService {
 
     const personData = {
       fullName: data.fullName!,
-      cpfEncrypted: this.encrypt(data.cpf!),
+      cpfEncrypted: await this.crypto.encrypt(data.cpf!),
       cpfHash: this.hashSearch(data.cpf!),
-      emailEncrypted: this.encrypt(data.email!.toLowerCase()),
+      emailEncrypted: await this.crypto.encrypt(data.email!.toLowerCase()),
       emailHash: this.hashSearch(data.email!.toLowerCase()),
-      phoneEncrypted: this.encrypt(data.phone!),
+      phoneEncrypted: await this.crypto.encrypt(data.phone!),
       phoneHash: this.hashSearch(data.phone!),
       birthDate: data.birthDate ? new Date(data.birthDate) : null,
     };
@@ -127,29 +136,53 @@ export class PublicService {
         }
       : undefined;
 
-    const proposal = await this.prisma.proposal.create({
-      data: {
-        protocol,
-        type: data.type ?? ProposalType.NOVO,
-        status: ProposalStatus.SUBMITTED,
-        submittedAt: now,
-        draftId: draft.id,
-        person: {
-          create: personData,
-        },
-        address: addressData
-          ? {
-              create: addressData,
-            }
-          : undefined,
-        statusHistory: {
-          create: {
-            fromStatus: null,
-            toStatus: ProposalStatus.SUBMITTED,
-            reason: 'Proposta submetida pelo candidato',
+    const consentVersion =
+      data.consent?.version ??
+      this.configService.get<string>('CONSENT_VERSION', { infer: true }) ??
+      'v1';
+    const acceptedAt = data.consent?.at ? new Date(data.consent.at) : now;
+    const acceptedAtSafe = Number.isNaN(acceptedAt.getTime())
+      ? now
+      : acceptedAt;
+
+    const proposal = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.proposal.create({
+        data: {
+          protocol,
+          type: data.type ?? ProposalType.NOVO,
+          status: ProposalStatus.SUBMITTED,
+          submittedAt: now,
+          draftId: draft.id,
+          person: {
+            create: personData,
+          },
+          address: addressData
+            ? {
+                create: addressData,
+              }
+            : undefined,
+          statusHistory: {
+            create: {
+              fromStatus: null,
+              toStatus: ProposalStatus.SUBMITTED,
+              reason: 'Proposta submetida pelo candidato',
+            },
           },
         },
-      },
+      });
+
+      await tx.consentLog.create({
+        data: {
+          proposalId: created.id,
+          type: 'proposal',
+          version: consentVersion,
+          acceptedAt: acceptedAtSafe,
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+      });
+
+      return created;
     });
 
     const draftDocs = await this.prisma.documentFile.findMany({
@@ -243,6 +276,7 @@ export class PublicService {
 
   async cleanupExpiredDrafts() {
     const now = new Date();
+    const ttlDays = this.getDraftTtlDays();
 
     await this.prisma.documentFile.deleteMany({
       where: {
@@ -256,9 +290,7 @@ export class PublicService {
       where: { expiresAt: { lt: now } },
     });
 
-    const orphanLimit = new Date(
-      Date.now() - DRAFT_TTL_DAYS * 24 * 60 * 60 * 1000,
-    );
+    const orphanLimit = new Date(Date.now() - ttlDays * 24 * 60 * 60 * 1000);
     await this.prisma.documentFile.deleteMany({
       where: {
         proposalId: null,
@@ -368,32 +400,11 @@ export class PublicService {
     return createHash('sha256').update(value).digest('hex');
   }
 
-  private encrypt(value: string) {
-    const key = this.getEncryptionKey();
-    const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', key, iv);
-    const encrypted = Buffer.concat([
-      cipher.update(value, 'utf8'),
-      cipher.final(),
-    ]);
-    const tag = cipher.getAuthTag();
-
-    return Buffer.concat([iv, tag, encrypted]).toString('base64');
-  }
-
-  private getEncryptionKey() {
-    const key = this.configService.get<string>('DATA_ENCRYPTION_KEY', {
-      infer: true,
-    });
-    if (!key) {
-      throw new Error('DATA_ENCRYPTION_KEY not set');
-    }
-
-    const buffer = Buffer.from(key, 'base64');
-    if (buffer.length !== 32) {
-      throw new Error('DATA_ENCRYPTION_KEY must be 32 bytes (base64)');
-    }
-
-    return buffer;
+  private getDraftTtlDays() {
+    return (
+      this.configService.get<number>('RETENTION_DAYS_DRAFTS', {
+        infer: true,
+      }) ?? DEFAULT_DRAFT_TTL_DAYS
+    );
   }
 }

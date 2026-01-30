@@ -1,4 +1,4 @@
-﻿import {
+import {
   Body,
   Controller,
   Get,
@@ -7,8 +7,10 @@
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 
 import { PublicService } from './public.service';
 import {
@@ -49,8 +51,11 @@ export class PublicController {
 
   @Post('proposals')
   @Throttle({ default: { limit: 10, ttl: 60 } })
-  submitProposal(@Body() body: SubmitProposalDto) {
-    return this.publicService.submitProposal(body);
+  submitProposal(@Body() body: SubmitProposalDto, @Req() req: Request) {
+    return this.publicService.submitProposal(body, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
   }
 
   @Get('proposals/track')

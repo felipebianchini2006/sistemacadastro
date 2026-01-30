@@ -9,9 +9,16 @@ import { SignatureModule } from '../signature/signature.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { CryptoModule } from '../common/crypto/crypto.module';
 
 @Module({
-  imports: [SignatureModule, NotificationsModule, JobsModule, PrismaModule],
+  imports: [
+    SignatureModule,
+    NotificationsModule,
+    JobsModule,
+    PrismaModule,
+    CryptoModule,
+  ],
   controllers: [AdminController, AdminProposalsController],
   providers: [
     JwtAuthGuard,

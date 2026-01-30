@@ -4,12 +4,12 @@
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ProposalStatus } from '@prisma/client';
-import { createDecipheriv, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 
 @Injectable()
 export class SignatureService {
@@ -18,7 +18,7 @@ export class SignatureService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: JobsService,
-    private readonly configService: ConfigService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async requestSignature(proposalId: string) {
@@ -39,8 +39,8 @@ export class SignatureService {
       throw new BadRequestException('Status da proposta invalido');
     }
 
-    const email = this.decrypt(proposal.person.emailEncrypted);
-    const phone = this.decrypt(proposal.person.phoneEncrypted);
+    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
+    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
 
     const candidate = {
       name: proposal.person.fullName,
@@ -74,38 +74,5 @@ export class SignatureService {
     this.logger.log({ proposalId, requestId }, 'signature.requested');
 
     return { ok: true, requestId };
-  }
-
-  private decrypt(value: string) {
-    const key = this.getEncryptionKey();
-    const buffer = Buffer.from(value, 'base64');
-    const iv = buffer.subarray(0, 12);
-    const tag = buffer.subarray(12, 28);
-    const encrypted = buffer.subarray(28);
-
-    const decipher = createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
-
-    return decrypted.toString('utf8');
-  }
-
-  private getEncryptionKey() {
-    const key = this.configService.get<string>('DATA_ENCRYPTION_KEY', {
-      infer: true,
-    });
-    if (!key) {
-      throw new Error('DATA_ENCRYPTION_KEY not set');
-    }
-
-    const buffer = Buffer.from(key, 'base64');
-    if (buffer.length !== 32) {
-      throw new Error('DATA_ENCRYPTION_KEY must be 32 bytes (base64)');
-    }
-
-    return buffer;
   }
 }

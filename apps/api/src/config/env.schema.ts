@@ -14,8 +14,18 @@ export const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().default('7d'),
 
   DATA_ENCRYPTION_KEY: z.string().min(32),
+  KMS_KEY_ID: z.string().optional(),
+  KMS_REGION: z.string().optional(),
+  KMS_ENDPOINT: z.string().optional(),
+  VAULT_ADDR: z.string().optional(),
+  VAULT_TOKEN: z.string().optional(),
 
   CORS_ORIGINS: z.string().optional(),
+  CORS_ALLOW_CREDENTIALS: z.coerce.boolean().optional().default(true),
+
+  CSRF_ENABLED: z.coerce.boolean().optional().default(true),
+  CSRF_COOKIE_NAME: z.string().default('csrf_token'),
+  CSRF_HEADER_NAME: z.string().default('x-csrf-token'),
 
   S3_ENDPOINT: z.string().optional(),
   S3_ACCESS_KEY: z.string().optional(),
@@ -30,6 +40,22 @@ export const envSchema = z.object({
   UPLOAD_MIN_HEIGHT: z.coerce.number().int().positive().default(600),
 
   EMAIL_MX_CHECK: z.coerce.boolean().optional().default(false),
+
+  CONSENT_VERSION: z.string().default('v1'),
+
+  METRICS_ENABLED: z.coerce.boolean().optional().default(true),
+  METRICS_PATH: z.string().default('/metrics'),
+
+  OTEL_ENABLED: z.coerce.boolean().optional().default(false),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
+
+  RETENTION_DAYS_DRAFTS: z.coerce.number().int().positive().default(7),
+  RETENTION_DAYS_AUDIT_LOGS: z.coerce.number().int().positive().default(365),
+  RETENTION_DAYS_NOTIFICATIONS: z.coerce.number().int().positive().default(180),
+  RETENTION_DAYS_DOCUMENTS: z.coerce.number().int().positive().default(365),
+
+  BACKUP_COMMAND: z.string().optional(),
+  BACKUP_CRON: z.string().default('0 3 * * *'),
 
   CLICKSIGN_ACCESS_TOKEN: z.string().min(10),
   CLICKSIGN_BASE_URL: z.string().url().optional(),

@@ -115,6 +115,7 @@ model Proposal {
   notifications Notification[]
   statusHistory StatusHistory[]
   auditLogs     AuditLog[]
+  consentLogs   ConsentLog[]
   totvsSync     TotvsSync?
   draft         Draft?         @relation(fields: [draftId], references: [id], onDelete: SetNull)
   assignedAnalyst AdminUser?   @relation("ProposalAssignedAnalyst", fields: [assignedAnalystId], references: [id], onDelete: SetNull)
@@ -396,4 +397,20 @@ model TotvsSync {
   proposal    Proposal       @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   @@index([status, lastSyncAt])
+}
+
+model ConsentLog {
+  id         String   @id @default(uuid())
+  proposalId String
+  type       String
+  version    String
+  acceptedAt DateTime
+  ip         String?
+  userAgent  String?
+
+  createdAt  DateTime @default(now())
+
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, createdAt])
 }

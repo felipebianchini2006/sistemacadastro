@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { NotificationChannel, NotificationStatus } from '@prisma/client';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
@@ -216,9 +216,10 @@ export class NotificationsService {
         channel: input.channel,
         status: NotificationStatus.PENDING,
         payloadRedacted: {
-          to: input.to,
+          toHash: hashValue(input.to),
+          toMasked: maskContact(input.to),
           template: input.template,
-          data: input.data,
+          dataKeys: Object.keys(input.data ?? {}),
           optIn: input.optIn ?? null,
         },
       },
@@ -260,3 +261,17 @@ export class NotificationsService {
     return notification;
   }
 }
+
+const hashValue = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
+
+const maskContact = (value: string) => {
+  if (value.includes('@')) {
+    const [user, domain] = value.split('@');
+    if (!domain) return '***';
+    return `${user?.slice(0, 2) ?? '**'}***@${domain}`;
+  }
+  const digits = value.replace(/\D+/g, '');
+  if (digits.length <= 4) return '***';
+  return `***${digits.slice(-4)}`;
+};

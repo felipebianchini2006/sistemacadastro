@@ -1,4 +1,10 @@
-﻿import { getAdminAccessToken, setAdminSession, clearAdminSession, type AdminUser } from './auth';
+import {
+  getAdminAccessToken,
+  getCsrfToken,
+  setAdminSession,
+  clearAdminSession,
+  type AdminUser,
+} from './auth';
 
 const getApiBase = () => process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
@@ -20,11 +26,13 @@ export const adminFetch = async <T>(
   } = {},
 ): Promise<T> => {
   const token = options.auth ? getAdminAccessToken() : null;
+  const csrf = getCsrfToken();
   const response = await fetch(buildUrl(path), {
     method: options.method ?? 'GET',
     headers: {
       'content-type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrf ? { 'x-csrf-token': csrf } : {}),
       ...(options.headers ?? {}),
     },
     credentials: 'include',

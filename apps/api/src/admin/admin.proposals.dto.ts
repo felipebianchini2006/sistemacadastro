@@ -1,4 +1,5 @@
 import { ProposalStatus, ProposalType } from '@prisma/client';
+import { z } from 'zod';
 
 export type ProposalListSlaFilter = 'BREACHED' | 'DUE_SOON' | 'OK';
 
@@ -23,3 +24,25 @@ export type RequestChangesDto = {
 export type RejectProposalDto = {
   reason: string;
 };
+
+export const listProposalsQuerySchema = z.object({
+  status: z.nativeEnum(ProposalStatus).optional(),
+  type: z.nativeEnum(ProposalType).optional(),
+  sla: z.enum(['BREACHED', 'DUE_SOON', 'OK']).optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  text: z.string().optional(),
+});
+
+export const assignProposalSchema = z.object({
+  analystId: z.string().uuid(),
+});
+
+export const requestChangesSchema = z.object({
+  missingItems: z.array(z.string().min(1)).min(1),
+  message: z.string().optional(),
+});
+
+export const rejectProposalSchema = z.object({
+  reason: z.string().min(3),
+});

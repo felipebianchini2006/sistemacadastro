@@ -9,6 +9,7 @@ export class JobsService implements OnModuleDestroy {
   private readonly queue: Queue;
   private readonly signatureQueue: Queue;
   private readonly notificationQueue: Queue;
+  private readonly maintenanceQueue: Queue;
   private readonly connection: IORedis;
 
   constructor(private readonly configService: ConfigService) {
@@ -21,6 +22,9 @@ export class JobsService implements OnModuleDestroy {
       connection: this.connection,
     });
     this.notificationQueue = new Queue('notification-jobs', {
+      connection: this.connection,
+    });
+    this.maintenanceQueue = new Queue('maintenance-jobs', {
       connection: this.connection,
     });
   }
@@ -184,10 +188,40 @@ export class JobsService implements OnModuleDestroy {
     );
   }
 
+  async enqueueMaintenanceCleanup(payload: { requestId?: string }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.maintenanceQueue.add(
+      'maintenance.cleanup',
+      { requestId },
+      {
+        removeOnComplete: true,
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 60000 },
+      },
+    );
+  }
+
+  async enqueueMaintenanceBackup(payload: {
+    command?: string;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.maintenanceQueue.add(
+      'maintenance.backup',
+      { requestId, command: payload.command },
+      {
+        removeOnComplete: true,
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 60000 },
+      },
+    );
+  }
+
   async onModuleDestroy() {
     await this.queue.close();
     await this.signatureQueue.close();
     await this.notificationQueue.close();
+    await this.maintenanceQueue.close();
     await this.connection.quit();
   }
 }
