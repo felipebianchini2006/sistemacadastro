@@ -1,0 +1,409 @@
+﻿openapi: 3.0.3
+info:
+  title: Sistema Cadastro API
+  version: 0.1.0
+  description: Contratos principais (publico, backoffice e webhooks)
+servers:
+  - url: https://api.exemplo.com
+paths:
+  /api/v1/proposals:
+    post:
+      summary: Criar proposta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalCreate'
+      responses:
+        '201':
+          description: Proposta criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalCreated'
+  /api/v1/proposals/{protocol}:
+    get:
+      summary: Consultar proposta por protocolo
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proposta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+    patch:
+      summary: Autosave de proposta
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalUpdate'
+      responses:
+        '200':
+          description: Proposta atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+  /api/v1/proposals/{protocol}/submit:
+    post:
+      summary: Enviar proposta
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proposta enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+  /api/v1/proposals/{protocol}/documents:
+    post:
+      summary: Upload de documento
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentUpload'
+      responses:
+        '201':
+          description: Documento registrado
+  /api/v1/cep/{cep}:
+    get:
+      summary: Consultar CEP
+      parameters:
+        - name: cep
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Endereco
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+  /api/v1/otp/send:
+    post:
+      summary: Enviar OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpSend'
+      responses:
+        '200':
+          description: OTP enviado
+  /api/v1/otp/verify:
+    post:
+      summary: Verificar OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerify'
+      responses:
+        '200':
+          description: OTP validado
+
+  /api/v1/admin/proposals:
+    get:
+      summary: Listar propostas
+      responses:
+        '200':
+          description: Lista de propostas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Proposal'
+  /api/v1/admin/proposals/{id}:
+    get:
+      summary: Dossie da proposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proposta detalhada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+  /api/v1/admin/proposals/{id}/review/start:
+    post:
+      summary: Iniciar analise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Analise iniciada
+  /api/v1/admin/proposals/{id}/pending-docs:
+    post:
+      summary: Criar pendencias
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PendingDocs'
+      responses:
+        '200':
+          description: Pendencias criadas
+  /api/v1/admin/proposals/{id}/approve:
+    post:
+      summary: Aprovar proposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proposta aprovada
+  /api/v1/admin/proposals/{id}/reject:
+    post:
+      summary: Reprovar proposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proposta reprovada
+  /api/v1/admin/proposals/{id}/signature/request:
+    post:
+      summary: Solicitar assinatura
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Assinatura solicitada
+  /api/v1/admin/exports:
+    post:
+      summary: Criar exportacao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '202':
+          description: Exportacao em processamento
+
+  /api/v1/webhooks/clicksign:
+    post:
+      summary: Webhook Clicksign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/v1/webhooks/sendgrid:
+    post:
+      summary: Webhook SendGrid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/v1/webhooks/twilio:
+    post:
+      summary: Webhook Twilio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/v1/webhooks/totvs:
+    post:
+      summary: Webhook TOTVS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+
+components:
+  schemas:
+    ProposalCreate:
+      type: object
+      required: [name, cpf, email, phone]
+      properties:
+        name:
+          type: string
+        cpf:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+    ProposalUpdate:
+      type: object
+      properties:
+        step:
+          type: integer
+        data:
+          type: object
+          additionalProperties: true
+    ProposalCreated:
+      type: object
+      properties:
+        protocol:
+          type: string
+        status:
+          $ref: '#/components/schemas/ProposalStatus'
+    Proposal:
+      type: object
+      properties:
+        id:
+          type: string
+        protocol:
+          type: string
+        status:
+          $ref: '#/components/schemas/ProposalStatus'
+        data:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProposalStatus:
+      type: string
+      enum:
+        - DRAFT
+        - IN_PROGRESS
+        - SUBMITTED
+        - UNDER_REVIEW
+        - PENDING_DOCS
+        - PENDING_SIGNATURE
+        - SIGNED
+        - APPROVED
+        - REJECTED
+        - CANCELED
+    DocumentUpload:
+      type: object
+      required: [type, filename]
+      properties:
+        type:
+          type: string
+        filename:
+          type: string
+        contentType:
+          type: string
+    PendingDocs:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: string
+    ExportRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [CSV, PDF]
+        filters:
+          type: object
+          additionalProperties: true
+    Address:
+      type: object
+      properties:
+        cep:
+          type: string
+        street:
+          type: string
+        number:
+          type: string
+        district:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+    OtpSend:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+    OtpVerify:
+      type: object
+      required: [phone, code]
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
