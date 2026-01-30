@@ -1,0 +1,15 @@
+﻿# Nest build output
+/dist
+/coverage
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# IDE
+.vscode
+.idea

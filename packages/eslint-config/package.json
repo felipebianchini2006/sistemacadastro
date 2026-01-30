@@ -1,0 +1,18 @@
+﻿{
+  "name": "@sistemacadastro/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.2"
+  },
+  "peerDependencies": {
+    "eslint": ">=9",
+    "eslint-config-prettier": ">=10",
+    "typescript-eslint": ">=8"
+  }
+}

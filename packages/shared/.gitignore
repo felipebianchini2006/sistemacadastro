@@ -1,0 +1,10 @@
+﻿# Build output
+/dist
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
