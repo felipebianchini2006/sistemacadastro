@@ -12,6 +12,7 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { AdminModule } from './admin/admin.module';
+import { PublicModule } from './public/public.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AdminModule } from './admin/admin.module';
     HealthModule,
     AuthModule,
     AdminModule,
+    PublicModule,
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60, limit: 100 }],
     }),

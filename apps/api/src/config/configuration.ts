@@ -4,6 +4,7 @@ export const configuration = (env: Env) => ({
   nodeEnv: env.NODE_ENV,
   port: env.PORT,
   databaseUrl: env.DATABASE_URL,
+  redisUrl: env.REDIS_URL,
   jwt: {
     accessSecret: env.JWT_ACCESS_SECRET,
     refreshSecret: env.JWT_REFRESH_SECRET,

@@ -91,6 +91,7 @@ model Proposal {
   publicToken   String         @unique @default(cuid())
   type          ProposalType
   status        ProposalStatus @default(DRAFT)
+  draftId       String?
 
   slaStartedAt  DateTime?
   slaDueAt      DateTime?
@@ -114,9 +115,25 @@ model Proposal {
   statusHistory StatusHistory[]
   auditLogs     AuditLog[]
   totvsSync     TotvsSync?
+  draft         Draft?         @relation(fields: [draftId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([type, createdAt])
+}
+
+model Draft {
+  id         String   @id @default(uuid())
+  tokenHash  String
+  expiresAt  DateTime
+  data       Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  proposals  Proposal[]
+  documents  DocumentFile[]
+
+  @@index([expiresAt])
 }
 
 model Person {
@@ -166,7 +183,8 @@ model Address {
 
 model DocumentFile {
   id          String      @id @default(uuid())
-  proposalId  String
+  proposalId  String?
+  draftId     String?
   type        DocumentType
   storageKey  String
   fileName    String
@@ -176,10 +194,12 @@ model DocumentFile {
 
   createdAt   DateTime    @default(now())
 
-  proposal    Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposal    Proposal?    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  draft       Draft?       @relation(fields: [draftId], references: [id], onDelete: Cascade)
   ocrResults  OcrResult[]
 
   @@index([proposalId, type])
+  @@index([draftId, type])
   @@index([createdAt])
 }
 

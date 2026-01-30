@@ -2,7 +2,7 @@
   "info": {
     "name": "Sistema Cadastro API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Colecao basica para auth e health"
+    "description": "Colecao basica para auth e fluxo publico"
   },
   "variable": [
     {
@@ -12,6 +12,22 @@
     {
       "key": "accessToken",
       "value": ""
+    },
+    {
+      "key": "draftId",
+      "value": ""
+    },
+    {
+      "key": "draftToken",
+      "value": ""
+    },
+    {
+      "key": "protocol",
+      "value": ""
+    },
+    {
+      "key": "trackingToken",
+      "value": ""
     }
   ],
   "item": [
@@ -20,6 +36,81 @@
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Public - Create Draft",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{baseUrl}}/public/drafts"
+      }
+    },
+    {
+      "name": "Public - Update Draft",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-draft-token",
+            "value": "{{draftToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"fullName\": \"Maria Silva\",\n    \"cpf\": \"935.411.347-80\",\n    \"email\": \"maria@teste.com\",\n    \"phone\": \"(11)98888-7777\",\n    \"birthDate\": \"1990-01-01\",\n    \"address\": {\n      \"cep\": \"01001-000\",\n      \"street\": \"Rua Teste\",\n      \"district\": \"Centro\",\n      \"city\": \"Sao Paulo\",\n      \"state\": \"SP\"\n    }\n  }\n}"
+        },
+        "url": "{{baseUrl}}/public/drafts/{{draftId}}"
+      }
+    },
+    {
+      "name": "Public - Get Draft",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-draft-token",
+            "value": "{{draftToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/public/drafts/{{draftId}}"
+      }
+    },
+    {
+      "name": "Public - Submit Proposal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"draftId\": \"{{draftId}}\",\n  \"draftToken\": \"{{draftToken}}\"\n}"
+        },
+        "url": "{{baseUrl}}/public/proposals"
+      }
+    },
+    {
+      "name": "Public - Track Proposal",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/public/proposals/track?protocol={{protocol}}&token={{trackingToken}}"
       }
     },
     {
