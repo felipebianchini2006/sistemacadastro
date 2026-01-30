@@ -5,7 +5,7 @@
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ProposalStatus, ProposalType } from '@prisma/client';
+import { DocumentType, ProposalStatus, ProposalType } from '@prisma/client';
 import { createHash, createCipheriv, randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -147,7 +147,7 @@ export class PublicService {
 
     const draftDocs = await this.prisma.documentFile.findMany({
       where: { draftId: draft.id },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (draftDocs.length > 0) {
@@ -156,10 +156,20 @@ export class PublicService {
         data: { proposalId: proposal.id, draftId: null },
       });
 
-      await this.jobs.enqueueOcr({
-        proposalId: proposal.id,
-        documentIds: draftDocs.map((doc) => doc.id),
-      });
+      const ocrDocTypes = new Set<DocumentType>([
+        DocumentType.RG_FRENTE,
+        DocumentType.CNH,
+      ]);
+      const ocrDocs = draftDocs.filter((doc) => ocrDocTypes.has(doc.type));
+
+      await Promise.all(
+        ocrDocs.map((doc) =>
+          this.jobs.enqueueOcr({
+            proposalId: proposal.id,
+            documentFileId: doc.id,
+          }),
+        ),
+      );
     }
 
     await this.jobs.enqueueReceivedNotification({
@@ -190,6 +200,15 @@ export class PublicService {
       throw new NotFoundException('Proposta nao encontrada');
     }
 
+    const latestOcr = await this.prisma.ocrResult.findFirst({
+      where: { proposalId: proposal.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        structuredData: true,
+        createdAt: true,
+      },
+    });
+
     return {
       protocol: proposal.protocol,
       status: proposal.status,
@@ -200,6 +219,12 @@ export class PublicService {
         reason: entry.reason,
       })),
       pending: this.getPendingItems(proposal.status),
+      ocr: latestOcr
+        ? {
+            at: latestOcr.createdAt,
+            data: latestOcr.structuredData,
+          }
+        : null,
     };
   }
 

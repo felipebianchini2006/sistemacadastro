@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JobsService } from '../src/jobs/jobs.service';
-import { ProposalStatus, ProposalType } from '@prisma/client';
+import { DocumentType, ProposalStatus, ProposalType } from '@prisma/client';
 
 const buildPrismaStub = () => {
   const drafts = new Map<string, any>();
@@ -16,6 +16,7 @@ const buildPrismaStub = () => {
     id: string;
     draftId?: string | null;
     proposalId?: string | null;
+    type?: DocumentType;
   }> = [];
 
   return {
@@ -80,10 +81,13 @@ const buildPrismaStub = () => {
       findMany: jest.fn(async ({ where }) =>
         documents
           .filter((doc) => doc.draftId === where.draftId)
-          .map((doc) => ({ id: doc.id })),
+          .map((doc) => ({ id: doc.id, type: doc.type ?? DocumentType.CNH })),
       ),
       updateMany: jest.fn(async () => ({ count: 0 })),
       deleteMany: jest.fn(async () => ({ count: 0 })),
+    },
+    ocrResult: {
+      findFirst: jest.fn(async () => null),
     },
   } as unknown as PrismaService;
 };

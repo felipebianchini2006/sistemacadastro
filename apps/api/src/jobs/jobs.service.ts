@@ -2,6 +2,7 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class JobsService implements OnModuleDestroy {
@@ -16,11 +17,28 @@ export class JobsService implements OnModuleDestroy {
     this.queue = new Queue('public-jobs', { connection: this.connection });
   }
 
-  async enqueueOcr(payload: { proposalId: string; documentIds: string[] }) {
-    await this.queue.add('ocr.process', payload, {
-      removeOnComplete: true,
-      attempts: 3,
-    });
+  async enqueueOcr(payload: {
+    proposalId: string;
+    documentFileId: string;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.queue.add(
+      'ocr.process',
+      {
+        proposalId: payload.proposalId,
+        documentFileId: payload.documentFileId,
+        requestId,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 30000,
+        },
+      },
+    );
   }
 
   async enqueueReceivedNotification(payload: {
