@@ -1,5 +1,6 @@
 ﻿import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -109,12 +110,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.accessSecret,
-      expiresIn: this.accessTtl,
+      expiresIn: this.accessTtl as JwtSignOptions['expiresIn'],
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.refreshSecret,
-      expiresIn: this.refreshTtl,
+      expiresIn: this.refreshTtl as JwtSignOptions['expiresIn'],
     });
 
     return { accessToken, refreshToken };

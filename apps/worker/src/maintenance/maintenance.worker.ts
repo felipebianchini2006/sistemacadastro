@@ -1,4 +1,4 @@
-﻿import { Worker, QueueScheduler, Job } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -16,15 +16,11 @@ type MaintenanceJobPayload = {
 export class MaintenanceWorker {
   private readonly connection: IORedis;
   private readonly worker: Worker<MaintenanceJobPayload>;
-  private readonly scheduler: QueueScheduler;
   private readonly storage: StorageClient;
 
   constructor() {
     const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
     this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
-    this.scheduler = new QueueScheduler('maintenance-jobs', {
-      connection: this.connection,
-    });
     this.storage = new StorageClient();
 
     this.worker = new Worker<MaintenanceJobPayload>(
@@ -44,7 +40,6 @@ export class MaintenanceWorker {
 
   async shutdown() {
     await this.worker.close();
-    await this.scheduler.close();
     await this.connection.quit();
     await prisma.$disconnect();
   }
@@ -109,7 +104,7 @@ export class MaintenanceWorker {
 
     const startedAt = Date.now();
     const result = await execAsync(command, {
-      shell: true,
+      shell: process.env.ComSpec,
       env: process.env,
       timeout: 1000 * 60 * 30,
     });

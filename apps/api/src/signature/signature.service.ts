@@ -31,11 +31,12 @@ export class SignatureService {
       throw new NotFoundException('Proposta nao encontrada');
     }
 
-    if (
-      ![ProposalStatus.SUBMITTED, ProposalStatus.UNDER_REVIEW].includes(
-        proposal.status,
-      )
-    ) {
+    const allowedStatuses = new Set<ProposalStatus>([
+      ProposalStatus.SUBMITTED,
+      ProposalStatus.UNDER_REVIEW,
+    ]);
+
+    if (!allowedStatuses.has(proposal.status)) {
       throw new BadRequestException('Status da proposta invalido');
     }
 

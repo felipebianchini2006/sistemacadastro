@@ -124,17 +124,23 @@ export class PublicService {
       birthDate: data.birthDate ? new Date(data.birthDate) : null,
     };
 
-    const addressData = data.address
-      ? {
-          cep: data.address.cep!,
-          street: data.address.street!,
-          number: data.address.number,
-          complement: data.address.complement,
-          district: data.address.district!,
-          city: data.address.city!,
-          state: data.address.state!,
-        }
-      : undefined;
+    const addressData =
+      data.address &&
+      data.address.cep &&
+      data.address.street &&
+      data.address.district &&
+      data.address.city &&
+      data.address.state
+        ? {
+            cep: data.address.cep,
+            street: data.address.street,
+            number: data.address.number,
+            complement: data.address.complement,
+            district: data.address.district,
+            city: data.address.city,
+            state: data.address.state,
+          }
+        : undefined;
 
     const consentVersion =
       data.consent?.version ??

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Worker, QueueScheduler, Job } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { DocumentType, ProposalStatus } from '@prisma/client';
 
@@ -16,7 +16,6 @@ const OCR_DOC_TYPES = new Set<DocumentType>([DocumentType.RG_FRENTE, DocumentTyp
 export class OcrWorker {
   private readonly connection: IORedis;
   private readonly worker: Worker<OcrJobPayload>;
-  private readonly scheduler: QueueScheduler;
   private readonly vision: VisionOcrService;
   private readonly storage: StorageClient;
 
@@ -27,10 +26,6 @@ export class OcrWorker {
     const limiterMax = parseNumber(process.env.OCR_LIMITER_MAX, 10);
     const limiterDuration = parseNumber(process.env.OCR_LIMITER_DURATION_MS, 60000);
     const concurrency = parseNumber(process.env.OCR_CONCURRENCY, 2);
-
-    this.scheduler = new QueueScheduler('public-jobs', {
-      connection: this.connection,
-    });
 
     this.vision = new VisionOcrService();
     this.storage = new StorageClient();
@@ -52,7 +47,6 @@ export class OcrWorker {
 
   async shutdown() {
     await this.worker.close();
-    await this.scheduler.close();
     await this.connection.quit();
     await prisma.$disconnect();
   }
@@ -106,13 +100,24 @@ export class OcrWorker {
       return;
     }
 
+    if (!this.vision.enabled) {
+      console.info(
+        {
+          requestId,
+          reason: 'ocr_disabled',
+        },
+        'ocr.skipped',
+      );
+      return;
+    }
+
     const originalBuffer = await this.storage.download(documentFile.storageKey);
-    let buffer = originalBuffer;
+    let buffer = Buffer.from(originalBuffer);
     let preprocessInfo: { resized: boolean; rotated: boolean } | undefined;
 
     if (documentFile.contentType.startsWith('image/')) {
       const processed = await preprocessImage(originalBuffer);
-      buffer = processed.buffer;
+      buffer = Buffer.from(processed.buffer);
       preprocessInfo = {
         resized: processed.resized,
         rotated: processed.rotated,
@@ -174,11 +179,16 @@ export class OcrWorker {
   }
 
   private async flagMismatch(proposalId: string, currentStatus: ProposalStatus, reasons: string[]) {
+    const allowedStatuses: ProposalStatus[] = [
+      ProposalStatus.SUBMITTED,
+      ProposalStatus.UNDER_REVIEW,
+    ];
+
     if (currentStatus === ProposalStatus.PENDING_DOCS) {
       return;
     }
 
-    if (![ProposalStatus.SUBMITTED, ProposalStatus.UNDER_REVIEW].includes(currentStatus)) {
+    if (!allowedStatuses.includes(currentStatus)) {
       return;
     }
 

@@ -13,7 +13,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 
 import { PublicService } from './public.service';
-import {
+import type {
   CreateDraftDto,
   SubmitProposalDto,
   UpdateDraftDto,

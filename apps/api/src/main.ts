@@ -2,8 +2,9 @@
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as cookieParser from 'cookie-parser';
-import type { Request } from 'express';
+import cookieParser from 'cookie-parser';
+import type { Request, Response } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
@@ -15,16 +16,22 @@ async function bootstrap() {
   await initOpenTelemetry();
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
-  app.useBodyParser('json', {
-    verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
-      if (
-        req.originalUrl?.startsWith('/webhooks/clicksign') ||
-        req.originalUrl?.startsWith('/webhooks/sendgrid')
-      ) {
-        req.rawBody = buf;
-      }
-    },
-  });
+  app.use(
+    express.json({
+      verify: (
+        req: Request & { rawBody?: Buffer },
+        _res: Response,
+        buf: Buffer,
+      ) => {
+        if (
+          req.originalUrl?.startsWith('/webhooks/clicksign') ||
+          req.originalUrl?.startsWith('/webhooks/sendgrid')
+        ) {
+          req.rawBody = buf;
+        }
+      },
+    }),
+  );
   app.use(cookieParser());
   app.use(helmet());
   app.useGlobalFilters(new ProblemDetailsFilter());
@@ -39,7 +46,10 @@ async function bootstrap() {
     true;
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
       if (corsOrigins.length === 0 && nodeEnv !== 'production') {
         return callback(null, true);

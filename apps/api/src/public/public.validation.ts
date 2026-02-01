@@ -2,27 +2,35 @@ import { z } from 'zod';
 import { ProposalType } from '@prisma/client';
 import {
   getEmailDomain,
-  isValidCep,
-  isValidCpf,
   isValidEmailFormat,
-  isValidPhone,
-  normalizeCep,
-  normalizeCpf,
   normalizeEmail,
+} from '@sistemacadastro/shared/dist/validators/email.js';
+import {
+  isValidCep,
+  normalizeCep,
+} from '@sistemacadastro/shared/dist/validators/cep.js';
+import {
+  isValidCpf,
+  normalizeCpf,
+} from '@sistemacadastro/shared/dist/validators/cpf.js';
+import {
+  isValidPhone,
   normalizePhone,
   normalizePhoneToE164,
-} from '@sistemacadastro/shared';
+} from '@sistemacadastro/shared/dist/validators/phone.js';
 import { resolveMx } from 'node:dns/promises';
 
-const addressSchema = z.object({
-  cep: z.string().min(1),
-  street: z.string().min(1),
-  number: z.string().optional(),
-  complement: z.string().optional(),
-  district: z.string().min(1),
-  city: z.string().min(1),
-  state: z.string().min(2),
-});
+const addressSchema = z
+  .object({
+    cep: z.string().min(1),
+    street: z.string().min(1),
+    number: z.string().optional(),
+    complement: z.string().optional(),
+    district: z.string().min(1),
+    city: z.string().min(1),
+    state: z.string().min(2),
+  })
+  .partial();
 
 export const draftDataSchema = z
   .object({

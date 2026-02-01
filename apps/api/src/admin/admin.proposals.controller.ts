@@ -15,11 +15,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { AdminProposalsService } from './admin.proposals.service';
-import {
+import type {
   AssignProposalDto,
   ListProposalsQuery,
   RejectProposalDto,
   RequestChangesDto,
+} from './admin.proposals.dto';
+import {
   assignProposalSchema,
   listProposalsQuerySchema,
   rejectProposalSchema,

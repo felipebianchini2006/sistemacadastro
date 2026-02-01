@@ -87,32 +87,34 @@ export class AdminProposalsService {
       take: 100,
     });
 
-    return proposals.map((proposal) => {
-      const cpfMasked = proposal.person?.cpfEncrypted
-        ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
-        : null;
+    return Promise.all(
+      proposals.map(async (proposal) => {
+        const cpfMasked = proposal.person?.cpfEncrypted
+          ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
+          : null;
 
-      return {
-        id: proposal.id,
-        protocol: proposal.protocol,
-        status: proposal.status,
-        type: proposal.type,
-        createdAt: proposal.createdAt,
-        statusHistory: proposal.statusHistory,
-        sla: {
-          startedAt: proposal.slaStartedAt,
-          dueAt: proposal.slaDueAt,
-          breachedAt: proposal.slaBreachedAt,
-        },
-        person: proposal.person
-          ? {
-              fullName: proposal.person.fullName,
-              cpfMasked,
-            }
-          : null,
-        assignedAnalyst: proposal.assignedAnalyst,
-      };
-    });
+        return {
+          id: proposal.id,
+          protocol: proposal.protocol,
+          status: proposal.status,
+          type: proposal.type,
+          createdAt: proposal.createdAt,
+          statusHistory: proposal.statusHistory,
+          sla: {
+            startedAt: proposal.slaStartedAt,
+            dueAt: proposal.slaDueAt,
+            breachedAt: proposal.slaBreachedAt,
+          },
+          person: proposal.person
+            ? {
+                fullName: proposal.person.fullName,
+                cpfMasked,
+              }
+            : null,
+          assignedAnalyst: proposal.assignedAnalyst,
+        };
+      }),
+    );
   }
 
   async getById(id: string) {
@@ -441,7 +443,7 @@ export class AdminProposalsService {
         action,
         entityType: 'Proposal',
         entityId: proposalId,
-        metadata,
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       },
     });
   }

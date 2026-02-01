@@ -1,13 +1,15 @@
-import { Queue, QueueScheduler, Worker, Job } from 'bullmq';
+import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import {
   DocumentType,
   NotificationChannel,
   NotificationStatus,
+  Prisma,
   SignatureProvider,
   SignatureStatus,
 } from '@prisma/client';
+import { createHash } from 'crypto';
 
 import { prisma } from '../prisma';
 import { StorageClient } from '../services/storage-client';
@@ -17,7 +19,6 @@ import { PdfJobPayload, SignatureJobPayload } from './signature.types';
 export class SignatureWorker {
   private readonly connection: IORedis;
   private readonly worker: Worker;
-  private readonly scheduler: QueueScheduler;
   private readonly queue: Queue;
   private readonly notificationQueue: Queue;
   private readonly storage: StorageClient;
@@ -29,9 +30,6 @@ export class SignatureWorker {
 
     const concurrency = parseNumber(process.env.SIGNATURE_CONCURRENCY, 2);
 
-    this.scheduler = new QueueScheduler('signature-jobs', {
-      connection: this.connection,
-    });
     this.queue = new Queue('signature-jobs', { connection: this.connection });
     this.notificationQueue = new Queue('notification-jobs', {
       connection: this.connection,
@@ -53,7 +51,6 @@ export class SignatureWorker {
     await this.worker.close();
     await this.queue.close();
     await this.notificationQueue.close();
-    await this.scheduler.close();
     await this.connection.quit();
     await prisma.$disconnect();
   }
@@ -266,11 +263,12 @@ export class SignatureWorker {
         channel: input.channel,
         status: NotificationStatus.PENDING,
         payloadRedacted: {
-          to: input.to,
+          toHash: hashValue(input.to),
+          toMasked: maskContact(input.to),
           template: input.template,
-          data: input.data,
+          dataKeys: Object.keys(input.data ?? {}),
           optIn: input.optIn ?? null,
-        },
+        } as Prisma.InputJsonValue,
       },
     });
 
@@ -299,6 +297,19 @@ export class SignatureWorker {
     );
   }
 }
+
+const hashValue = (value: string) => createHash('sha256').update(value).digest('hex');
+
+const maskContact = (value: string) => {
+  if (value.includes('@')) {
+    const [user, domain] = value.split('@');
+    if (!domain) return '***';
+    return `${user?.slice(0, 2) ?? '**'}***@${domain}`;
+  }
+  const digits = value.replace(/\D+/g, '');
+  if (digits.length <= 4) return '***';
+  return `***${digits.slice(-4)}`;
+};
 
 const buildPdfContract = async (input: { protocol: string; candidateName: string }) => {
   const pdfDoc = await PDFDocument.create();

@@ -1,5 +1,5 @@
 ﻿import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';

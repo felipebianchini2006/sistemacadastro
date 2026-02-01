@@ -1,4 +1,4 @@
-import { QueueScheduler, Worker, Job, UnrecoverableError } from 'bullmq';
+import { Worker, Job, UnrecoverableError } from 'bullmq';
 import IORedis from 'ioredis';
 import { NotificationStatus } from '@prisma/client';
 
@@ -11,7 +11,6 @@ import { NotificationJobPayload } from './notification.types';
 export class NotificationWorker {
   private readonly connection: IORedis;
   private readonly worker: Worker<NotificationJobPayload>;
-  private readonly scheduler: QueueScheduler;
   private readonly email: EmailService;
   private readonly sms: SmsService;
   private readonly whatsapp: WhatsappService;
@@ -21,10 +20,6 @@ export class NotificationWorker {
     this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
     const concurrency = parseNumber(process.env.NOTIFICATION_CONCURRENCY, 3);
-
-    this.scheduler = new QueueScheduler('notification-jobs', {
-      connection: this.connection,
-    });
 
     this.email = new EmailService();
     this.sms = new SmsService();
@@ -49,7 +44,6 @@ export class NotificationWorker {
 
   async shutdown() {
     await this.worker.close();
-    await this.scheduler.close();
     await this.connection.quit();
     await prisma.$disconnect();
   }

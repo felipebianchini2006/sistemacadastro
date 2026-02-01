@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
@@ -65,9 +66,15 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
           }
           return header ?? randomUUID();
         },
-        customProps: (req: { correlationId?: string; id?: string }) => ({
-          correlationId: req.correlationId ?? req.id,
-        }),
+        customProps: (req: IncomingMessage, _res: ServerResponse) => {
+          const reqAny = req as {
+            correlationId?: string;
+            id?: string | number;
+          };
+          return {
+            correlationId: reqAny.correlationId ?? reqAny.id,
+          };
+        },
       },
     }),
   ],
