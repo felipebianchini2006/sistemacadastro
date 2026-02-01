@@ -32,6 +32,20 @@ const addressSchema = z
   })
   .partial();
 
+const bankSchema = z
+  .object({
+    bankCode: z.string().optional(),
+    bankName: z.string().optional(),
+    agency: z.string().optional(),
+    account: z.string().optional(),
+    accountType: z.enum(['CC', 'CP']).optional(),
+    holderName: z.string().optional(),
+    holderDocument: z.string().optional(),
+    pixKey: z.string().optional(),
+    pixKeyType: z.string().optional(),
+  })
+  .partial();
+
 const profileRoleSchema = z.enum([
   'AUTOR',
   'COMPOSITOR',
@@ -58,6 +72,7 @@ export const draftDataSchema = z
     migrationEntity: z.string().min(2).optional(),
     migrationConfirmed: z.boolean().optional(),
     address: addressSchema.optional(),
+    bank: bankSchema.optional(),
     consent: z
       .object({
         accepted: z.boolean().optional(),
@@ -89,6 +104,19 @@ export const normalizeDraftData = (data: DraftData) => {
     normalized.address = {
       ...normalized.address,
       cep: normalizeCep(normalized.address.cep),
+    };
+  }
+  if (normalized.bank) {
+    normalized.bank = {
+      ...normalized.bank,
+      bankCode: normalized.bank.bankCode?.trim(),
+      bankName: normalized.bank.bankName?.trim(),
+      agency: normalized.bank.agency?.trim(),
+      account: normalized.bank.account?.trim(),
+      holderName: normalized.bank.holderName?.trim(),
+      holderDocument: normalized.bank.holderDocument?.trim(),
+      pixKey: normalized.bank.pixKey?.trim(),
+      pixKeyType: normalized.bank.pixKeyType?.trim(),
     };
   }
 
@@ -153,6 +181,21 @@ export const validateDraftData = (payload: unknown, required = false) => {
 
   if (normalized.profileRoles && normalized.profileRoles.length === 0) {
     throw new Error('Perfil artistico obrigatorio');
+  }
+
+  if (normalized.bank) {
+    const hasAny = Object.values(normalized.bank).some((value) => value);
+    if (hasAny) {
+      if (!normalized.bank.account) {
+        throw new Error('Conta bancaria obrigatoria');
+      }
+      if (!normalized.bank.accountType) {
+        throw new Error('Tipo de conta obrigatorio');
+      }
+      if (normalized.bank.pixKey && !normalized.bank.pixKeyType) {
+        throw new Error('Tipo de chave PIX obrigatorio');
+      }
+    }
   }
 
   if (required) {

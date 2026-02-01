@@ -32,6 +32,17 @@ export interface DraftDataPayload {
     version?: string;
     at?: string;
   };
+  bank?: {
+    bankCode?: string;
+    bankName?: string;
+    agency?: string;
+    account?: string;
+    accountType?: 'CC' | 'CP';
+    holderName?: string;
+    holderDocument?: string;
+    pixKey?: string;
+    pixKeyType?: string;
+  };
 }
 
 export interface CreateDraftDto {

@@ -27,6 +27,8 @@ type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR
 type ProposalType = 'NOVO' | 'MIGRACAO';
 type DocumentChoice = 'RG' | 'CNH';
 type DocumentType = 'RG_FRENTE' | 'RG_VERSO' | 'CNH' | 'DESFILIACAO' | 'COMPROVANTE_RESIDENCIA';
+type BankAccountType = 'CC' | 'CP';
+type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'TELEFONE' | 'ALEATORIA' | 'OUTRO';
 
 type DraftMeta = {
   draftId: string;
@@ -63,6 +65,17 @@ type DraftFormState = {
     district: string;
     city: string;
     state: string;
+  };
+  bank: {
+    bankCode: string;
+    bankName: string;
+    agency: string;
+    account: string;
+    accountType: BankAccountType | '';
+    holderName: string;
+    holderDocument: string;
+    pixKey: string;
+    pixKeyType: PixKeyType | '';
   };
   documentChoice: DocumentChoice;
   documents: {
@@ -156,6 +169,17 @@ const defaultForm: DraftFormState = {
     city: '',
     state: '',
   },
+  bank: {
+    bankCode: '',
+    bankName: '',
+    agency: '',
+    account: '',
+    accountType: '',
+    holderName: '',
+    holderDocument: '',
+    pixKey: '',
+    pixKeyType: '',
+  },
   documentChoice: 'RG',
   documents: {
     rgFront: { status: 'idle' },
@@ -217,6 +241,20 @@ const buildDraftPayload = (form: DraftFormState) => {
 
   const hasAddress = Object.values(address).some((value) => value);
   if (hasAddress) payload.address = address;
+
+  const bank = {
+    bankCode: safeTrim(form.bank.bankCode) || undefined,
+    bankName: safeTrim(form.bank.bankName) || undefined,
+    agency: safeTrim(form.bank.agency) || undefined,
+    account: safeTrim(form.bank.account) || undefined,
+    accountType: form.bank.accountType || undefined,
+    holderName: safeTrim(form.bank.holderName) || undefined,
+    holderDocument: safeTrim(form.bank.holderDocument) || undefined,
+    pixKey: safeTrim(form.bank.pixKey) || undefined,
+    pixKeyType: form.bank.pixKeyType || undefined,
+  };
+  const hasBank = Object.values(bank).some((value) => value);
+  if (hasBank) payload.bank = bank;
 
   return payload;
 };
@@ -395,6 +433,10 @@ export default function CadastroPage() {
           ...defaultForm.address,
           ...(parsedForm.address ?? {}),
         },
+        bank: {
+          ...defaultForm.bank,
+          ...(parsedForm.bank ?? {}),
+        },
         documents: {
           ...defaultForm.documents,
           ...parsedDocs,
@@ -458,6 +500,14 @@ export default function CadastroPage() {
   const updateAddress = useCallback(
     (patch: Partial<DraftFormState['address']>) => {
       setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }));
+      dirtyRef.current = true;
+    },
+    [setForm],
+  );
+
+  const updateBank = useCallback(
+    (patch: Partial<DraftFormState['bank']>) => {
+      setForm((prev) => ({ ...prev, bank: { ...prev.bank, ...patch } }));
       dirtyRef.current = true;
     },
     [setForm],
@@ -959,6 +1009,113 @@ export default function CadastroPage() {
     </>
   );
 
+  const BankFields = (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <InputMasked
+          label="Banco (codigo)"
+          value={form.bank.bankCode}
+          onChange={(value) => updateBank({ bankCode: value })}
+          onBlur={() => handleFieldBlur('bank.bankCode')}
+          showStatus={false}
+          placeholder="341"
+        />
+        <InputMasked
+          label="Banco (nome)"
+          value={form.bank.bankName}
+          onChange={(value) => updateBank({ bankName: value })}
+          onBlur={() => handleFieldBlur('bank.bankName')}
+          showStatus={false}
+          placeholder="Itau"
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <InputMasked
+          label="Agencia"
+          value={form.bank.agency}
+          onChange={(value) => updateBank({ agency: value })}
+          onBlur={() => handleFieldBlur('bank.agency')}
+          showStatus={false}
+          placeholder="1234"
+        />
+        <InputMasked
+          label="Conta"
+          value={form.bank.account}
+          onChange={(value) => updateBank({ account: value })}
+          onBlur={() => handleFieldBlur('bank.account')}
+          showStatus={false}
+          placeholder="12345-6"
+        />
+      </div>
+      <label className="flex flex-col gap-2 text-sm text-zinc-700">
+        <span className="font-medium">Tipo de conta</span>
+        <select
+          value={form.bank.accountType}
+          onChange={(event) =>
+            updateBank({
+              accountType: event.target.value as BankAccountType | '',
+            })
+          }
+          onBlur={() => handleFieldBlur('bank.accountType')}
+          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm"
+        >
+          <option value="">Selecione</option>
+          <option value="CC">Conta corrente</option>
+          <option value="CP">Conta poupanca</option>
+        </select>
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <InputMasked
+          label="Titular"
+          value={form.bank.holderName}
+          onChange={(value) => updateBank({ holderName: value })}
+          onBlur={() => handleFieldBlur('bank.holderName')}
+          showStatus={false}
+          placeholder="Nome do titular"
+        />
+        <InputMasked
+          label="CPF/CNPJ titular"
+          value={form.bank.holderDocument}
+          onChange={(value) => updateBank({ holderDocument: value })}
+          onBlur={() => handleFieldBlur('bank.holderDocument')}
+          showStatus={false}
+          placeholder="000.000.000-00"
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <InputMasked
+          label="Chave PIX"
+          value={form.bank.pixKey}
+          onChange={(value) => updateBank({ pixKey: value })}
+          onBlur={() => handleFieldBlur('bank.pixKey')}
+          showStatus={false}
+          placeholder="email, CPF ou aleatoria"
+        />
+        <label className="flex flex-col gap-2 text-sm text-zinc-700">
+          <span className="font-medium">Tipo de chave</span>
+          <select
+            value={form.bank.pixKeyType}
+            onChange={(event) =>
+              updateBank({
+                pixKeyType: event.target.value as PixKeyType | '',
+              })
+            }
+            onBlur={() => handleFieldBlur('bank.pixKeyType')}
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm"
+          >
+            <option value="">Selecione</option>
+            <option value="CPF">CPF</option>
+            <option value="CNPJ">CNPJ</option>
+            <option value="EMAIL">Email</option>
+            <option value="TELEFONE">Telefone</option>
+            <option value="ALEATORIA">Aleatoria</option>
+            <option value="OUTRO">Outro</option>
+          </select>
+        </label>
+      </div>
+    </>
+  );
+
   const mobileFields = [
     {
       key: 'fullName',
@@ -1322,6 +1479,25 @@ export default function CadastroPage() {
                 </div>
                 {AddressFields}
               </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
+                <details>
+                  <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
+                    Dados bancarios (opcional)
+                  </summary>
+                  <div className="mt-4 grid gap-4">{BankFields}</div>
+                </details>
+              </div>
+
+              <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-zinc-700">
+                    Dados bancarios (opcional)
+                  </h3>
+                  <span className="text-xs text-zinc-500">Preencha apenas se desejar</span>
+                </div>
+                {BankFields}
+              </div>
             </StepLayout>
           ) : null}
 
@@ -1620,6 +1796,9 @@ export default function CadastroPage() {
                   <span>{form.email || 'Email'}</span>
                   <span>{form.phone || 'Telefone'}</span>
                   <span>{form.address.cep ? `CEP: ${form.address.cep}` : 'Endereco'}</span>
+                  <span>
+                    {form.bank.account ? 'Dados bancarios informados' : 'Dados bancarios opcionais'}
+                  </span>
                 </div>
               </div>
 

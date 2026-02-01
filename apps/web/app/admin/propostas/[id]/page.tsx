@@ -112,6 +112,25 @@ type ProposalDetails = {
     createdAt: string;
   }>;
   assignedAnalyst?: { id: string; name: string; email: string } | null;
+  socialAccounts?: Array<{
+    provider: string;
+    connectedAt: string;
+    profile?: Record<string, unknown> | null;
+  }>;
+  bankAccounts?: Array<{
+    id: string;
+    bankCode?: string | null;
+    bankName?: string | null;
+    accountType?: string | null;
+    verificationStatus?: string | null;
+    accountMasked?: string | null;
+    agencyMasked?: string | null;
+    holderName?: string | null;
+    holderDocumentMasked?: string | null;
+    pixKeyMasked?: string | null;
+    pixKeyType?: string | null;
+    createdAt?: string | null;
+  }>;
 };
 
 export default function AdminProposalDetailsPage() {
@@ -429,6 +448,75 @@ export default function AdminProposalDetailsPage() {
                   OCR ainda nao processado.
                 </div>
               )}
+            </section>
+
+            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+              <h3 className="text-lg font-semibold text-zinc-900">Redes sociais</h3>
+              <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+                {details.socialAccounts && details.socialAccounts.length > 0 ? (
+                  details.socialAccounts.map((account) => (
+                    <div
+                      key={`${account.provider}-${account.connectedAt}`}
+                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-zinc-900">{account.provider}</span>
+                        <span className="text-xs text-zinc-500">
+                          {new Date(account.connectedAt).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      {account.profile ? (
+                        <pre className="mt-3 whitespace-pre-wrap text-xs text-zinc-500">
+                          {JSON.stringify(account.profile, null, 2)}
+                        </pre>
+                      ) : (
+                        <p className="mt-2 text-xs text-zinc-500">
+                          Nenhum detalhe de perfil armazenado.
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                    Nenhuma rede social conectada.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+              <h3 className="text-lg font-semibold text-zinc-900">Dados bancarios</h3>
+              <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+                {details.bankAccounts && details.bankAccounts.length > 0 ? (
+                  details.bankAccounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-zinc-900">
+                          {account.bankName || account.bankCode || 'Banco'}
+                        </span>
+                        {account.accountType ? (
+                          <span className="text-xs text-zinc-500">{account.accountType}</span>
+                        ) : null}
+                      </div>
+                      <div className="mt-3 grid gap-2 text-xs text-zinc-600 sm:grid-cols-2">
+                        <span>Agencia: {account.agencyMasked ?? '-'}</span>
+                        <span>Conta: {account.accountMasked ?? '-'}</span>
+                        <span>Titular: {account.holderName ?? '-'}</span>
+                        <span>Documento: {account.holderDocumentMasked ?? '-'}</span>
+                        <span>PIX: {account.pixKeyMasked ?? '-'}</span>
+                        <span>PIX tipo: {account.pixKeyType ?? '-'}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                    Nenhum dado bancario informado.
+                  </div>
+                )}
+              </div>
             </section>
 
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
@@ -931,6 +1019,22 @@ export default function AdminProposalDetailsPage() {
                     disabled={sending}
                   >
                     Gerar PDF
+                  </Button>
+                ) : null}
+
+                {can(user?.roles, 'reprocessTotvs') ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      handleAction(() =>
+                        adminFetchWithRefresh(`/admin/proposals/${details.id}/totvs/reprocess`, {
+                          method: 'POST',
+                        }),
+                      )
+                    }
+                    disabled={sending}
+                  >
+                    Reprocessar Totvs
                   </Button>
                 ) : null}
               </div>

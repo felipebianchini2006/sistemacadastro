@@ -170,4 +170,13 @@ export class AdminProposalsController {
   ) {
     return this.service.exportPdf(proposalId, req.user?.id ?? 'system');
   }
+
+  @Post(':proposalId/totvs/reprocess')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  reprocessTotvs(
+    @Param('proposalId') proposalId: string,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    return this.service.reprocessTotvs(proposalId, req.user?.id ?? 'system');
+  }
 }

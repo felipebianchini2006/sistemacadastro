@@ -58,7 +58,12 @@ export class TotvsWorker {
     const proposal = await prisma.proposal.findUnique({
       where: { id: job.data.proposalId },
       include: {
-        person: true,
+        person: {
+          include: {
+            socialAccounts: true,
+            bankAccounts: true,
+          },
+        },
         address: true,
         documents: true,
         totvsSync: true,
@@ -92,6 +97,8 @@ export class TotvsWorker {
     const cpf = decryptValue(proposal.person.cpfEncrypted);
     const email = decryptValue(proposal.person.emailEncrypted);
     const phone = decryptValue(proposal.person.phoneEncrypted);
+    const bankAccount = resolveBankAccount(proposal.person.bankAccounts ?? []);
+    const socialProfiles = resolveSocialProfiles(proposal.person.socialAccounts ?? []);
 
     const payload = buildTotvsPayload({
       proposalId: proposal.id,
@@ -103,6 +110,8 @@ export class TotvsWorker {
       phone,
       birthDate: proposal.person.birthDate ?? undefined,
       documents: proposal.documents,
+      bankAccount,
+      socialProfiles,
       requestId,
     });
 
@@ -292,6 +301,21 @@ const buildTotvsPayload = (input: {
   phone: string;
   birthDate?: Date | null;
   documents: Array<{ type: DocumentType; storageKey: string }>;
+  bankAccount?: {
+    bankCode?: string | null;
+    bankName?: string | null;
+    agency?: string | null;
+    account?: string | null;
+    accountType?: string | null;
+    holderName?: string | null;
+    holderDocument?: string | null;
+    pixKey?: string | null;
+    pixKeyType?: string | null;
+  } | null;
+  socialProfiles?: Array<{
+    provider: string;
+    profile: Record<string, unknown> | null;
+  }>;
   requestId: string;
 }) => {
   const cpfDigits = input.cpf.replace(/\D+/g, '');
@@ -315,6 +339,19 @@ const buildTotvsPayload = (input: {
       rg: rgDoc?.storageKey ?? cnhDoc?.storageKey ?? null,
       comprovante: comprovante?.storageKey ?? null,
     },
+    dados_bancarios: input.bankAccount
+      ? {
+          banco: input.bankAccount.bankCode ?? input.bankAccount.bankName ?? null,
+          agencia: input.bankAccount.agency ?? null,
+          conta: input.bankAccount.account ?? null,
+          tipo: input.bankAccount.accountType ?? null,
+          titular: input.bankAccount.holderName ?? null,
+          documento_titular: input.bankAccount.holderDocument ?? null,
+          pix_chave: input.bankAccount.pixKey ?? null,
+          pix_tipo: input.bankAccount.pixKeyType ?? null,
+        }
+      : null,
+    redes_sociais: input.socialProfiles ?? [],
     metadata: {
       proposalId: input.proposalId,
       proposalType: input.proposalType,
@@ -372,3 +409,48 @@ const parseNumber = (value: string | undefined, fallback: number) => {
   if (Number.isFinite(parsed) && parsed > 0) return parsed;
   return fallback;
 };
+
+const resolveBankAccount = (
+  accounts: Array<{
+    bankCode?: string | null;
+    bankName?: string | null;
+    agencyEncrypted?: string | null;
+    accountEncrypted: string;
+    accountType?: string | null;
+    holderName?: string | null;
+    holderDocumentEncrypted?: string | null;
+    pixKeyEncrypted?: string | null;
+    pixKeyType?: string | null;
+  }>,
+) => {
+  if (!accounts.length) return null;
+  const account = accounts[0];
+
+  return {
+    bankCode: account.bankCode ?? null,
+    bankName: account.bankName ?? null,
+    agency: account.agencyEncrypted ? decryptValue(account.agencyEncrypted) : null,
+    account: decryptValue(account.accountEncrypted),
+    accountType: account.accountType ?? null,
+    holderName: account.holderName ?? null,
+    holderDocument: account.holderDocumentEncrypted
+      ? decryptValue(account.holderDocumentEncrypted)
+      : null,
+    pixKey: account.pixKeyEncrypted ? decryptValue(account.pixKeyEncrypted) : null,
+    pixKeyType: account.pixKeyType ?? null,
+  };
+};
+
+const resolveSocialProfiles = (
+  accounts: Array<{
+    provider: string;
+    tokenMeta?: Prisma.JsonValue | null;
+  }>,
+) =>
+  accounts.map((account) => ({
+    provider: account.provider,
+    profile:
+      account.tokenMeta && typeof account.tokenMeta === 'object'
+        ? ((account.tokenMeta as Record<string, unknown>).profile as Record<string, unknown> | null)
+        : null,
+  }));

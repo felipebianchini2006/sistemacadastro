@@ -11,6 +11,7 @@ import {
   Prisma,
   SignatureStatus,
   NotificationChannel,
+  TotvsSyncStatus,
 } from '@prisma/client';
 import { createHash, randomUUID } from 'crypto';
 
@@ -131,7 +132,12 @@ export class AdminProposalsService {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
       include: {
-        person: true,
+        person: {
+          include: {
+            socialAccounts: true,
+            bankAccounts: true,
+          },
+        },
         address: true,
         documents: true,
         ocrResults: { orderBy: { createdAt: 'desc' } },
@@ -151,14 +157,56 @@ export class AdminProposalsService {
       ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
       : null;
 
+    const socialAccounts =
+      proposal.person?.socialAccounts?.map((account) => ({
+        provider: account.provider,
+        connectedAt: account.createdAt,
+        profile: extractProfile(account.tokenMeta),
+      })) ?? [];
+
+    const bankAccounts = proposal.person?.bankAccounts
+      ? await Promise.all(
+          proposal.person.bankAccounts.map(async (account) => {
+            const accountValue = account.accountEncrypted
+              ? await this.crypto.decrypt(account.accountEncrypted)
+              : null;
+            const agencyValue = account.agencyEncrypted
+              ? await this.crypto.decrypt(account.agencyEncrypted)
+              : null;
+            const holderDoc = account.holderDocumentEncrypted
+              ? await this.crypto.decrypt(account.holderDocumentEncrypted)
+              : null;
+            const pixKey = account.pixKeyEncrypted
+              ? await this.crypto.decrypt(account.pixKeyEncrypted)
+              : null;
+
+            return {
+              id: account.id,
+              bankCode: account.bankCode,
+              bankName: account.bankName,
+              accountType: account.accountType,
+              verificationStatus: account.verificationStatus,
+              accountMasked: maskDigits(accountValue),
+              agencyMasked: maskDigits(agencyValue, 2),
+              holderName: account.holderName,
+              holderDocumentMasked: maskDigits(holderDoc),
+              pixKeyMasked: maskContact(pixKey),
+              pixKeyType: account.pixKeyType,
+              createdAt: account.createdAt,
+            };
+          }),
+        )
+      : [];
+
+    const person = proposal.person
+      ? stripNestedAccounts({ ...proposal.person, cpfMasked })
+      : null;
+
     return {
       ...proposal,
-      person: proposal.person
-        ? {
-            ...proposal.person,
-            cpfMasked,
-          }
-        : null,
+      person,
+      socialAccounts,
+      bankAccounts,
     };
   }
 
@@ -637,6 +685,36 @@ export class AdminProposalsService {
     return { ok: true, requestId };
   }
 
+  async reprocessTotvs(proposalId: string, adminUserId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      select: { id: true },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    await this.prisma.totvsSync.upsert({
+      where: { proposalId: proposal.id },
+      create: {
+        proposalId: proposal.id,
+        status: TotvsSyncStatus.PENDING,
+        map: { requestedBy: adminUserId },
+      },
+      update: {
+        status: TotvsSyncStatus.PENDING,
+        map: { requestedBy: adminUserId },
+      },
+    });
+
+    await this.jobs.enqueueTotvsSync({ proposalId: proposal.id });
+
+    await this.createAuditLog(adminUserId, proposal.id, 'TOTVS_REPROCESS');
+
+    return { ok: true };
+  }
+
   private applySlaFilter(where: Prisma.ProposalWhereInput, sla?: string) {
     if (!sla) return;
 
@@ -705,4 +783,37 @@ const maskCpf = (cpf: string) => {
   const digits = cpf.replace(/\D+/g, '');
   if (digits.length !== 11) return cpf;
   return `***.***.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
+const maskDigits = (value: string | null | undefined, keep = 4) => {
+  if (!value) return null;
+  const digits = value.replace(/\D+/g, '');
+  if (!digits) return null;
+  if (digits.length <= keep) return `***${digits}`;
+  return `***${digits.slice(-keep)}`;
+};
+
+const maskContact = (value: string | null | undefined) => {
+  if (!value) return null;
+  if (value.includes('@')) {
+    const [user, domain] = value.split('@');
+    if (!domain) return '***';
+    return `${user?.slice(0, 2) ?? '**'}***@${domain}`;
+  }
+  const digitsMasked = maskDigits(value);
+  if (digitsMasked) return digitsMasked;
+  if (value.length <= 4) return '***';
+  return `${value.slice(0, 2)}***${value.slice(-2)}`;
+};
+
+const stripNestedAccounts = (person: Record<string, unknown>) => {
+  const { socialAccounts, bankAccounts, ...rest } = person;
+  return rest;
+};
+
+const extractProfile = (tokenMeta: unknown) => {
+  if (!tokenMeta || typeof tokenMeta !== 'object') return null;
+  const profile = (tokenMeta as Record<string, unknown>).profile;
+  if (!profile || typeof profile !== 'object') return null;
+  return profile;
 };

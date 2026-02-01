@@ -97,6 +97,27 @@ export const envSchema = z.object({
   TOTVS_WEBHOOK_SECRET: z.string().optional(),
 
   TEAM_NOTIFICATION_EMAILS: z.string().optional(),
+
+  SOCIAL_OAUTH_STATE_SECRET: z.string().min(16).optional(),
+  SOCIAL_STATE_TTL_MINUTES: z.coerce.number().int().positive().default(20),
+  SOCIAL_REDIRECT_SUCCESS_URL: z.string().optional(),
+  SOCIAL_REDIRECT_ERROR_URL: z.string().optional(),
+
+  SPOTIFY_CLIENT_ID: z.string().optional(),
+  SPOTIFY_CLIENT_SECRET: z.string().optional(),
+  SPOTIFY_REDIRECT_URI: z.string().optional(),
+
+  YOUTUBE_CLIENT_ID: z.string().optional(),
+  YOUTUBE_CLIENT_SECRET: z.string().optional(),
+  YOUTUBE_REDIRECT_URI: z.string().optional(),
+
+  FACEBOOK_APP_ID: z.string().optional(),
+  FACEBOOK_APP_SECRET: z.string().optional(),
+  FACEBOOK_REDIRECT_URI: z.string().optional(),
+
+  INSTAGRAM_APP_ID: z.string().optional(),
+  INSTAGRAM_APP_SECRET: z.string().optional(),
+  INSTAGRAM_REDIRECT_URI: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

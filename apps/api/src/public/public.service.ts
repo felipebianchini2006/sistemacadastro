@@ -170,6 +170,7 @@ export class PublicService {
       throw new BadRequestException('Email ja utilizado');
     }
 
+    const bankData = await this.buildBankAccountData(data.bank);
     const personData = {
       fullName: data.fullName!,
       cpfEncrypted: await this.crypto.encrypt(data.cpf!),
@@ -179,6 +180,11 @@ export class PublicService {
       phoneEncrypted: await this.crypto.encrypt(data.phone!),
       phoneHash: this.hashSearch(data.phone!),
       birthDate: data.birthDate ? new Date(data.birthDate) : null,
+      bankAccounts: bankData
+        ? {
+            create: bankData,
+          }
+        : undefined,
     };
 
     const addressData =
@@ -333,6 +339,12 @@ export class PublicService {
         statusHistory: {
           orderBy: { createdAt: 'asc' },
         },
+        person: {
+          include: {
+            socialAccounts: true,
+            bankAccounts: true,
+          },
+        },
       },
     });
 
@@ -360,6 +372,12 @@ export class PublicService {
         reason: entry.reason,
       })),
       pending: this.getPendingItems(proposal.status),
+      socialAccounts:
+        proposal.person?.socialAccounts?.map((account) => ({
+          provider: account.provider,
+          connectedAt: account.createdAt,
+        })) ?? [],
+      bankAccount: (proposal.person?.bankAccounts?.length ?? 0) > 0,
       ocr: latestOcr
         ? {
             at: latestOcr.createdAt,
@@ -434,8 +452,12 @@ export class PublicService {
       ...base,
       ...incoming,
       address: {
-        ...base.address,
-        ...incoming.address,
+        ...(base.address ?? {}),
+        ...(incoming.address ?? {}),
+      },
+      bank: {
+        ...(base.bank ?? {}),
+        ...(incoming.bank ?? {}),
       },
     };
   }
@@ -501,5 +523,30 @@ export class PublicService {
         infer: true,
       }) ?? DEFAULT_DRAFT_TTL_DAYS
     );
+  }
+
+  private async buildBankAccountData(bank?: DraftData['bank']) {
+    if (!bank) return null;
+    const hasAny = Object.values(bank).some((value) => value);
+    if (!hasAny) return null;
+    if (!bank.account) return null;
+
+    return {
+      bankCode: bank.bankCode,
+      bankName: bank.bankName,
+      agencyEncrypted: bank.agency
+        ? await this.crypto.encrypt(bank.agency)
+        : null,
+      accountEncrypted: await this.crypto.encrypt(bank.account),
+      accountType: bank.accountType ?? null,
+      holderName: bank.holderName,
+      holderDocumentEncrypted: bank.holderDocument
+        ? await this.crypto.encrypt(bank.holderDocument)
+        : null,
+      pixKeyEncrypted: bank.pixKey
+        ? await this.crypto.encrypt(bank.pixKey)
+        : null,
+      pixKeyType: bank.pixKeyType,
+    };
   }
 }

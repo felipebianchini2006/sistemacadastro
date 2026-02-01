@@ -84,6 +84,11 @@ enum BankVerificationStatus {
   FAILED
 }
 
+enum BankAccountType {
+  CC
+  CP
+}
+
 enum TotvsSyncStatus {
   PENDING
   SYNCED
@@ -398,7 +403,14 @@ model BankAccount {
   id                 String                @id @default(uuid())
   personId           String
   bankCode           String?
+  bankName           String?
+  agencyEncrypted    String?
   accountEncrypted   String
+  accountType        BankAccountType?
+  holderName         String?
+  holderDocumentEncrypted String?
+  pixKeyEncrypted    String?
+  pixKeyType         String?
   verificationStatus BankVerificationStatus @default(PENDING)
   metadata           Json?
 
