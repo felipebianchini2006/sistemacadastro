@@ -56,6 +56,24 @@ export class StorageService {
     };
   }
 
+  async uploadObject(input: {
+    key: string;
+    contentType: string;
+    body: Buffer;
+    metadata?: Record<string, string>;
+  }) {
+    const config = this.getConfig();
+    await this.getClient().send(
+      new PutObjectCommand({
+        Bucket: config.bucket,
+        Key: input.key,
+        Body: input.body,
+        ContentType: input.contentType,
+        Metadata: input.metadata,
+      }),
+    );
+  }
+
   private getClient() {
     if (!this.client) {
       const config = this.getConfig();

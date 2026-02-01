@@ -74,6 +74,7 @@ export class SignatureWorker {
       protocol,
       candidateName: candidate.name,
     });
+    const checksum = createHash('sha256').update(pdfBuffer).digest('hex');
 
     const storageKey = `contracts/${proposalId}/${Date.now()}-contrato.pdf`;
     const fileName = `contrato-${protocol}.pdf`;
@@ -87,11 +88,12 @@ export class SignatureWorker {
     const document = await prisma.documentFile.create({
       data: {
         proposalId,
-        type: DocumentType.OUTROS,
+        type: DocumentType.CONTRATO_GERADO,
         storageKey,
         fileName,
         contentType: 'application/pdf',
         size: pdfBuffer.length,
+        checksum,
       },
     });
 
@@ -138,6 +140,13 @@ export class SignatureWorker {
 
     const buffer = await this.storage.download(documentFile.storageKey);
     const base64 = buffer.toString('base64');
+    const originalHash = documentFile.checksum ?? createHash('sha256').update(buffer).digest('hex');
+    if (!documentFile.checksum) {
+      await prisma.documentFile.update({
+        where: { id: documentFile.id },
+        data: { checksum: originalHash },
+      });
+    }
 
     const documentResponse = await this.clicksign.uploadDocument(envelopeId, {
       filename: documentFile.fileName,
@@ -218,6 +227,7 @@ export class SignatureWorker {
     await prisma.signatureEnvelope.create({
       data: {
         proposalId,
+        documentFileId,
         provider: SignatureProvider.CLICKSIGN,
         envelopeId,
         status: SignatureStatus.SENT,
@@ -226,6 +236,7 @@ export class SignatureWorker {
         signerEmail: candidate.email,
         signerPhone: candidate.phone ?? undefined,
         link: signerLink,
+        originalFileHash: originalHash,
       },
     });
 

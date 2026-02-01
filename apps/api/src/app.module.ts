@@ -20,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MetricsModule } from './observability/metrics.module';
 import { MetricsMiddleware } from './observability/metrics.middleware';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { TotvsModule } from './totvs/totvs.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
     NotificationsModule,
     MetricsModule,
     MaintenanceModule,
+    TotvsModule,
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60, limit: 100 }],

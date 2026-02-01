@@ -10,6 +10,7 @@ export class JobsService implements OnModuleDestroy {
   private readonly signatureQueue: Queue;
   private readonly notificationQueue: Queue;
   private readonly maintenanceQueue: Queue;
+  private readonly totvsQueue: Queue;
   private readonly connection: IORedis;
 
   constructor(private readonly configService: ConfigService) {
@@ -25,6 +26,9 @@ export class JobsService implements OnModuleDestroy {
       connection: this.connection,
     });
     this.maintenanceQueue = new Queue('maintenance-jobs', {
+      connection: this.connection,
+    });
+    this.totvsQueue = new Queue('totvs-jobs', {
       connection: this.connection,
     });
   }
@@ -219,11 +223,28 @@ export class JobsService implements OnModuleDestroy {
     );
   }
 
+  async enqueueTotvsSync(payload: { proposalId: string; requestId?: string }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.totvsQueue.add(
+      'totvs.sync',
+      {
+        proposalId: payload.proposalId,
+        requestId,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 60000 },
+      },
+    );
+  }
+
   async onModuleDestroy() {
     await this.queue.close();
     await this.signatureQueue.close();
     await this.notificationQueue.close();
     await this.maintenanceQueue.close();
+    await this.totvsQueue.close();
     await this.connection.quit();
   }
 }

@@ -2,6 +2,8 @@
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { createHmac } from 'crypto';
+import { StorageService } from '../storage/storage.service';
+import { JobsService } from '../jobs/jobs.service';
 
 const buildService = (overrides?: {
   secret?: string;
@@ -29,8 +31,16 @@ const buildService = (overrides?: {
     ...overrides?.prisma,
   } as unknown as PrismaService;
 
+  const storage = {
+    uploadObject: jest.fn(),
+  } as unknown as StorageService;
+
+  const jobs = {
+    enqueueTotvsSync: jest.fn(),
+  } as unknown as JobsService;
+
   return {
-    service: new ClicksignWebhookService(prisma, config),
+    service: new ClicksignWebhookService(prisma, config, storage, jobs),
     prisma,
     config,
   };

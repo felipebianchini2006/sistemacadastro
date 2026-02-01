@@ -91,6 +91,10 @@ export const envSchema = z.object({
   SLA_DUE_SOON_HOURS: z.coerce.number().int().positive().default(24),
   AUTO_ASSIGN_ANALYST: z.coerce.boolean().optional().default(false),
   PUBLIC_TRACKING_BASE_URL: z.string().optional(),
+
+  TOTVS_BASE_URL: z.string().optional(),
+  TOTVS_TOKEN: z.string().optional(),
+  TOTVS_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

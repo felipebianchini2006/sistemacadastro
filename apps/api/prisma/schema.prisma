@@ -32,6 +32,9 @@ enum DocumentType {
   COMPROVANTE_RESIDENCIA
   SELFIE
   DESFILIACAO
+  CONTRATO_GERADO
+  CONTRATO_ASSINADO
+  CERTIFICADO_ASSINATURA
   OUTROS
 }
 
@@ -207,6 +210,7 @@ model DocumentFile {
   proposal    Proposal?    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   draft       Draft?       @relation(fields: [draftId], references: [id], onDelete: Cascade)
   ocrResults  OcrResult[]
+  signatureEnvelopes SignatureEnvelope[]
 
   @@index([proposalId, type])
   @@index([draftId, type])
@@ -237,6 +241,7 @@ model OcrResult {
 model SignatureEnvelope {
   id           String            @id @default(uuid())
   proposalId   String
+  documentFileId String?
   provider     SignatureProvider @default(CLICKSIGN)
   envelopeId   String
   status       SignatureStatus
@@ -246,13 +251,25 @@ model SignatureEnvelope {
   signerEmail  String
   signerPhone  String?
   link         String?
+  signedAt     DateTime?
+  signerIp     String?
+  signerUserAgent String?
+  signerMethod String?
+  signerGeo    String?
+  originalFileHash String?
+  signedFileKey String?
+  signedFileHash String?
+  certificateFileKey String?
+  certificateFileHash String?
 
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
   proposal     Proposal          @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  documentFile DocumentFile?     @relation(fields: [documentFileId], references: [id], onDelete: SetNull)
 
   @@index([proposalId, status])
+  @@index([documentFileId])
 }
 
 model Notification {

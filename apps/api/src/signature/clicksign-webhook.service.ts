@@ -2,7 +2,10 @@
 import { ConfigService } from '@nestjs/config';
 import { createHmac, createHash, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProposalStatus, SignatureStatus } from '@prisma/client';
+import { DocumentType, ProposalStatus, SignatureStatus } from '@prisma/client';
+import { StorageService } from '../storage/storage.service';
+import { buildDocumentStorageKey } from '../storage/storage.naming';
+import { JobsService } from '../jobs/jobs.service';
 
 export type ClicksignWebhookResult = {
   ok: boolean;
@@ -17,6 +20,8 @@ export class ClicksignWebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly storage: StorageService,
+    private readonly jobs: JobsService,
   ) {}
 
   verifySignature(rawBody: Buffer, signatureHeader?: string | string[]) {
@@ -128,6 +133,11 @@ export class ClicksignWebhookService {
       });
     }
 
+    const signedAt =
+      updates.signatureStatus === SignatureStatus.SIGNED
+        ? (extractSignedAt(payload) ?? new Date())
+        : undefined;
+
     if (updates.proposalStatus && envelope.proposal) {
       await this.prisma.proposal.update({
         where: { id: envelope.proposal.id },
@@ -135,7 +145,7 @@ export class ClicksignWebhookService {
           status: updates.proposalStatus,
           signedAt:
             updates.proposalStatus === ProposalStatus.SIGNED
-              ? new Date()
+              ? (signedAt ?? new Date())
               : undefined,
           rejectedAt:
             updates.proposalStatus === ProposalStatus.REJECTED
@@ -152,6 +162,15 @@ export class ClicksignWebhookService {
       });
     }
 
+    if (updates.signatureStatus === SignatureStatus.SIGNED) {
+      await this.handleSignedEnvelope(
+        envelope.id,
+        payload,
+        signedAt ?? new Date(),
+      );
+      await this.jobs.enqueueTotvsSync({ proposalId: envelope.proposalId });
+    }
+
     await this.prisma.auditLog.create({
       data: {
         action: 'CLICKSIGN_WEBHOOK',
@@ -165,6 +184,120 @@ export class ClicksignWebhookService {
     this.logger.log({ eventId, envelopeId, eventType }, 'clicksign.webhook');
 
     return { ok: true, eventId } satisfies ClicksignWebhookResult;
+  }
+
+  private async handleSignedEnvelope(
+    envelopeId: string,
+    payload: Record<string, unknown>,
+    signedAt: Date,
+  ) {
+    const envelope = await this.prisma.signatureEnvelope.findFirst({
+      where: { id: envelopeId },
+      include: { proposal: true },
+    });
+
+    if (!envelope?.proposal) {
+      return;
+    }
+
+    const signer = extractSignerInfo(payload);
+    const signedFileUrl = extractSignedFileUrl(payload);
+    const certificateUrl = extractCertificateUrl(payload);
+
+    const env =
+      this.configService.get<string>('NODE_ENV', { infer: true }) ??
+      'development';
+    const proposalId = envelope.proposalId;
+
+    const updates: Record<string, unknown> = {
+      signedAt,
+      signerIp: signer.ip,
+      signerUserAgent: signer.userAgent,
+      signerMethod: signer.method,
+      signerGeo: signer.geo,
+    };
+
+    if (signedFileUrl) {
+      const signedFile = await this.downloadAndStoreFile({
+        url: signedFileUrl,
+        env,
+        proposalId,
+        docType: DocumentType.CONTRATO_ASSINADO,
+        fileName: `contrato-assinado-${envelope.proposal.protocol}.pdf`,
+      });
+      updates.signedFileKey = signedFile.storageKey;
+      updates.signedFileHash = signedFile.hash;
+    }
+
+    if (certificateUrl) {
+      const certificate = await this.downloadAndStoreFile({
+        url: certificateUrl,
+        env,
+        proposalId,
+        docType: DocumentType.CERTIFICADO_ASSINATURA,
+        fileName: `certificado-assinatura-${envelope.proposal.protocol}.pdf`,
+      });
+      updates.certificateFileKey = certificate.storageKey;
+      updates.certificateFileHash = certificate.hash;
+    }
+
+    await this.prisma.signatureEnvelope.update({
+      where: { id: envelope.id },
+      data: updates,
+    });
+  }
+
+  private async downloadAndStoreFile(input: {
+    url: string;
+    env: string;
+    proposalId: string;
+    docType: DocumentType;
+    fileName: string;
+  }) {
+    const accessToken = this.configService.get<string>(
+      'CLICKSIGN_ACCESS_TOKEN',
+      { infer: true },
+    );
+    const response = await fetch(input.url, {
+      headers: accessToken ? { Authorization: accessToken } : undefined,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha ao baixar arquivo Clicksign (${response.status})`);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const hash = createHash('sha256').update(buffer).digest('hex');
+    const contentType =
+      response.headers.get('content-type') ?? 'application/pdf';
+
+    const storageKey = buildDocumentStorageKey({
+      env: input.env,
+      owner: { kind: 'proposal', id: input.proposalId },
+      docType: input.docType,
+      fileName: input.fileName,
+      contentType,
+    });
+
+    await this.storage.uploadObject({
+      key: storageKey,
+      contentType,
+      body: buffer,
+    });
+
+    await this.prisma.documentFile.create({
+      data: {
+        proposalId: input.proposalId,
+        type: input.docType,
+        storageKey,
+        fileName: input.fileName,
+        contentType,
+        size: buffer.length,
+        checksum: hash,
+      },
+    });
+
+    return { storageKey, hash };
   }
 
   private mapEventToUpdates(eventType: string) {
@@ -243,6 +376,76 @@ const extractEnvelopeId = (payload: Record<string, unknown>) => {
     (attributes?.envelope_id as string | undefined) ??
     (attributes?.envelopeId as string | undefined)
   );
+};
+
+const extractSignedFileUrl = (payload: Record<string, unknown>) => {
+  const document = payload.document as Record<string, unknown> | undefined;
+  if (document?.signed_file_url) return String(document.signed_file_url);
+  if (document?.signedFileUrl) return String(document.signedFileUrl);
+  const data = payload.data as Record<string, unknown> | undefined;
+  const attributes = data?.attributes as Record<string, unknown> | undefined;
+  if (attributes?.signed_file_url) return String(attributes.signed_file_url);
+  if (attributes?.signedFileUrl) return String(attributes.signedFileUrl);
+  return undefined;
+};
+
+const extractCertificateUrl = (payload: Record<string, unknown>) => {
+  const document = payload.document as Record<string, unknown> | undefined;
+  if (document?.certificate_url) return String(document.certificate_url);
+  if (document?.certificateUrl) return String(document.certificateUrl);
+  const data = payload.data as Record<string, unknown> | undefined;
+  const attributes = data?.attributes as Record<string, unknown> | undefined;
+  if (attributes?.certificate_url) return String(attributes.certificate_url);
+  if (attributes?.certificateUrl) return String(attributes.certificateUrl);
+  return undefined;
+};
+
+const extractSignedAt = (payload: Record<string, unknown>) => {
+  const direct =
+    (payload.signed_at as string | undefined) ??
+    (payload.signedAt as string | undefined);
+  if (direct) {
+    const parsed = new Date(direct);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  const signer = payload.signer as Record<string, unknown> | undefined;
+  const signerSignedAt =
+    (signer?.signed_at as string | undefined) ??
+    (signer?.signedAt as string | undefined);
+  if (signerSignedAt) {
+    const parsed = new Date(signerSignedAt);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return undefined;
+};
+
+const extractSignerInfo = (payload: Record<string, unknown>) => {
+  const signer = payload.signer as Record<string, unknown> | undefined;
+  const ip =
+    (signer?.ip_address as string | undefined) ??
+    (payload.ip_address as string | undefined) ??
+    (payload.ip as string | undefined);
+  const userAgent =
+    (signer?.user_agent as string | undefined) ??
+    (payload.user_agent as string | undefined) ??
+    (payload.userAgent as string | undefined);
+  const method =
+    (payload.method as string | undefined) ??
+    (payload.signature_method as string | undefined) ??
+    (payload.auth as string | undefined);
+  const geo =
+    (payload.geo as string | undefined) ??
+    (payload.geolocation as string | undefined) ??
+    (signer?.geo as string | undefined);
+
+  return {
+    ip,
+    userAgent,
+    method,
+    geo,
+  };
 };
 
 const safeEqual = (a: string, b: string) => {

@@ -53,6 +53,25 @@ type ProposalDetails = {
     size: number;
     createdAt: string;
   }>;
+  signatures: Array<{
+    id: string;
+    status: string;
+    provider: string;
+    envelopeId: string;
+    deadline?: string | null;
+    link?: string | null;
+    signedAt?: string | null;
+    signerName: string;
+    signerEmail: string;
+    signerPhone?: string | null;
+    signerIp?: string | null;
+    signerUserAgent?: string | null;
+    signerMethod?: string | null;
+    signerGeo?: string | null;
+    originalFileHash?: string | null;
+    signedFileHash?: string | null;
+    certificateFileHash?: string | null;
+  }>;
   ocrResults: Array<{
     id: string;
     createdAt: string;
@@ -120,6 +139,7 @@ export default function AdminProposalDetailsPage() {
   }, [proposalId]);
 
   const latestOcr = details?.ocrResults?.[0];
+  const latestSignature = details?.signatures?.[0];
   const ocrComparison = useMemo(() => {
     if (!latestOcr || !details?.person) return [];
 
@@ -336,6 +356,68 @@ export default function AdminProposalDetailsPage() {
               proposalId={details.id}
               token={details.publicToken}
             />
+
+            {latestSignature ? (
+              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-zinc-900">Assinatura</h3>
+                <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>Status</span>
+                    <span className="font-semibold text-zinc-900">
+                      {STATUS_LABELS[latestSignature.status] ?? latestSignature.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>Envelope</span>
+                    <span className="font-semibold text-zinc-900">
+                      {latestSignature.envelopeId}
+                    </span>
+                  </div>
+                  {latestSignature.signedAt ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>Assinado em</span>
+                      <span className="font-semibold text-zinc-900">
+                        {new Date(latestSignature.signedAt).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  ) : null}
+                  {latestSignature.signerIp ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>IP</span>
+                      <span className="font-semibold text-zinc-900">
+                        {latestSignature.signerIp}
+                      </span>
+                    </div>
+                  ) : null}
+                  {latestSignature.signerMethod ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>Metodo</span>
+                      <span className="font-semibold text-zinc-900">
+                        {latestSignature.signerMethod}
+                      </span>
+                    </div>
+                  ) : null}
+                  {latestSignature.originalFileHash ? (
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+                      <p className="font-semibold text-zinc-700">Hashes</p>
+                      <p className="mt-2 break-all text-zinc-500">
+                        Original: {latestSignature.originalFileHash}
+                      </p>
+                      {latestSignature.signedFileHash ? (
+                        <p className="mt-2 break-all text-zinc-500">
+                          Assinado: {latestSignature.signedFileHash}
+                        </p>
+                      ) : null}
+                      {latestSignature.certificateFileHash ? (
+                        <p className="mt-2 break-all text-zinc-500">
+                          Certificado: {latestSignature.certificateFileHash}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
 
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-zinc-900">Acoes</h3>
