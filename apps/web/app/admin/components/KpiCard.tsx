@@ -9,12 +9,14 @@ export const KpiCard = ({
   label: string;
   value: string | number;
   hint?: string;
-  tone?: 'default' | 'success' | 'warning' | 'danger';
+  tone?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
 }) => {
   return (
     <div
       className={cn(
         'rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg',
+        tone === 'info' && 'border-blue-200 bg-blue-50',
+        tone === 'purple' && 'border-purple-200 bg-purple-50',
         tone === 'success' && 'border-emerald-200 bg-emerald-50',
         tone === 'warning' && 'border-amber-200 bg-amber-50',
         tone === 'danger' && 'border-red-200 bg-red-50',

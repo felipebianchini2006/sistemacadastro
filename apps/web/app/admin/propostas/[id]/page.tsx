@@ -94,6 +94,7 @@ export default function AdminProposalDetailsPage() {
   const [missingItems, setMissingItems] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [sending, setSending] = useState(false);
+  const [activeDoc, setActiveDoc] = useState<ProposalDetails['documents'][number] | null>(null);
 
   const user = getStoredAdminUser();
 
@@ -244,9 +245,18 @@ export default function AdminProposalDetailsPage() {
                           {doc.type} • {Math.round(doc.size / 1024)}kb
                         </p>
                       </div>
-                      <span className="text-xs text-zinc-500">
-                        {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-zinc-500">
+                          {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveDoc(doc)}
+                          className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
+                        >
+                          Ver
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -343,6 +353,7 @@ export default function AdminProposalDetailsPage() {
               <div className="mt-4 grid gap-3">
                 {can(user?.roles, 'approve') ? (
                   <Button
+                    variant="accent"
                     onClick={() =>
                       handleAction(() =>
                         adminFetchWithRefresh(`/admin/proposals/${details.id}/approve`, {
@@ -352,13 +363,13 @@ export default function AdminProposalDetailsPage() {
                     }
                     disabled={sending}
                   >
-                    Aprovar
+                    Enviar para assinatura
                   </Button>
                 ) : null}
 
                 {can(user?.roles, 'reject') ? (
                   <div className="rounded-2xl border border-zinc-200 p-4 text-sm text-zinc-600">
-                    <p className="font-semibold text-zinc-700">Reprovar</p>
+                    <p className="font-semibold text-zinc-700">Reprovar proposta</p>
                     <textarea
                       value={rejectReason}
                       onChange={(event) => setRejectReason(event.target.value)}
@@ -378,14 +389,14 @@ export default function AdminProposalDetailsPage() {
                       }
                       disabled={sending || !rejectReason}
                     >
-                      Confirmar reprova
+                      Confirmar reprovacao
                     </Button>
                   </div>
                 ) : null}
 
                 {can(user?.roles, 'requestChanges') ? (
                   <div className="rounded-2xl border border-zinc-200 p-4 text-sm text-zinc-600">
-                    <p className="font-semibold text-zinc-700">Solicitar pendencias</p>
+                    <p className="font-semibold text-zinc-700">Solicitar documento adicional</p>
                     <input
                       value={missingItems}
                       onChange={(event) => setMissingItems(event.target.value)}
@@ -409,7 +420,7 @@ export default function AdminProposalDetailsPage() {
                       }
                       disabled={sending || !missingItems}
                     >
-                      Criar pendencia
+                      Enviar solicitacao
                     </Button>
                   </div>
                 ) : null}
@@ -476,6 +487,49 @@ export default function AdminProposalDetailsPage() {
                 ) : null}
               </div>
             </section>
+          </div>
+        </div>
+      ) : null}
+
+      {activeDoc ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setActiveDoc(null)}
+        >
+          <div
+            className="w-full max-w-3xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Documento</p>
+                <h3 className="text-lg font-semibold text-zinc-900">{activeDoc.fileName}</h3>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {activeDoc.type} • {Math.round(activeDoc.size / 1024)}kb
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveDoc(null)}
+                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>Enviado em</span>
+                <span className="font-semibold text-zinc-900">
+                  {new Date(activeDoc.createdAt).toLocaleString('pt-BR')}
+                </span>
+              </div>
+              <div className="mt-3 flex h-56 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-white text-xs text-zinc-500">
+                Pre-visualizacao disponivel apos integracao com o storage.
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

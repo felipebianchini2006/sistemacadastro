@@ -10,9 +10,20 @@ import { Button } from '../../components/ui/button';
 
 const PAGE_SIZE = 20;
 
-const buildQuery = (filters: ProposalFilters) => {
+const buildApiQuery = (filters: ProposalFilters) => {
   const params = new URLSearchParams();
-  if (filters.status) params.set('status', filters.status);
+  if (filters.status && filters.status.length === 1) params.set('status', filters.status[0]);
+  if (filters.type) params.set('type', filters.type);
+  if (filters.sla) params.set('sla', filters.sla);
+  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+  if (filters.dateTo) params.set('dateTo', filters.dateTo);
+  if (filters.text) params.set('text', filters.text);
+  return params.toString();
+};
+
+const buildUrlQuery = (filters: ProposalFilters) => {
+  const params = new URLSearchParams();
+  if (filters.status?.length) params.set('status', filters.status.join(','));
   if (filters.type) params.set('type', filters.type);
   if (filters.sla) params.set('sla', filters.sla);
   if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
@@ -49,8 +60,15 @@ const downloadCsv = (items: ProposalListItem[]) => {
 export default function AdminProposalsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const statusParam = searchParams.get('status') ?? '';
+  const parsedStatus = statusParam
+    ? statusParam
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : undefined;
   const [filters, setFilters] = useState<ProposalFilters>({
-    status: searchParams.get('status') ?? undefined,
+    status: parsedStatus,
     type: searchParams.get('type') ?? undefined,
     sla: searchParams.get('sla') ?? undefined,
     dateFrom: searchParams.get('dateFrom') ?? undefined,
@@ -62,7 +80,8 @@ export default function AdminProposalsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
 
-  const query = useMemo(() => buildQuery(filters), [filters]);
+  const apiQuery = useMemo(() => buildApiQuery(filters), [filters]);
+  const urlQuery = useMemo(() => buildUrlQuery(filters), [filters]);
 
   useEffect(() => {
     const load = async () => {
@@ -70,7 +89,7 @@ export default function AdminProposalsPage() {
       setError(null);
       try {
         const response = await adminFetchWithRefresh<ProposalListItem[]>(
-          query ? `/admin/proposals?${query}` : '/admin/proposals',
+          apiQuery ? `/admin/proposals?${apiQuery}` : '/admin/proposals',
         );
         setItems(response);
       } catch (err) {
@@ -81,17 +100,22 @@ export default function AdminProposalsPage() {
     };
 
     void load();
-  }, [query]);
+  }, [apiQuery]);
 
   useEffect(() => {
-    const params = new URLSearchParams(query);
+    const params = new URLSearchParams(urlQuery);
     if (page > 1) params.set('page', String(page));
     const qs = params.toString();
     router.replace(qs ? `/admin/propostas?${qs}` : '/admin/propostas');
-  }, [page, query, router]);
+  }, [page, urlQuery, router]);
 
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-  const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filteredItems = useMemo(() => {
+    if (!filters.status?.length) return items;
+    return items.filter((item) => filters.status?.includes(item.status));
+  }, [items, filters.status]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="grid gap-6">

@@ -22,7 +22,7 @@ export const ProgressBar = ({ steps, current }: { steps: ProgressStep[]; current
       </div>
       <div className="relative h-2 w-full rounded-full bg-zinc-200">
         <div
-          className="absolute left-0 top-0 h-full rounded-full bg-emerald-500 transition-all duration-300"
+          className="absolute left-0 top-0 h-full rounded-full bg-[#ff6b35] transition-all duration-300"
           style={{ width: `${percent}%` }}
           role="progressbar"
           aria-valuemin={0}
@@ -37,9 +37,9 @@ export const ProgressBar = ({ steps, current }: { steps: ProgressStep[]; current
             className={cn(
               'rounded-lg border px-3 py-2',
               index === current
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                ? 'border-[#ff6b35] bg-orange-50 text-orange-700'
                 : index < current
-                  ? 'border-emerald-200 bg-white text-emerald-600'
+                  ? 'border-orange-200 bg-white text-orange-700'
                   : 'border-zinc-200 bg-white',
             )}
             data-testid={`progress-step-${index}`}

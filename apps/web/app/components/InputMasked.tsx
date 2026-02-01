@@ -15,18 +15,19 @@ type InputMaskedProps = Omit<ComponentPropsWithoutRef<'input'>, 'onChange' | 'va
   mask?: InputMask;
   status?: FieldStatus;
   hint?: string;
+  showStatus?: boolean;
 };
 
 const StatusDot = ({ status }: { status?: FieldStatus }) => {
   const base =
-    'inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold uppercase';
+    'inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold';
   if (status === 'valid') {
-    return <span className={cn(base, 'bg-emerald-500 text-white')}>ok</span>;
+    return <span className={cn(base, 'bg-[#22C55E] text-white')}>✓</span>;
   }
   if (status === 'invalid') {
-    return <span className={cn(base, 'bg-red-500 text-white')}>x</span>;
+    return <span className={cn(base, 'bg-[#EF4444] text-white')}>✕</span>;
   }
-  return <span className={cn(base, 'bg-zinc-200 text-zinc-500')}>-</span>;
+  return <span className={cn(base, 'bg-zinc-200 text-zinc-500')}>•</span>;
 };
 
 const applyMask = (value: string, mask?: InputMask) => {
@@ -38,7 +39,10 @@ const applyMask = (value: string, mask?: InputMask) => {
 };
 
 export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
-  ({ label, value, onChange, mask, status, hint, className, id, ...props }, ref) => {
+  (
+    { label, value, onChange, mask, status, hint, showStatus = true, className, id, ...props },
+    ref,
+  ) => {
     const inputId = id ?? `input-${label.replace(/\s+/g, '-').toLowerCase()}`;
 
     return (
@@ -61,10 +65,13 @@ export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
             aria-invalid={status === 'invalid'}
             aria-describedby={hint ? `${inputId}-hint` : undefined}
           />
-          <StatusDot status={status} />
+          {showStatus ? <StatusDot status={status} /> : null}
         </div>
         {hint ? (
-          <span id={`${inputId}-hint`} className="text-xs text-zinc-500">
+          <span
+            id={`${inputId}-hint`}
+            className={cn('text-xs', status === 'invalid' ? 'text-red-600' : 'text-zinc-500')}
+          >
             {hint}
           </span>
         ) : null}

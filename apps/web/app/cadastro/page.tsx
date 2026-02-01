@@ -23,7 +23,7 @@ import { StepLayout } from '../components/StepLayout';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 
-type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA';
+type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
 type ProposalType = 'NOVO' | 'MIGRACAO';
 type DocumentChoice = 'RG' | 'CNH';
 type DocumentType = 'RG_FRENTE' | 'RG_VERSO' | 'CNH';
@@ -37,12 +37,14 @@ type DraftMeta = {
 type UploadState = {
   documentId?: string;
   fileName?: string;
+  previewUrl?: string;
   status: 'idle' | 'uploading' | 'uploaded' | 'error';
   error?: string;
 };
 
 type DraftFormState = {
-  profileRole: ProfileRole;
+  profileRoles: ProfileRole[];
+  profileRoleOther: string;
   proposalType: ProposalType;
   fullName: string;
   cpf: string;
@@ -92,7 +94,8 @@ const steps = [
 ];
 
 const defaultForm: DraftFormState = {
-  profileRole: 'AUTOR',
+  profileRoles: [],
+  profileRoleOther: '',
   proposalType: 'NOVO',
   fullName: '',
   cpf: '',
@@ -119,6 +122,20 @@ const defaultForm: DraftFormState = {
 };
 
 const safeTrim = (value: string) => value.trim();
+const isAdult = (value: string) => {
+  if (!value) return false;
+  const birth = new Date(value);
+  if (Number.isNaN(birth.getTime())) return false;
+  const adulthood = new Date(birth);
+  adulthood.setFullYear(birth.getFullYear() + 18);
+  return new Date() >= adulthood;
+};
+const formatDate = (value: string) => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('pt-BR');
+};
 
 const buildDraftPayload = (form: DraftFormState) => {
   const payload: Record<string, unknown> = {};
@@ -201,9 +218,14 @@ export default function CadastroPage() {
     'idle',
   );
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [mobileFieldIndex, setMobileFieldIndex] = useState(0);
+  const [ocrConfirmed, setOcrConfirmed] = useState(false);
 
   const dirtyRef = useRef(false);
   const lastPayloadRef = useRef('');
+  const previewUrlsRef = useRef<Set<string>>(new Set());
 
   const cpfValidation = useCpfValidation(form.cpf);
   const emailValidation = useEmailValidation(form.email);
@@ -238,16 +260,33 @@ export default function CadastroPage() {
           stepIndex?: number;
         };
         if (parsed.form) {
+          const parsedForm = parsed.form as DraftFormState & { profileRole?: ProfileRole };
+          const parsedDocs = parsedForm.documents ?? {};
+          const parsedRoles =
+            parsedForm.profileRoles ?? (parsedForm.profileRole ? [parsedForm.profileRole] : []);
           setForm({
             ...defaultForm,
-            ...parsed.form,
+            ...parsedForm,
+            profileRoles: parsedRoles,
+            profileRoleOther: parsedForm.profileRoleOther ?? '',
             address: {
               ...defaultForm.address,
-              ...(parsed.form.address ?? {}),
+              ...(parsedForm.address ?? {}),
             },
             documents: {
               ...defaultForm.documents,
-              ...(parsed.form.documents ?? {}),
+              ...parsedDocs,
+              rgFront: {
+                ...defaultForm.documents.rgFront,
+                ...parsedDocs.rgFront,
+                previewUrl: undefined,
+              },
+              rgBack: {
+                ...defaultForm.documents.rgBack,
+                ...parsedDocs.rgBack,
+                previewUrl: undefined,
+              },
+              cnh: { ...defaultForm.documents.cnh, ...parsedDocs.cnh, previewUrl: undefined },
             },
           });
         }
@@ -261,6 +300,17 @@ export default function CadastroPage() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (stepIndex === 1) setMobileFieldIndex(0);
+  }, [stepIndex]);
+
+  useEffect(() => {
     if (!hydrated || typeof window === 'undefined') return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, draftMeta, stepIndex }));
   }, [form, draftMeta, stepIndex, hydrated]);
@@ -272,6 +322,28 @@ export default function CadastroPage() {
     },
     [setForm],
   );
+
+  const toggleProfileRole = useCallback((role: ProfileRole) => {
+    setForm((prev) => {
+      const nextRoles = new Set(prev.profileRoles);
+      if (nextRoles.has(role)) {
+        nextRoles.delete(role);
+      } else {
+        nextRoles.add(role);
+      }
+      const roles = Array.from(nextRoles);
+      return {
+        ...prev,
+        profileRoles: roles,
+        profileRoleOther: roles.includes('OUTRO') ? prev.profileRoleOther : '',
+      };
+    });
+    dirtyRef.current = true;
+  }, []);
+
+  const markTouched = useCallback((field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }, []);
 
   const updateAddress = useCallback(
     (patch: Partial<DraftFormState['address']>) => {
@@ -331,6 +403,7 @@ export default function CadastroPage() {
         lastPayloadRef.current = serialized;
         dirtyRef.current = false;
         setSyncStatus('saved');
+        setLastSavedAt(new Date().toISOString());
       } catch {
         setSyncStatus('error');
       }
@@ -348,7 +421,8 @@ export default function CadastroPage() {
     return () => window.clearInterval(timer);
   }, [syncDraft]);
 
-  const handleBlur = () => {
+  const handleFieldBlur = (field?: string) => {
+    if (field) markTouched(field);
     void syncDraft(true);
   };
 
@@ -357,7 +431,20 @@ export default function CadastroPage() {
     file: File,
     key: keyof DraftFormState['documents'],
   ) => {
-    updateDocument(key, { status: 'uploading', error: undefined, fileName: file.name });
+    const previousPreview = form.documents[key]?.previewUrl;
+    if (previousPreview) {
+      URL.revokeObjectURL(previousPreview);
+      previewUrlsRef.current.delete(previousPreview);
+    }
+    const previewUrl = URL.createObjectURL(file);
+    previewUrlsRef.current.add(previewUrl);
+    updateDocument(key, {
+      status: 'uploading',
+      error: undefined,
+      fileName: file.name,
+      previewUrl,
+    });
+    setOcrConfirmed(false);
     try {
       const payload = buildDraftPayload(form);
       const meta = await ensureDraft(payload);
@@ -396,7 +483,24 @@ export default function CadastroPage() {
     }
   };
 
+  const clearDocument = (key: keyof DraftFormState['documents']) => {
+    const previousPreview = form.documents[key]?.previewUrl;
+    if (previousPreview) {
+      URL.revokeObjectURL(previousPreview);
+      previewUrlsRef.current.delete(previousPreview);
+    }
+    updateDocument(key, {
+      status: 'idle',
+      documentId: undefined,
+      fileName: undefined,
+      previewUrl: undefined,
+      error: undefined,
+    });
+    setOcrConfirmed(false);
+  };
+
   const handleNext = async () => {
+    if (stepIndex === 0 && !profileStepValid) return;
     await syncDraft(true);
     setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
   };
@@ -465,6 +569,62 @@ export default function CadastroPage() {
     };
   }, [tracking, form.fullName, form.cpf]);
 
+  const documentPreview = useMemo(() => {
+    if (form.documentChoice === 'RG') {
+      if (form.documents.rgFront.previewUrl) {
+        return { key: 'rgFront', label: 'RG - frente', state: form.documents.rgFront };
+      }
+      if (form.documents.rgBack.previewUrl) {
+        return { key: 'rgBack', label: 'RG - verso', state: form.documents.rgBack };
+      }
+      return null;
+    }
+    if (form.documents.cnh.previewUrl) {
+      return { key: 'cnh', label: 'CNH', state: form.documents.cnh };
+    }
+    return null;
+  }, [form.documentChoice, form.documents]);
+
+  const ocrPreviewFields = useMemo(() => {
+    const data = tracking?.ocr?.data ?? null;
+    const name = resolveOcrField(data, ['nome', 'name', 'fullName']) || form.fullName;
+    const cpf = resolveOcrField(data, ['cpf', 'document', 'documento']) || form.cpf;
+    const birthDate =
+      resolveOcrField(data, ['data_nascimento', 'birthDate', 'nascimento']) ||
+      formatDate(form.birthDate);
+    const docNumber = resolveOcrField(data, [
+      'rg',
+      'cnh',
+      'numero_documento',
+      'numero',
+      'document_number',
+    ]);
+    const issueDate = resolveOcrField(data, ['data_emissao', 'issue_date']);
+    const issuer = resolveOcrField(data, ['orgao_emissor', 'emissor', 'issuer']);
+
+    return [
+      { label: 'Nome', value: name || '-' },
+      { label: 'CPF', value: cpf || '-' },
+      { label: 'Nascimento', value: birthDate || '-' },
+      { label: 'Documento', value: docNumber || '-' },
+      { label: 'Emissao', value: issueDate || '-' },
+      { label: 'Orgao emissor', value: issuer || '-' },
+    ];
+  }, [tracking?.ocr?.data, form.fullName, form.cpf, form.birthDate]);
+
+  const otherRoleSelected = form.profileRoles.includes('OUTRO');
+  const profileStepValid =
+    form.profileRoles.length > 0 &&
+    (!otherRoleSelected || Boolean(form.profileRoleOther.trim().length));
+
+  const fullNameValid = form.fullName.trim().split(/\s+/).filter(Boolean).length >= 2;
+  const birthDateValid = isAdult(form.birthDate);
+  const fullNameStatus = touched.fullName ? (fullNameValid ? 'valid' : 'invalid') : 'idle';
+  const birthDateStatus = touched.birthDate ? (birthDateValid ? 'valid' : 'invalid') : 'idle';
+  const cpfStatus = touched.cpf ? (form.cpf ? cpfValidation.status : 'invalid') : 'idle';
+  const emailStatus = touched.email ? (form.email ? emailValidation.status : 'invalid') : 'idle';
+  const phoneStatus = touched.phone ? (form.phone ? phoneValidation.status : 'invalid') : 'idle';
+
   const canSubmit = form.consentAccepted && submitStatus !== 'submitting';
 
   const AddressFields = (
@@ -473,9 +633,10 @@ export default function CadastroPage() {
         label="CEP"
         value={form.address.cep}
         onChange={(value) => updateAddress({ cep: value })}
-        onBlur={handleBlur}
+        onBlur={() => handleFieldBlur('address.cep')}
         mask="cep"
         status={cepValidation.status}
+        showStatus={Boolean(touched['address.cep'])}
         hint={viaCep.error ?? undefined}
         placeholder="00000-000"
       />
@@ -483,7 +644,8 @@ export default function CadastroPage() {
         label="Rua"
         value={form.address.street}
         onChange={(value) => updateAddress({ street: value })}
-        onBlur={handleBlur}
+        onBlur={() => handleFieldBlur('address.street')}
+        showStatus={false}
         placeholder="Rua ou avenida"
       />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -491,14 +653,16 @@ export default function CadastroPage() {
           label="Numero"
           value={form.address.number}
           onChange={(value) => updateAddress({ number: value })}
-          onBlur={handleBlur}
+          onBlur={() => handleFieldBlur('address.number')}
+          showStatus={false}
           placeholder="123"
         />
         <InputMasked
           label="Complemento"
           value={form.address.complement}
           onChange={(value) => updateAddress({ complement: value })}
-          onBlur={handleBlur}
+          onBlur={() => handleFieldBlur('address.complement')}
+          showStatus={false}
           placeholder="Apto, bloco"
         />
       </div>
@@ -507,24 +671,138 @@ export default function CadastroPage() {
           label="Bairro"
           value={form.address.district}
           onChange={(value) => updateAddress({ district: value })}
-          onBlur={handleBlur}
+          onBlur={() => handleFieldBlur('address.district')}
+          showStatus={false}
         />
         <InputMasked
           label="Cidade"
           value={form.address.city}
           onChange={(value) => updateAddress({ city: value })}
-          onBlur={handleBlur}
+          onBlur={() => handleFieldBlur('address.city')}
+          showStatus={false}
         />
       </div>
       <InputMasked
         label="UF"
         value={form.address.state}
         onChange={(value) => updateAddress({ state: value })}
-        onBlur={handleBlur}
+        onBlur={() => handleFieldBlur('address.state')}
+        showStatus={false}
         placeholder="SP"
       />
     </>
   );
+
+  const mobileFields = [
+    {
+      key: 'fullName',
+      content: (
+        <InputMasked
+          label="Nome completo"
+          value={form.fullName}
+          onChange={(value) => updateForm({ fullName: value })}
+          onBlur={() => handleFieldBlur('fullName')}
+          status={fullNameStatus}
+          showStatus={Boolean(touched.fullName)}
+          hint={touched.fullName && !fullNameValid ? 'Informe nome e sobrenome.' : undefined}
+          placeholder="Maria Silva Santos"
+        />
+      ),
+    },
+    {
+      key: 'cpf',
+      content: (
+        <InputMasked
+          label="CPF"
+          value={form.cpf}
+          onChange={(value) => updateForm({ cpf: value })}
+          onBlur={() => handleFieldBlur('cpf')}
+          mask="cpf"
+          status={cpfStatus}
+          showStatus={Boolean(touched.cpf)}
+          hint={touched.cpf && cpfStatus === 'invalid' ? 'CPF invalido' : undefined}
+          placeholder="000.000.000-00"
+        />
+      ),
+    },
+    {
+      key: 'birthDate',
+      content: (
+        <InputMasked
+          label="Data de nascimento"
+          type="date"
+          value={form.birthDate}
+          onChange={(value) => updateForm({ birthDate: value })}
+          onBlur={() => handleFieldBlur('birthDate')}
+          status={birthDateStatus}
+          showStatus={Boolean(touched.birthDate)}
+          hint={
+            touched.birthDate && !birthDateValid ? 'Voce precisa ter 18 anos ou mais.' : undefined
+          }
+        />
+      ),
+    },
+    {
+      key: 'phone',
+      content: (
+        <InputMasked
+          label="Celular (WhatsApp)"
+          value={form.phone}
+          onChange={(value) => updateForm({ phone: value })}
+          onBlur={() => handleFieldBlur('phone')}
+          mask="phone"
+          status={phoneStatus}
+          showStatus={Boolean(touched.phone)}
+          hint={touched.phone && phoneStatus === 'invalid' ? 'Telefone invalido' : undefined}
+          placeholder="(11) 91234-5678"
+        />
+      ),
+    },
+    {
+      key: 'email',
+      content: (
+        <InputMasked
+          label="E-mail"
+          value={form.email}
+          onChange={(value) => updateForm({ email: value })}
+          onBlur={() => handleFieldBlur('email')}
+          status={emailStatus}
+          showStatus={Boolean(touched.email)}
+          hint={touched.email && emailStatus === 'invalid' ? 'E-mail invalido' : undefined}
+          placeholder="usuario@exemplo.com.br"
+        />
+      ),
+    },
+  ];
+
+  const roleOptions: Array<{ value: ProfileRole; label: string; description: string }> = [
+    { value: 'AUTOR', label: 'Autor(a) de letras', description: 'Cria letras e poemas.' },
+    {
+      value: 'COMPOSITOR',
+      label: 'Compositor(a) de melodias',
+      description: 'Cria melodias e harmonias.',
+    },
+    { value: 'INTERPRETE', label: 'Interprete/Artista', description: 'Interpreta e performa.' },
+    { value: 'EDITORA', label: 'Editor(a) musical', description: 'Edita e administra obras.' },
+    { value: 'PRODUTOR', label: 'Produtor(a)', description: 'Produz e dirige gravacoes.' },
+    { value: 'OUTRO', label: 'Outro', description: 'Descreva sua atuacao.' },
+  ];
+
+  const roleLabelMap = roleOptions.reduce<Record<ProfileRole, string>>(
+    (acc, role) => {
+      acc[role.value] = role.label;
+      return acc;
+    },
+    {} as Record<ProfileRole, string>,
+  );
+
+  const profileSummary = form.profileRoles.length
+    ? form.profileRoles
+        .map((role) =>
+          role === 'OUTRO' ? `Outro: ${form.profileRoleOther || '-'}` : roleLabelMap[role],
+        )
+        .join(', ')
+    : 'Perfil artistico';
 
   return (
     <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
@@ -553,10 +831,21 @@ export default function CadastroPage() {
                   {syncStatus === 'saving'
                     ? 'Salvando...'
                     : syncStatus === 'saved'
-                      ? 'Salvo'
+                      ? 'Salvo agora mesmo'
                       : syncStatus === 'error'
                         ? 'Erro'
                         : 'Aguardando'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+                <span>Ultimo salvamento</span>
+                <span className="font-semibold">
+                  {lastSavedAt
+                    ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '—'}
                 </span>
               </div>
             </div>
@@ -586,30 +875,74 @@ export default function CadastroPage() {
               description="Escolha o papel principal e o tipo de proposta."
               footer={
                 <>
-                  <Button onClick={handleNext}>Continuar</Button>
+                  <Button onClick={handleNext} disabled={!profileStepValid}>
+                    Continuar
+                  </Button>
                 </>
               }
             >
               <div className="grid gap-4 sm:grid-cols-2">
-                {(['AUTOR', 'COMPOSITOR', 'INTERPRETE', 'EDITORA'] as ProfileRole[]).map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    className={cn(
-                      'rounded-2xl border p-4 text-left transition',
-                      form.profileRole === role
-                        ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-                        : 'border-zinc-200 bg-white hover:border-zinc-300',
-                    )}
-                    onClick={() => updateForm({ profileRole: role })}
-                  >
-                    <div className="text-sm font-semibold text-zinc-900">{role}</div>
-                    <p className="mt-2 text-xs text-zinc-500">
-                      Perfil principal para classificacao da solicitacao.
-                    </p>
-                  </button>
-                ))}
+                {roleOptions.map((role) => {
+                  const selected = form.profileRoles.includes(role.value);
+                  return (
+                    <button
+                      key={role.value}
+                      type="button"
+                      className={cn(
+                        'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
+                        'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-200',
+                        selected
+                          ? 'border-[#ff6b35] bg-orange-50 shadow-lg shadow-orange-100/70'
+                          : 'border-zinc-200 bg-white hover:-translate-y-0.5 hover:border-[#ff6b35]/60 hover:shadow',
+                      )}
+                      onClick={() => toggleProfileRole(role.value)}
+                      aria-pressed={selected}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-zinc-900">{role.label}</div>
+                        <span
+                          className={cn(
+                            'flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold',
+                            selected
+                              ? 'border-[#ff6b35] bg-[#ff6b35] text-white'
+                              : 'border-zinc-200 bg-white text-zinc-400',
+                          )}
+                          aria-hidden="true"
+                        >
+                          {selected ? '✓' : ''}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs text-zinc-500">{role.description}</p>
+                    </button>
+                  );
+                })}
               </div>
+
+              {form.profileRoles.length === 0 ? (
+                <p className="text-xs text-red-600">
+                  Selecione pelo menos uma opcao para continuar.
+                </p>
+              ) : null}
+
+              {otherRoleSelected ? (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                    <span className="font-medium">Descreva sua atuacao</span>
+                    <input
+                      value={form.profileRoleOther}
+                      onChange={(event) => updateForm({ profileRoleOther: event.target.value })}
+                      onBlur={() => handleFieldBlur('profileRoleOther')}
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                      placeholder="Ex: arranjador, tecnico de audio..."
+                    />
+                  </label>
+                  {otherRoleSelected && !form.profileRoleOther.trim() ? (
+                    <p className="mt-2 text-xs text-red-600">
+                      Informe sua atuacao para a opcao "Outro".
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
@@ -621,10 +954,10 @@ export default function CadastroPage() {
                       key={type}
                       type="button"
                       className={cn(
-                        'rounded-full px-4 py-2 text-sm font-semibold',
+                        'rounded-full px-4 py-2 text-sm font-semibold transition',
                         form.proposalType === type
-                          ? 'bg-emerald-600 text-white'
-                          : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300',
+                          ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                          : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
                       )}
                       onClick={() => updateForm({ proposalType: type })}
                     >
@@ -650,72 +983,38 @@ export default function CadastroPage() {
               }
             >
               <div className="grid gap-4 sm:grid-cols-2">
-                <InputMasked
-                  label="Nome completo"
-                  value={form.fullName}
-                  onChange={(value) => updateForm({ fullName: value })}
-                  onBlur={handleBlur}
-                  placeholder="Nome e sobrenome"
-                />
-                <InputMasked
-                  label="CPF"
-                  value={form.cpf}
-                  onChange={(value) => updateForm({ cpf: value })}
-                  onBlur={handleBlur}
-                  mask="cpf"
-                  status={cpfValidation.status}
-                  hint={
-                    cpfValidation.normalized
-                      ? `Normalizado: ${cpfValidation.normalized}`
-                      : undefined
-                  }
-                  placeholder="000.000.000-00"
-                />
+                {mobileFields.map((field, index) => (
+                  <div
+                    key={field.key}
+                    className={cn('sm:block', mobileFieldIndex === index ? 'block' : 'hidden')}
+                  >
+                    {field.content}
+                  </div>
+                ))}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <InputMasked
-                  label="Email"
-                  value={form.email}
-                  onChange={(value) => updateForm({ email: value })}
-                  onBlur={handleBlur}
-                  status={emailValidation.status}
-                  hint={
-                    emailValidation.normalized
-                      ? `Normalizado: ${emailValidation.normalized}`
-                      : undefined
+              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-xs text-zinc-500 sm:hidden">
+                <Button
+                  variant="ghost"
+                  onClick={() => setMobileFieldIndex((prev) => Math.max(prev - 1, 0))}
+                  disabled={mobileFieldIndex === 0}
+                  className="px-3 py-1 text-xs"
+                >
+                  Campo anterior
+                </Button>
+                <span className="text-[11px] uppercase tracking-[0.2em]">
+                  Campo {mobileFieldIndex + 1} de {mobileFields.length}
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    setMobileFieldIndex((prev) => Math.min(prev + 1, mobileFields.length - 1))
                   }
-                  placeholder="email@dominio.com"
-                />
-                <InputMasked
-                  label="Telefone"
-                  value={form.phone}
-                  onChange={(value) => updateForm({ phone: value })}
-                  onBlur={handleBlur}
-                  mask="phone"
-                  status={phoneValidation.status}
-                  hint={
-                    phoneValidation.e164
-                      ? `E.164: ${phoneValidation.e164}`
-                      : phoneValidation.ddd
-                        ? `DDD: ${phoneValidation.ddd}`
-                        : undefined
-                  }
-                  placeholder="(11) 91234-5678"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm text-zinc-700">
-                  <span className="font-medium">Data de nascimento</span>
-                  <input
-                    type="date"
-                    value={form.birthDate}
-                    onChange={(event) => updateForm({ birthDate: event.target.value })}
-                    onBlur={handleBlur}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                  />
-                </label>
+                  disabled={mobileFieldIndex >= mobileFields.length - 1}
+                  className="px-3 py-1 text-xs"
+                >
+                  Proximo campo
+                </Button>
               </div>
 
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
@@ -762,10 +1061,10 @@ export default function CadastroPage() {
                       key={choice}
                       type="button"
                       className={cn(
-                        'rounded-full px-4 py-2 text-sm font-semibold',
+                        'rounded-full px-4 py-2 text-sm font-semibold transition',
                         form.documentChoice === choice
-                          ? 'bg-emerald-600 text-white'
-                          : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300',
+                          ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                          : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
                       )}
                       onClick={() => updateForm({ documentChoice: choice })}
                     >
@@ -798,17 +1097,97 @@ export default function CadastroPage() {
                 )}
               </div>
 
+              {documentPreview?.state.previewUrl ? (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Previa OCR</p>
+                      <p className="text-sm font-semibold text-zinc-900">{documentPreview.label}</p>
+                    </div>
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
+                      {tracking?.ocr?.data ? 'OCR processado' : 'OCR em processamento'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
+                      <img
+                        src={documentPreview.state.previewUrl}
+                        alt="Previa do documento enviado"
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 p-3 text-xs text-zinc-600 shadow">
+                        <div className="grid gap-1">
+                          {ocrPreviewFields.slice(0, 3).map((field) => (
+                            <div key={field.label} className="flex items-center justify-between">
+                              <span className="text-zinc-500">{field.label}</span>
+                              <span className="font-semibold text-zinc-900">{field.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+                        <p className="font-semibold text-zinc-700">Dados extraidos</p>
+                        <div className="mt-2 grid gap-2">
+                          {ocrPreviewFields.map((field) => (
+                            <div key={field.label} className="flex items-center justify-between">
+                              <span className="text-zinc-500">{field.label}</span>
+                              <span className="font-semibold text-zinc-900">{field.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {ocrConfirmed ? (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                          Dados confirmados pelo candidato.
+                        </div>
+                      ) : null}
+                      <div className="grid gap-2">
+                        <Button variant="accent" onClick={() => setOcrConfirmed(true)}>
+                          Confirmar dados
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setStepIndex(1);
+                            setMobileFieldIndex(0);
+                          }}
+                        >
+                          Editar manualmente
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            clearDocument(documentPreview.key as keyof DraftFormState['documents'])
+                          }
+                        >
+                          Refazer foto
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-zinc-200 bg-white p-5">
                 <h3 className="text-sm font-semibold text-zinc-700">Dicas rapidas</h3>
                 <ul className="mt-3 grid gap-2 text-sm text-zinc-500">
-                  <li>- Use boa iluminacao e evite reflexos.</li>
-                  <li>- Garanta que todos os cantos aparecam.</li>
-                  <li>- Envie foto nitida, sem cortes.</li>
+                  <li>- Use boa iluminacao.</li>
+                  <li>- Evite reflexos e sombras.</li>
+                  <li>- Mantenha o documento legivel e centralizado.</li>
                 </ul>
               </div>
 
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
-                OCR status: {tracking?.ocr ? 'Processado' : 'Aguardando envio'}
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
+                OCR status:{' '}
+                {tracking?.ocr?.data
+                  ? 'Processado com sucesso.'
+                  : documentPreview
+                    ? 'Imagem enviada. OCR em processamento.'
+                    : 'Aguardando envio do documento.'}
               </div>
             </StepLayout>
           ) : null}
@@ -823,8 +1202,8 @@ export default function CadastroPage() {
                   <Button variant="secondary" onClick={handleBack}>
                     Voltar
                   </Button>
-                  <Button onClick={submitProposal} disabled={!canSubmit}>
-                    {submitStatus === 'submitting' ? 'Enviando...' : 'Enviar proposta'}
+                  <Button variant="accent" onClick={submitProposal} disabled={!canSubmit}>
+                    {submitStatus === 'submitting' ? 'Enviando...' : 'Enviar para analise'}
                   </Button>
                 </>
               }
@@ -835,6 +1214,7 @@ export default function CadastroPage() {
                   <span>{form.proposalType}</span>
                 </div>
                 <div className="grid gap-2">
+                  <span className="text-xs text-zinc-500">{profileSummary}</span>
                   <span className="font-semibold text-zinc-900">{form.fullName || 'Nome'}</span>
                   <span>{form.cpf || 'CPF'}</span>
                   <span>{form.email || 'Email'}</span>
@@ -869,14 +1249,11 @@ export default function CadastroPage() {
                 <label className="flex items-start gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-200"
+                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
                     checked={form.consentAccepted}
                     onChange={(event) => handleConsentChange(event.target.checked)}
                   />
-                  <span>
-                    Li e concordo com o uso dos meus dados para analise e contato conforme a
-                    politica de privacidade.
-                  </span>
+                  <span>Declaro que as informacoes fornecidas sao verdadeiras.</span>
                 </label>
                 {!form.consentAccepted ? (
                   <p className="mt-2 text-xs text-amber-600">
@@ -951,20 +1328,38 @@ const UploadCard = ({
                 : 'pendente'}
         </span>
       </div>
-      <label className="mt-4 flex cursor-pointer flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500 hover:border-emerald-300">
-        <input
-          type="file"
-          accept="image/*,application/pdf"
-          capture="environment"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) onSelect(file);
-          }}
-        />
-        <span>Enviar arquivo ou usar camera</span>
-        <span className="text-xs">Clique para selecionar</span>
-      </label>
+      <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+          Como enviar
+        </span>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-orange-200 hover:bg-orange-50">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onSelect(file);
+              }}
+            />
+            Tirar foto
+          </label>
+          <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-orange-200 hover:bg-orange-50">
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onSelect(file);
+              }}
+            />
+            Enviar arquivo
+          </label>
+        </div>
+      </div>
       {state.error ? <p className="mt-2 text-xs text-red-600">{state.error}</p> : null}
     </div>
   );

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Button } from '../../components/ui/button';
 
 export type ProposalFilters = {
-  status?: string;
+  status?: string[];
   type?: string;
   sla?: string;
   dateFrom?: string;
@@ -13,14 +13,13 @@ export type ProposalFilters = {
 };
 
 const statusOptions = [
-  { value: '', label: 'Todos' },
-  { value: 'SUBMITTED', label: 'Recebida' },
+  { value: 'SUBMITTED', label: 'Aguardando analise' },
   { value: 'UNDER_REVIEW', label: 'Em analise' },
-  { value: 'PENDING_DOCS', label: 'Pendencia docs' },
-  { value: 'PENDING_SIGNATURE', label: 'Pendencia assinatura' },
-  { value: 'APPROVED', label: 'Aprovada' },
-  { value: 'REJECTED', label: 'Reprovada' },
-  { value: 'SIGNED', label: 'Assinada' },
+  { value: 'PENDING_DOCS', label: 'Pendente documento' },
+  { value: 'PENDING_SIGNATURE', label: 'Aguardando assinatura' },
+  { value: 'SIGNED', label: 'Assinado' },
+  { value: 'APPROVED', label: 'Filiacao concluida' },
+  { value: 'REJECTED', label: 'Reprovado' },
 ];
 
 const typeOptions = [
@@ -46,6 +45,17 @@ export const ProposalsFilters = ({
   onClear: () => void;
 }) => {
   const memoFilters = useMemo(() => ({ ...filters }), [filters]);
+  const selectedStatuses = memoFilters.status ?? [];
+  const toggleStatus = (value: string) => {
+    const next = new Set(selectedStatuses);
+    if (next.has(value)) {
+      next.delete(value);
+    } else {
+      next.add(value);
+    }
+    const list = Array.from(next);
+    onChange({ ...memoFilters, status: list.length ? list : undefined });
+  };
 
   return (
     <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
@@ -56,22 +66,22 @@ export const ProposalsFilters = ({
         </Button>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <label className="flex flex-col gap-2 text-sm text-zinc-600">
-          Status
-          <select
-            value={memoFilters.status ?? ''}
-            onChange={(event) =>
-              onChange({ ...memoFilters, status: event.target.value || undefined })
-            }
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-          >
+        <fieldset className="flex flex-col gap-2 text-sm text-zinc-600">
+          <legend className="font-medium text-zinc-700">Status</legend>
+          <div className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+              <label key={option.value} className="flex items-center gap-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={selectedStatuses.includes(option.value)}
+                  onChange={() => toggleStatus(option.value)}
+                  className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                />
+                <span>{option.label}</span>
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
         <label className="flex flex-col gap-2 text-sm text-zinc-600">
           Tipo
           <select

@@ -139,10 +139,14 @@ export default function AdminDashboardPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Recebidas" value={metrics.counts.SUBMITTED ?? 0} />
-        <KpiCard label="Em analise" value={metrics.counts.UNDER_REVIEW ?? 0} />
-        <KpiCard label="Pendencias" value={metrics.counts.PENDING_DOCS ?? 0} tone="warning" />
-        <KpiCard label="Aprovadas" value={metrics.approved} tone="success" />
+        <KpiCard label="Aguardando analise" value={metrics.counts.SUBMITTED ?? 0} tone="info" />
+        <KpiCard label="Em analise" value={metrics.counts.UNDER_REVIEW ?? 0} tone="warning" />
+        <KpiCard
+          label="Aguardando assinatura"
+          value={metrics.counts.PENDING_SIGNATURE ?? 0}
+          tone="purple"
+        />
+        <KpiCard label="Aprovados no mes" value={metrics.approved} tone="success" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

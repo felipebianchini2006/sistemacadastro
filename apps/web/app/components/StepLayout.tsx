@@ -17,7 +17,7 @@ export const StepLayout = ({
     <section
       className={cn(
         'rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg sm:p-8',
-        tone === 'review' && 'bg-gradient-to-br from-white via-white to-emerald-50',
+        tone === 'review' && 'bg-gradient-to-br from-white via-white to-orange-50',
       )}
     >
       <header className="flex flex-col gap-2">
