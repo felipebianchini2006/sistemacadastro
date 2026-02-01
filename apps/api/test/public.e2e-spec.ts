@@ -44,6 +44,9 @@ const buildPrismaStub = () => {
       }),
       deleteMany: jest.fn(async () => ({ count: 0 })),
     },
+    person: {
+      findFirst: jest.fn(async () => null),
+    },
     proposal: {
       create: jest.fn(async ({ data }) => {
         const id = randomUUID();

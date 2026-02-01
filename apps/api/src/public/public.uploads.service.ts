@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { DocumentType } from '@prisma/client';
+import { DocumentType, ProposalStatus } from '@prisma/client';
 import { createHash } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -79,6 +79,29 @@ export class PublicUploadsService {
         checksum: payload.checksum,
       },
     });
+
+    if (owner.kind === 'proposal') {
+      const proposal = await this.prisma.proposal.findUnique({
+        where: { id: owner.id },
+        select: { status: true },
+      });
+
+      if (proposal?.status === ProposalStatus.PENDING_DOCS) {
+        await this.prisma.proposal.update({
+          where: { id: owner.id },
+          data: {
+            status: ProposalStatus.UNDER_REVIEW,
+            statusHistory: {
+              create: {
+                fromStatus: ProposalStatus.PENDING_DOCS,
+                toStatus: ProposalStatus.UNDER_REVIEW,
+                reason: 'Documentos complementares enviados pelo candidato',
+              },
+            },
+          },
+        });
+      }
+    }
 
     const presign = await this.storage.presignPutObject({
       key: storageKey,

@@ -351,6 +351,22 @@ export default function AdminProposalDetailsPage() {
               ) : null}
 
               <div className="mt-4 grid gap-3">
+                {can(user?.roles, 'startReview') &&
+                (details.status === 'SUBMITTED' || details.status === 'PENDING_DOCS') ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      handleAction(() =>
+                        adminFetchWithRefresh(`/admin/proposals/${details.id}/review/start`, {
+                          method: 'POST',
+                        }),
+                      )
+                    }
+                    disabled={sending}
+                  >
+                    Iniciar analise
+                  </Button>
+                ) : null}
                 {can(user?.roles, 'approve') ? (
                   <Button
                     variant="accent"

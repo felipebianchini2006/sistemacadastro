@@ -74,6 +74,15 @@ export class AdminProposalsController {
     );
   }
 
+  @Post(':proposalId/review/start')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  startReview(
+    @Param('proposalId') proposalId: string,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    return this.service.startReview(proposalId, req.user?.id ?? 'system');
+  }
+
   @Post(':proposalId/approve')
   @Roles(RoleName.ADMIN, RoleName.ANALYST)
   approve(

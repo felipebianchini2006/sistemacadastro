@@ -158,13 +158,24 @@ export class PublicService {
 
     const protocol = await this.generateProtocol();
     const now = new Date();
+    const emailNormalized = data.email!.toLowerCase();
+    const emailHash = this.hashSearch(emailNormalized);
+    const cpfHash = this.hashSearch(data.cpf!);
+
+    const existingEmail = await this.prisma.person.findFirst({
+      where: { emailHash },
+      select: { id: true },
+    });
+    if (existingEmail) {
+      throw new BadRequestException('Email ja utilizado');
+    }
 
     const personData = {
       fullName: data.fullName!,
       cpfEncrypted: await this.crypto.encrypt(data.cpf!),
-      cpfHash: this.hashSearch(data.cpf!),
-      emailEncrypted: await this.crypto.encrypt(data.email!.toLowerCase()),
-      emailHash: this.hashSearch(data.email!.toLowerCase()),
+      cpfHash,
+      emailEncrypted: await this.crypto.encrypt(emailNormalized),
+      emailHash,
       phoneEncrypted: await this.crypto.encrypt(data.phone!),
       phoneHash: this.hashSearch(data.phone!),
       birthDate: data.birthDate ? new Date(data.birthDate) : null,

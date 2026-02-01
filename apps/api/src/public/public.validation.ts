@@ -41,6 +41,9 @@ const profileRoleSchema = z.enum([
   'OUTRO',
 ]);
 
+const hasFullNameParts = (value: string) =>
+  value.trim().split(/\s+/).filter(Boolean).length >= 2;
+
 export const draftDataSchema = z
   .object({
     profileRoles: z.array(profileRoleSchema).optional(),
@@ -107,6 +110,14 @@ export const validateEmailMx = async (email: string) => {
 export const validateDraftData = (payload: unknown, required = false) => {
   const parsed = draftDataSchema.parse(payload);
   const normalized = normalizeDraftData(parsed);
+
+  if (
+    required &&
+    normalized.fullName &&
+    !hasFullNameParts(normalized.fullName)
+  ) {
+    throw new Error('Nome completo invalido');
+  }
 
   if (normalized.cpf && !isValidCpf(normalized.cpf)) {
     throw new Error('CPF invalido');

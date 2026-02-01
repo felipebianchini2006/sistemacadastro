@@ -251,6 +251,44 @@ export class AdminProposalsService {
     return { ok: true };
   }
 
+  async startReview(proposalId: string, adminUserId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      select: { id: true, status: true },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const allowed = new Set<ProposalStatus>([
+      ProposalStatus.SUBMITTED,
+      ProposalStatus.PENDING_DOCS,
+    ]);
+
+    if (!allowed.has(proposal.status)) {
+      throw new BadRequestException('Status da proposta invalido');
+    }
+
+    await this.prisma.proposal.update({
+      where: { id: proposal.id },
+      data: {
+        status: ProposalStatus.UNDER_REVIEW,
+        statusHistory: {
+          create: {
+            fromStatus: proposal.status,
+            toStatus: ProposalStatus.UNDER_REVIEW,
+            reason: 'Analise iniciada',
+          },
+        },
+      },
+    });
+
+    await this.createAuditLog(adminUserId, proposal.id, 'REVIEW_START');
+
+    return { ok: true };
+  }
+
   async approve(proposalId: string, adminUserId: string) {
     const result = await this.signatureService.requestSignature(proposalId);
 

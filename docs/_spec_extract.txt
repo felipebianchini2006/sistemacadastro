@@ -1,0 +1,1360 @@
+ESPECIFICAÇÃO TÉCNICA - SISTEMA DE FILIAÇÃO DIGITAL SBACEM
+Data:
+ 28/01/2026
+Documento para:
+ Equipe de Desenvolvimento
+Projeto:
+ Plataforma Digital de Filiação SBACEM
+1. VISÃO GERAL DO PROJETO
+Objetivo:
+ Criar uma plataforma web/mobile de filiação digital 100% online para substituir o processo manual via PDF, reduzindo o tempo de filiação
+.
+Características principais:
+Questionário progressivo mobile-
+first
+Validações 
+inline
+ em tempo real
+Autosave
+ automático por campo
+OCR para extração automática de dados de documentos
+Assinatura digital integrada (enviada APÓS aprovação da equipe)
+Integração opcional com redes sociais (Spotify, YouTube, Instagram, Facebook)
+Sincronização bidirecional com ERP Totvs
+Backoffice completo para gestão e aprovação
+2. FLUXO COMPLETO DO SISTEMA
+IMPORTANTE: Fluxo de Aprovação antes da Assinatura
+O sistema possui dois momentos distintos:
+FASE 1 - CADASTRO PELO CANDIDATO (4 etapas - SEM assinatura)
+FASE 2 - ANÁLISE E ASSINATURA (Backoffice)
+2.1 FASE 1 - CADASTRO PELO CANDIDATO
+O candidato preenche 4 etapas e envia para análise da equipe SEM assinar.
+ETAPA 1: Questionário de Perfil Artístico
+Pergunta:
+ "Como você atua na música?"
+Tipo de campo:
+ Seleção múltipla (
+checkbox
+)
+Opções disponíveis:
+Autor(a) de Letras
+Compositor(a) de Melodias
+Intérprete/Artista
+Editor(a) Musical
+Produtor(a)
+Outro (campo de texto livre se selecionado)
+Validações:
+Mínimo 1 opção deve ser selecionada
+Botão "Continuar" desabilitado até seleção válida
+Se "Outro" for selecionado, campo de texto é obrigatório
+Comportamento UX:
+Cards grandes visuais (fácil toque em mobile)
+Feedback visual ao selecionar (borda laranja coral #ff6b35)
+Hover
+ 
+effect
+ nos cards
+ETAPA 2: Dados Básicos
+Interface:
+Header com indicador de progresso: "Etapa 2 de 4"
+Barra de progresso visual mostrando % de conclusão
+Botão voltar para navegação
+Campos obrigatórios:
+Nome Completo
+Tipo: 
+Text
+ input
+Validação: Mínimo 2 palavras (nome e sobrenome)
+Placeholder
+: "Maria Silva Santos"
+CPF
+Tipo: 
+Text
+ input com máscara automática
+Máscara: 000.000.000-00
+Validação: Algoritmo de dígito verificador do CPF em tempo real
+Feedback visual: 
+Check
+ verde (#22C55E) se válido, X vermelho (#EF4444) se inválido
+Mensagem de erro: "CPF inválido"
+Data de Nascimento
+Tipo: Date 
+picker
+ (calendário mobile-
+friendly
+)
+Validação: Usuário deve ser maior de 18 anos
+Formato de exibição: DD/MM/AAAA
+Celular (WhatsApp)
+Tipo: 
+Text
+ input com máscara automática
+Máscara: (00) 00000-0000
+Ícone do WhatsApp ao lado do campo
+Validação: Formato de telefone brasileiro válido
+E-mail
+Tipo: Email input
+Validação: Formato de e-mail válido (
+regex
+ padrão)
+Verificação de domínio existente (opcional)
+Exemplo: usuario@exemplo.com.br
+Funcionalidades UX:
+Progressive
+ 
+disclosure
+: Mostrar um campo por vez em dispositivos móveis
+Validação em tempo real ao sair do campo (evento 
+onBlur
+)
+Autosave
+: Salvar dados automaticamente a cada campo preenchido
+Feedback visual: Ícones de 
+check
+ verde ou X vermelho ao lado de cada campo
+ETAPA 3: Documentos com OCR
+Documentos solicitados:
+1. Documento com Foto (RG ou CNH) - OBRIGATÓRIO
+Interface:
+Botão: "Tirar Foto" (aciona câmera) OU "Enviar Arquivo" (upload)
+Orientações visuais na tela antes da captura:
+"Use boa iluminação"
+"Evite reflexos e sombras"
+"Mantenha o documento legível e centralizado"
+Processamento OCR:
+ Após captura/upload, o sistema deve processar o documento com OCR e extrair automaticamente:
+Nome completo
+CPF
+Data de nascimento
+Número do documento (RG ou CNH)
+Data de emissão
+Órgão emissor
+Tela de Preview com dados extraídos:
+ Mostrar a imagem do documento capturado com overlay dos dados detectados:
+Nome: Maria Silva Santos ✓
+CPF: 123.456.789-00 ✓
+Data Nascimento: 15/03/1990 ✓
+RG: 12.345.678-9 ✓
+Órgão Emissor: SSP/SP ✓
+Botões disponíveis:
+"Confirmar Dados" (se tudo correto, avança)
+"Editar Manualmente" (permite corrigir campos se OCR errou)
+"Refazer Foto" (se imagem está ruim ou ilegível)
+Validações:
+Conferir se dados extraídos por OCR batem com dados digitados na Etapa 2
+Se houver divergência (
+ex
+: CPF diferente), alertar usuário e solicitar correção
+Validar legibilidade mínima da imagem antes de processar OCR
+2. Comprovante de Residência (OPCIONAL)
+Mesmo fluxo de captura/upload
+OCR extrai: Endereço completo, CEP
+Pode ser pulado pelo usuário
+ETAPA 4: Confirmação e Envio
+Interface:
+Resumo de todos os dados preenchidos
+Possibilidade de editar qualquer seção (voltar às etapas anteriores)
+Checkbox
+ obrigatório: "Declaro que as informações fornecidas são verdadeiras"
+Botão grande: "Enviar para Análise"
+Ao clicar "Enviar para Análise":
+Sistema gera número de protocolo único
+Salva todos os dados no banco de dados
+Status da proposta: 
+"Aguardando Análise"
+Envia confirmação por e-mail ao candidato:
+"Recebemos sua proposta de filiação (Protocolo: #123456). Em breve nossa equipe fará a análise."
+Candidato é redirecionado para tela de acompanhamento com o protocolo
+IMPORTANTE:
+ Nesta etapa o candidato 
+NÃO assina
+ nada ainda. A assinatura só será solicitada após a equipe aprovar os dados no backoffice.
+2.2 FASE 2 - ANÁLISE E APROVAÇÃO (BACKOFFICE)
+Estados de uma Proposta
+O sistema deve gerenciar os seguintes status:
+Status
+Descrição
+Badge
+ Visual
+Aguardando Análise
+Candidato enviou, aguarda primeira revisão
+Azul #3B82F6
+Em Análise
+Analista está revisando o dossiê
+Amarelo #F59E0B
+Pendente Documento
+Equipe solicitou documento adicional
+Vermelho #EF4444
+Aguardando Assinatura
+Aprovado, link de assinatura enviado ao candidato
+Roxo #A855F7
+Assinado
+Candidato assinou, aguarda sincronização Totvs
+Verde #22C55E
+Filiação Concluída
+Sincronizado com Totvs, processo finalizado
+Verde escuro #16A34A
+Reprovado
+Análise negativa (com justificativa)
+Cinza #6B7280
+Dashboard do Backoffice
+KPIs principais (cards):
+Aguardando Análise
+ (azul)
+Total de propostas enviadas por candidatos aguardando primeira revisão
+Exemplo: 124 propostas
+Em Análise
+ (amarelo)
+Propostas sendo revisadas por analistas no momento
+Exemplo: 45 propostas
+Aguardando Assinatura
+ (roxo) 
+⭐
+ 
+NOVO - IMPORTANTE
+Propostas aprovadas pela equipe, link de assinatura enviado, aguardando candidato assinar
+Exemplo: 8 propostas
+Aprovados no Mês
+ (verde)
+Total de filiações concluídas (assinadas + sincronizadas com Totvs)
+Exemplo: 890 filiações
+Tabela de Propostas
+Colunas da tabela:
+Nome do Candidato
+CPF (mascarado: 
+123.
+.
+-00)
+Tipo (Autor, Compositor, 
+Intérprete, etc.
+)
+Status (
+badge
+ colorido)
+Data de envio
+SLA (indicador visual: verde/amarelo/vermelho)
+Ações (menu 
+dropdown
+)
+Filtros disponíveis:
+Por status (
+dropdown
+ 
+multi-seleção
+)
+Por data (calendário com range)
+Busca por nome ou CPF (campo de texto)
+Indicadores de SLA:
+🟢
+ Verde: 0-3 dias (dentro do prazo)
+🟡
+ Amarelo: 4-7 dias (atenção, próximo do limite)
+🔴
+ Vermelho: 8+ dias (atrasado, ação urgente)
+Ações Administrativas (Menu 
+⋮
+)
+Cada proposta na tabela tem um menu de ações com as seguintes opções:
+1. Ver Dossiê Completo
+Abre modal ou página com visualização completa de:
+Dados pessoais
+Perfil artístico (
+checkboxes
+ marcados)
+Documentos (imagens dos arquivos)
+Dados extraídos por OCR (editáveis)
+Redes sociais conectadas (se houver)
+Dados bancários (se preenchido, mascarados)
+Histórico/
+timeline
+ de eventos
+2. 
+📤
+ ENVIAR PARA ASSINATURA
+ 
+⭐
+ 
+AÇÃO PRINCIPAL - DESTAQUE
+Esta é a ação mais importante do backoffice.
+Quando está disponível:
+Status da proposta = "Aguardando Análise" OU "Em Análise"
+O que acontece ao clicar:
+Sistema valida que todos os dados obrigatórios estão corretos
+Gera documento PDF com os dados da proposta de filiação
+Cria link único de assinatura digital (expira em 7 dias)
+Chama API do provedor de assinatura (
+Docusign
+/
+Clicksign
+/D4Sign/Autentique)
+Envia notificação ao candidato:
+E-mail:
+ "Parabéns! Sua filiação foi aprovada. Clique aqui para assinar digitalmente: [link]"
+SMS/WhatsApp:
+ "SBACEM: Sua filiação foi aprovada! Assine aqui: [link único]"
+Muda status da proposta para: 
+"Aguardando Assinatura"
+Registra no histórico:
+Data/hora do envio
+Nome do analista responsável
+ID do documento de assinatura
+Visual da ação:
+Cor de destaque: Laranja coral #ff6b35
+Ícone: 
+Paper
+ plane (envio)
+Texto: "Enviar para Assinatura"
+3. Solicitar Documento Adicional
+Abre modal com campo de texto: "Qual documento ou informação você precisa?"
+Envia notificação ao candidato com a solicitação
+Muda status para: "Pendente Documento"
+Candidato recebe e-mail/SMS com link para enviar o documento
+4. Reprovar Proposta
+Campo de justificativa obrigatório
+Envia notificação ao candidato com a justificativa
+Muda status para: "Reprovado"
+Processo encerrado (não pode mais ser reativado)
+5. Reenviar Link de Assinatura
+Disponível quando status = "Aguardando Assinatura"
+Caso candidato não tenha assinado no prazo ou link expirou
+Gera novo link de assinatura (anterior é invalidado)
+Reenvia notificações (e-mail + SMS)
+6. Histórico de Alterações
+Log completo de todas as ações realizadas na proposta:
+25/01 14:32 - Cadastro iniciado pelo candidato
+25/01 14:45 - Documentos enviados
+25/01 14:50 - OCR processado com sucesso
+25/01 14:55 - Candidato enviou para análise
+26/01 10:00 - João Admin iniciou análise
+26/01 10:30 - João Admin enviou para assinatura
+26/01 15:20 - Candidato assinou digitalmente
+26/01 15:25 - Sincronizado com Totvs
+2.3 SISTEMA DE ASSINATURA DIGITAL
+Provedores Recomendados
+Escolher um dos seguintes provedores para integração:
+Docusign
+ (padrão global, ICP-Brasil, mais caro)
+Clicksign
+ (brasileiro, integração rápida, intermediário)
+D4Sign
+ (brasileiro, compliance LGPD, custo-benefício)
+Autentique
+ (brasileiro, simples, mais barato)
+Fluxo Técnico de Assinatura
+Passo 1: Backoffice dispara "Enviar para Assinatura"
+Backend
+ faz chamada à API do provedor de assinatura:
+POST /api/
+signature
+/
+create
+Authorization
+: 
+Bearer
+ {
+api_key
+}
+Content-Type
+: 
+application
+/
+json
+{
+  "
+document
+": {
+    "
+name
+": "Proposta de Filiação SBACEM - Maria Silva",
+    "
+content
+": "base64_encoded_pdf",
+    "
+mime_type
+": "
+application
+/
+pdf
+"
+  },
+  "
+signers
+": [
+    {
+      "
+name
+": "Maria Silva Santos",
+      "
+email
+": "maria@email.com",
+      "
+phone
+": "+5511999999999",
+      "role": "
+signer
+"
+    }
+  ],
+  "settings": {
+    "
+expire_in_days
+": 7,
+    "
+language
+": "
+pt
+-BR",
+    "
+reminder_enabled
+": 
+true
+,
+    "
+reminder_days
+": [3, 6]
+  },
+  "
+callback_url
+": "https://sbacem.org.br/api/
+webhooks
+/
+signature
+/
+callback
+",
+  "
+redirect_url
+": "https://sbacem.org.br/assinatura/
+concluida
+"
+}
+Resposta da API do provedor:
+Copy{
+  "
+signature_id
+": "uuid-1234-5678-90ab",
+  "
+signature_url
+": "https://provedor.com/
+sign
+/token-abc123",
+  "status": "
+pending
+",
+  "
+created_at
+": "2026-01-28T10:30:00Z",
+  "
+expires_at
+": "2026-02-04T10:30:00Z"
+}
+Backend
+ salva no banco de dados:
+signature_id
+ (para rastreamento)
+signature_url
+ (link que será enviado ao candidato)
+expires_at
+ (data de expiração)
+Data/hora de envio
+ID do analista responsável
+Passo 2: Candidato acessa link de assinatura
+Candidato clica no link recebido por e-mail/SMS
+É redirecionado para interface do provedor de assinatura
+Provedor apresenta documento para revisão
+Candidato escolhe forma de assinar:
+Desenhar assinatura com dedo/mouse (
+canvas
+)
+Digitar nome completo + aceite de termos
+Usar certificado digital ICP-Brasil (se disponível)
+Provedor processa e valida assinatura
+Passo 3: 
+Callback
+ de confirmação
+Após candidato assinar, provedor chama 
+webhook
+ do sistema:
+POST https://sbacem.org.br/api/webhooks/signature/callback
+Content-Type
+: 
+application
+/
+json
+{
+  "
+signature_id
+": "uuid-1234-5678-90ab",
+  "
+event
+": "
+document_signed
+",
+  "status": "
+signed
+",
+  "
+signed_at
+": "2026-01-28T14:32:15Z",
+  "
+signer
+": {
+    "
+name
+": "Maria Silva Santos",
+    "
+email
+": "maria@email.com",
+    "
+ip_address
+": "192.168.1.100",
+    "
+user_agent
+": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0..."
+  },
+  "
+document
+": {
+    "
+signed_file_url
+": "https://provedor.com/
+documents
+/signed-abc123.pdf",
+    "
+hash
+": "sha256:abc123def456...",
+    "
+certificate_url
+": "https://provedor.com/
+certificates
+/cert-abc123.pdf"
+  }
+}
+Backend
+ processa o 
+callback
+:
+Valida autenticidade do 
+webhook
+ (verificar assinatura/token)
+Atualiza status da proposta para: 
+"Assinado"
+Faz download do documento assinado (PDF) e certificado
+Salva arquivos no 
+storage
+ (AWS S3 ou equivalente)
+Registra no histórico:
+Data/hora da assinatura
+IP do signatário
+Device/navegador utilizado
+Hash
+ do documento
+Dispara próxima etapa: Sincronização com Totvs
+Trilha de Auditoria da Assinatura
+Para cada assinatura, o sistema deve registrar e armazenar:
+Identificação única:
+ 
+signature_id
+ do provedor
+Documento original:
+ PDF enviado (
+hash
+ SHA-256)
+Documento assinado:
+ PDF com assinatura digital (
+hash
+ SHA-256)
+Certificado de assinatura:
+ PDF do provedor comprovando autenticidade
+Data/hora exata:
+ 
+Timestamp
+ com 
+timezone
+ (ISO 8601)
+IP do signatário:
+ Endereço IP de onde a assinatura foi realizada
+Geolocalização:
+ País/cidade (se disponível via IP)
+Device:
+ Navegador, sistema operacional, tipo de dispositivo
+Método de assinatura:
+ Desenho, digitação, certificado digital
+Validade jurídica:
+ Certificação do provedor (ICP-Brasil se aplicável)
+Esta trilha deve estar disponível no dossiê completo da proposta e ser exportável em PDF para fins legais.
+2.4 NOTIFICAÇÕES AUTOMÁTICAS
+O sistema deve enviar notificações automáticas via e-mail e SMS/WhatsApp nos seguintes eventos:
+Para o Candidato:
+Cadastro enviado para análise
+Assunto: "Proposta de filiação SBACEM recebida"
+Conteúdo: "Recebemos sua proposta de filiação (Protocolo: #123456). Em breve nossa equipe fará a análise. Prazo estimado: 3 dias úteis."
+Documento adicional solicitado
+Assunto: "Ação necessária: Documento solicitado"
+Conteúdo: "Precisamos de documentação adicional para sua filiação. Acesse o link para enviar: [link]"
+⭐
+ Proposta aprovada - Link de assinatura enviado
+E-mail:
+Assunto: "Parabéns! Sua filiação foi aprovada"
+Conteúdo: "Sua proposta de filiação SBACEM foi aprovada! Para concluir, clique no botão abaixo e assine digitalmente. O link expira em 7 dias. [Botão: Assinar Agora]"
+SMS/WhatsApp:
+"SBACEM: Sua filiação foi aprovada! Assine aqui: [link curto]. Link válido por 7 dias."
+Lembrete de assinatura pendente
+ (3 dias após envio)
+Assunto: "Lembrete: Assinatura pendente"
+Conteúdo: "Você ainda não assinou sua proposta de filiação SBACEM. O link expira em 4 dias. [Botão: Assinar Agora]"
+Filiação concluída
+Assunto: "Bem-vindo(a) à SBACEM!"
+Conteúdo: "Sua filiação foi concluída com sucesso! Número de associado: #ABC123. Acesse seu painel: [link]"
+Proposta reprovada
+Assunto: "Atualização sobre sua proposta de filiação"
+Conteúdo: "Infelizmente sua proposta não foi aprovada. Motivo: [justificativa]. Para mais informações, entre em contato conosco."
+Para a Equipe (Backoffice):
+Nova proposta recebida
+Notificação no painel do backoffice (
+badge
+ vermelho no menu "Propostas")
+E-mail para equipe de análise (opcional, configurável)
+Candidato enviou documento solicitado
+Notificação para o analista responsável pela proposta
+Badge
+ de atualização na linha da tabela
+Candidato assinou digitalmente
+Notificação no painel
+Badge
+ indicando que processo pode ser finalizado (
+sync
+ Totvs)
+SLA próximo de vencer
+Alerta visual na tabela (
+badge
+ amarelo/vermelho)
+Notificação 
+push
+ (se implementado)
+3. DADOS E CAMPOS DO SISTEMA
+3.1 Perfil Artístico
+Campo:
+ Tipo de atuação
+Tipo:
+ 
+Array
+ (múltipla seleção)
+Opções:
+ Autor, Compositor, Intérprete, Editor, Produtor, 
+Outro
+Armazenamento:
+ JSON no banco de dados
+3.2 Dados Pessoais
+Nome Completo:
+ 
+String
+ (2-100 caracteres)
+CPF:
+ 
+String
+ (11 dígitos, validado)
+Data de Nascimento:
+ Date (maior de 18 anos)
+Celular:
+ 
+String
+ (formato brasileiro)
+E-mail:
+ 
+String
+ (formato válido, único)
+3.3 Documentos
+RG/CNH:
+ Arquivo (imagem ou PDF, 
+max
+ 10MB)
+Dados extraídos por OCR:
+Nome
+CPF
+Data de nascimento
+Número do documento
+Órgão emissor
+Data de emissão
+Comprovante Residência:
+ Arquivo (opcional)
+3.4 Redes Sociais (Opcional)
+Spotify:
+ 
+OAuth
+ token + dados do perfil
+YouTube:
+ 
+OAuth
+ token + dados do canal
+Instagram:
+ 
+OAuth
+ token + dados do perfil
+Facebook:
+ 
+OAuth
+ token + dados da página
+3.5 Dados Bancários (Opcional no MVP)
+Banco:
+ 
+String
+ (código + nome)
+Agência:
+ 
+String
+Conta:
+ 
+String
+Tipo de conta:
+ Enum (CC, CP)
+Titular:
+ 
+String
+CPF/CNPJ do titular:
+ 
+String
+Chave PIX:
+ 
+String
+ (e-mail/CPF/telefone/aleatória)
+4. AUTOMAÇÕES OBRIGATÓRIAS
+4.1 OCR (
+Optical
+ Character 
+Recognition
+)
+Tecnologia recomendada:
+Google Cloud Vision API (recomendado)
+AWS 
+Textract
+ (alternativa)
+Azure Computer Vision (alternativa)
+Funcionalidades:
+Detecção automática de tipo de documento (RG ou CNH)
+Extração de campos textuais
+Validação de legibilidade da imagem
+Detecção de documento vencido (data de validade)
+Rotação automática se documento estiver inclinado
+Fluxo de processamento:
+Usuário captura/envia imagem
+Backend
+ valida formato e tamanho do arquivo
+Envia para API de OCR
+Recebe dados estruturados em JSON
+Compara com dados já preenchidos (Etapa 2)
+Se divergência > 20%, alerta usuário para revisar
+Permite edição manual dos campos
+4.2 Validações em Tempo Real
+CPF:
+Validação de dígitos verificadores (algoritmo padrão)
+Opcional: Consulta em API externa (Receita Federal, se disponível)
+CEP:
+Integração com API 
+ViaCEP
+ ou similar
+Autocompletar: Rua, Bairro, Cidade, Estado
+E-mail:
+Validação de formato (
+regex
+)
+Verificação de domínio existente (DNS 
+lookup
+)
+Opcional: Envio de código de verificação
+Telefone:
+Validação de formato brasileiro
+Máscara automática conforme digitação
+4.3 
+Autosave
+ (Salvar Automaticamente)
+Comportamento:
+Salvar dados a cada campo preenchido (evento 
+onBlur
+ ou 
+onChange
+ com 
+debounce
+)
+Armazenar em sessão/
+localStorage
+ (
+frontend
+) + banco de dados (
+backend
+)
+Permitir recuperação se usuário fechar navegador
+Exibir feedback visual: "Salvo agora mesmo" com 
+timestamp
+Recuperação de sessão:
+Ao retornar ao cadastro, perguntar: "Deseja continuar de onde parou?"
+Carregar dados salvos automaticamente
+Limpar dados após 7 dias de inatividade
+4.4 Processamento Assíncrono (Filas)
+Usar sistema de filas para:
+Upload e processamento de documentos (OCR)
+Envio de e-mails
+Envio de SMS/WhatsApp
+Sincronização com Totvs
+Geração de 
+PDFs
+ de assinatura
+Tecnologia recomendada:
+Redis + Bull/
+BullMQ
+ (Node.js)
+Celery
+ (Python)
+RabbitMQ
+ ou AWS SQS (alternativas)
+Comportamento:
+Retry
+ automático em caso de falha (3 tentativas com 
+backoff
+ exponencial)
+Logs de todas as operações
+Dashboard de monitoramento de filas
+5. INTEGRAÇÕES EXTERNAS
+5.1 Redes Sociais (
+OAuth
+ 2.0)
+Objetivo:
+ Coletar dados profissionais do artista de forma automática e segura.
+Plataformas:
+Spotify
+YouTube
+Instagram
+Facebook
+Fluxo 
+OAuth
+ 
+2.0 padrão
+:
+Usuário clica "Conectar [Plataforma]" na Etapa 5
+Sistema redireciona para página de consentimento da plataforma
+Usuário autoriza permissões (
+read-only
+)
+Plataforma retorna 
+authorization_code
+ via 
+redirect
+Backend
+ troca 
+code
+ por 
+access_token
+ e 
+refresh_token
+Sistema coleta dados do perfil do usuário
+Armazena tokens criptografados no banco de dados
+Implementar 
+refresh
+ automático de tokens antes de expirar
+Escopos necessários por plataforma:
+Spotify:
+user-read-email
+user-read-private
+Dados coletados: Nome do artista, ID do perfil, Seguidores, Popularidade, 
+Top
+ tracks
+YouTube:
+youtube.readonly
+https://www.googleapis.com/auth/youtube.force-ssl
+Dados coletados: Nome do canal, ID do canal, Inscritos, Total de 
+views
+, Vídeos recentes
+Instagram:
+instagram_basic
+instagram_graph_user_profile
+Dados coletados: 
+Username
+, Seguidores, Seguindo, Engajamento médio, Posts recentes
+Facebook:
+pages_show_list
+pages_read_engagement
+Dados coletados: Nome da página, ID, Curtidas, Seguidores, Posts
+Segurança:
+Tokens criptografados com AES-256
+HTTPS obrigatório em todas as requisições
+Rate 
+limiting
+ para evitar abuso
+Usuário pode revogar acesso a qualquer momento (botão "Desconectar")
+Cache de dados por 24h (reduzir chamadas às APIs)
+5.2 Integração com Totvs (ERP)
+Objetivo:
+ Sincronizar dados de filiados entre plataforma SBACEM e ERP Totvs.
+Tecnologia:
+APIs REST ou ODATA fornecidas pelo Totvs
+Webhooks
+ para notificações em tempo real
+Mapeamento de campos:
+Campo SBACEM
+Campo Totvs
+Tipo
+Observações
+Nome Completo
+A1_NOME
+String
+CPF
+A1_CGC
+String
+Formato 00000000000 (sem pontos/traços)
+Data Nascimento
+A1_DTNASC
+Date
+Formato AAAA-MM-DD
+E-mail
+A1_EMAIL
+String
+Celular
+A1_TEL
+String
+Formato (00) 00000-0000
+Perfil Artístico
+Campo customizado
+JSON/
+String
+Verificar com Totvs se há campo específico
+Documentos
+Anexos Totvs
+Files
+Upload de RG/CNH e comprovante
+Redes Sociais
+Campos customizados
+JSON
+Banco
+A1_BANCO
+String
+Código do banco
+Agência
+A1_
+AGENCIA
+String
+Conta
+A1_CONTA
+String
+Sincronização:
+Filiação aprovada e assinada → Criar no Totvs:
+POST /api/
+totvs
+/v1/associados
+Authorization
+: 
+Bearer
+ {token}
+Content-Type
+: 
+application
+/
+json
+{
+  "nome": "Maria Silva Santos",
+  "
+cpf
+": "12345678900",
+  "
+data_nascimento
+": "1990-03-15",
+  "
+email
+": "maria@email.com",
+  "telefone": "(11) 99999-9999",
+  "
+perfil_artistico
+": ["Autor", "Compositor"],
+  "documentos": {
+    "
+rg
+": "url_documento_assinado.pdf",
+    "comprovante": "url_comprovante.pdf"
+  },
+  "
+dados_bancarios
+": {
+    "banco": "341",
+    "
+agencia
+": "1234",
+    "conta": "12345-6",
+    "tipo": "CC"
+  }
+}
+Atualização de status no Totvs → Notificar SBACEM:
+Totvs deve ter 
+webhook
+ configurado para chamar 
+endpoint
+ do SBACEM quando houver mudanças
+Exemplo: Status mudou para "Ativo", "Suspenso", "Cancelado"
+Estratégia de 
+IDs
+ e conciliação:
+SBACEM gera UUID único para cada filiação
+Ao criar no Totvs, recebe ID do Totvs de volta
+Criar tabela de mapeamento: 
+uuid_sbacem
+ ↔ 
+id_totvs
+Sempre verificar CPF antes de criar (evitar duplicatas)
+Logs e reprocessamento:
+Registrar todas as tentativas de sincronização (sucesso/erro)
+Em caso de erro, colocar em fila de 
+retry
+ (
+máx
+ 3 tentativas)
+Dashboard de monitoramento de integrações
+6. BACKOFFICE - REQUISITOS FUNCIONAIS
+6.1 Autenticação e Controle de Acesso
+Perfis de usuário:
+Admin:
+ Acesso total (aprovar, reprovar, configurar sistema)
+Analista:
+ Pode analisar propostas, solicitar documentos, enviar para assinatura
+Visualizador:
+ Apenas visualização (relatórios, dashboards)
+RBAC (Role-
+Based
+ Access 
+Control
+):
+Cada ação deve verificar permissão do usuário
+Logs de auditoria: Quem fez o quê, quando
+6.2 Dashboard
+KPIs em tempo real:
+Aguardando Análise (contador)
+Em Análise (contador)
+Aguardando Assinatura (contador)
+Aprovados no Mês (contador)
+Taxa de conversão (%)
+Tempo médio de análise
+Gráficos (opcional para MVP):
+Filiações por semana (linha)
+Status das propostas (pizza)
+SLA: Dentro/Fora do prazo (barra)
+6.3 Gestão de Propostas
+Tabela responsiva com:
+Paginação (20 itens por página)
+Ordenação por coluna (clique no header)
+Filtros múltiplos
+Busca global (nome ou CPF)
+Exportação para CSV/Excel
+Ações em lote (opcional):
+Selecionar múltiplas propostas
+Atribuir a um analista
+Alterar status
+6.4 Dossiê Completo
+Seções:
+Dados Pessoais (editáveis)
+Perfil Artístico
+Documentos (visualizar imagens em 
+lightbox
+)
+Dados OCR (editáveis se erro de extração)
+Redes Sociais (se conectadas, mostrar métricas)
+Dados Bancários (mascarados, apenas últimos 4 dígitos)
+Assinatura Digital (se assinado, mostrar trilha de auditoria)
+Histórico/
+Timeline
+ (todos os eventos)
+Ações disponíveis:
+Editar campos
+Enviar mensagem ao candidato (e-mail/SMS)
+Adicionar nota interna (comentário para equipe)
+Gerar PDF do dossiê completo
+7. STACK TECNOLÓGICO RECOMENDADO
+7.1 
+Frontend
+Framework:
+ 
+React
+ 18+ ou Next.js 14+ (App 
+Router
+)
+PWA:
+ Implementar Service Workers (funcionar parcialmente offline)
+Estilo:
+ 
+Tailwind
+ CSS (mobile-
+first
+)
+Formulários:
+ 
+React
+ Hook 
+Form
+ + 
+Zod
+ (validação)
+Upload:
+ 
+React
+ 
+Dropzone
+ ou similar
+Estado Global:
+ 
+Zustand
+ ou 
+React
+ 
+Context
+ API
+7.2 
+Backend
+Linguagem/Framework:
+Node.js (Nest.js ou Express) - recomendado
+Python (
+FastAPI
+) - alternativa
+Go (
+Fiber
+/Gin) - alternativa
+API:
+ 
+RESTful
+ (ou 
+GraphQL
+ se necessário)
+Documentação:
+ 
+OpenAPI
+/Swagger
+7.3 Banco de Dados
+Principal:
+ PostgreSQL 15+ (relacional)
+Tabelas: 
+usuarios
+, propostas, documentos, assinaturas, 
+logs, etc.
+Cache:
+ Redis (sessões, filas, cache de APIs externas)
+ORM:
+ Prisma (Node.js) ou 
+SQLAlchemy
+ (Python)
+7.4 
+Storage
+Documentos/Imagens:
+ AWS S3 (ou compatível: 
+MinIO
+, 
+Backblaze
+ B2, Digital 
+Ocean
+ Spaces)
+Organização:
+ Criar pastas por UUID da proposta
+Exemplo: /propostas/uuid-1234/documentos/rg.jpg
+7.5 OCR
+Provedor:
+ Google Cloud Vision API (recomendado)
+Alternativas:
+ AWS 
+Textract
+, Azure Computer Vision
+7.6 Assinatura Digital
+Provedor:
+ Escolher entre 
+Docusign
+, 
+Clicksign
+, D4Sign ou Autentique
+Integração:
+ Via API REST com 
+webhooks
+7.7 Notificações
+E-mail:
+ 
+SendGrid
+, AWS SES, 
+Mailgun
+ ou similar
+SMS/WhatsApp:
+ 
+Twilio
+, 
+Nexmo
+ ou provedor brasileiro (
+Zenvia
+, 
+TotalVoice
+)
+7.8 
+Observabilidade
+Logs:
+ Winston (Node.js) ou Pino (JSON estruturado)
+Monitoramento:
+ 
+Sentry
+ (erros), 
+Datadog
+ ou New 
+Relic
+Métricas:
+ 
+Prometheus
+ + 
+Grafana
+ (opcional)
+7.9 Segurança
+HTTPS:
+ Obrigatório (TLS 1.3)
+Autenticação:
+ JWT (
+access
+ token + 
+refresh
+ token)
+Criptografia:
+ AES-256 para dados bancários e tokens 
+OAuth
+Rate 
+Limiting
+:
+ Express Rate 
+Limit
+ ou similar
+CORS:
+ Configurado corretamente para domínios autorizados
+Validação:
+ Sanitizar todos os inputs (prevenção SQL 
+injection
+, XSS)
+7.10 
+DevOps
+Container:
+ Docker + Docker 
+Compose
+CI/CD:
+ GitHub 
+Actions
+, 
+GitLab
+ CI ou similar
+Infraestrutura:
+ AWS, Google Cloud ou Azure
+Ambiente:
+ 
+Dev
+, 
+Staging
+, 
+Production
+8. REQUISITOS NÃO-FUNCIONAIS
+8.1 Performance
+Tempo de carregamento inicial: < 3 segundos
+Validações 
+inline
+: < 300ms
+Upload + OCR: < 10 segundos (imagem 5MB)
+Autosave
+: Sem bloqueio de interface (assíncrono)
+Queries de banco: < 200ms (índices otimizados)
+8.2 Responsividade
+Mobile:
+ Mínimo 375px (iPhone SE)
+Tablet:
+ Mínimo 768px (iPad)
+Desktop:
+ Mínimo 1024px
+Touch-
+friendly
+:
+ Botões mínimo 44x44px
+Fontes:
+ Escaláveis (rem, não 
+px
+ fixo)
+8.3 Escalabilidade
+Suportar 1000 usuários simultâneos preenchendo cadastro
+Suportar 50 analistas simultâneos no backoffice
+Arquitetura 
+stateless
+ (permitir escalonamento horizontal)
+Load
+ 
+balancer
+ se necessário
+8.4 Disponibilidade
+Uptime
+: 99.5% (meta)
+Backup diário do banco de dados (retenção 30 dias)
+Backup de documentos no S3 (
+versioning
+ ativo)
+Disaster
+ 
+recovery
+ 
+plan
+8.5 Acessibilidade
+WCAG 2.1 nível AA
+Contraste de cores adequado
+Labels
+ em todos os campos de formulário
+Navegação por teclado (
+Tab
+, 
+Enter
+, 
+Esc
+)
+ARIA 
+attributes
+ onde necessário
+Textos alternativos em imagens
+8.6 LGPD Compliance
+Consentimento explícito para coleta de dados
+Política de privacidade visível e aceita antes do cadastro
+Direito ao esquecimento (deletar dados pessoais)
+Minimização de dados (coletar apenas necessário)
+Criptografia de dados sensíveis
+Logs de acesso a dados pessoais
+DPO (Data 
+Protection
+ Officer) definido
+9. FLUXO ALTERNATIVO: MIGRAÇÃO DE ASSOCIAÇÃO
+Para candidatos que já são filiados a outra entidade de gestão coletiva (
+Abramus
+, 
+UBC, etc.
+) e desejam migrar para SBACEM.
+9.1 Etapas da Migração (5 passos)
+Etapa 1: Iniciar Migração
+Campo: Nome da entidade anterior (
+dropdown
+: 
+Abramus
+, UBC, Outras)
+Checkbox
+: "Confirmo que desejo migrar para SBACEM"
+Etapa 2: Declaração de Desfiliação/Anuência
+Upload de documento oficial:
+Carta de desfiliação da entidade anterior (se já obtida)
+OU usar modelo fornecido pela SBACEM (download de 
+template
+)
+Formato aceito: PDF (
+max
+ 5MB)
+Etapa 3: Documentos Específicos
+Mesmos documentos do fluxo padrão (RG/CNH)
+Documentos adicionais conforme regra da entidade anterior
+Etapa 4: Validações Automáticas + Envio
+Sistema valida se não há pendências
+Candidato revisa resumo e envia para análise
+Etapa 5: Análise e Assinatura (Backoffice)
+Mesmo fluxo de aprovação do cadastro normal
+Analista pode solicitar documentos adicionais se necessário
+Após aprovação, envia link de assinatura
+Diferenças no Backoffice:
+Tag
+ visual: "Migração" (
+badge
+ laranja)
+SLA diferenciado (pode ser maior devido à complexidade)
+Checklist específico para validações de migração
