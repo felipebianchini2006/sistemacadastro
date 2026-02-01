@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { getStoredAdminUser } from '../lib/auth';
 import { logoutAdmin } from '../lib/api';
 import { Button } from '../../components/ui/button';
@@ -15,11 +14,7 @@ const navItems = [
 export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState(() => getStoredAdminUser());
-
-  useEffect(() => {
-    setUser(getStoredAdminUser());
-  }, [pathname]);
+  const user = getStoredAdminUser();
 
   if (pathname?.startsWith('/admin/login')) {
     return <>{children}</>;

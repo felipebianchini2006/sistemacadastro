@@ -20,7 +20,8 @@ const buildPrismaStub = () => {
     type?: DocumentType;
   }> = [];
 
-  return {
+  const stub = {
+    __documents: documents,
     draft: {
       create: jest.fn(async ({ data }) => {
         const id = randomUUID();
@@ -78,6 +79,9 @@ const buildPrismaStub = () => {
         return proposal;
       }),
     },
+    consentLog: {
+      create: jest.fn(async () => ({ id: randomUUID() })),
+    },
     documentFile: {
       findMany: jest.fn(async ({ where }) =>
         documents
@@ -90,11 +94,28 @@ const buildPrismaStub = () => {
     ocrResult: {
       findFirst: jest.fn(async () => null),
     },
+  };
+
+  return {
+    ...stub,
+    $transaction: jest.fn(async (input: any) => {
+      if (typeof input === 'function') {
+        return input({
+          proposal: stub.proposal,
+          consentLog: stub.consentLog,
+        });
+      }
+      if (Array.isArray(input)) {
+        return Promise.all(input);
+      }
+      return input;
+    }),
   } as unknown as PrismaService;
 };
 
 describe('Public flow (e2e)', () => {
   let app: INestApplication;
+  let prismaStub: ReturnType<typeof buildPrismaStub>;
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
@@ -102,7 +123,7 @@ describe('Public flow (e2e)', () => {
     process.env.DATA_ENCRYPTION_KEY = Buffer.alloc(32).toString('base64');
     process.env.CLICKSIGN_ACCESS_TOKEN = 'test-clicksign-token';
 
-    const prismaStub = buildPrismaStub();
+    prismaStub = buildPrismaStub();
     const jobsStub = {
       enqueueOcr: jest.fn(),
       enqueueReceivedNotification: jest.fn(),
@@ -144,18 +165,25 @@ describe('Public flow (e2e)', () => {
 
     const payload = {
       data: {
+        profileRoles: ['AUTOR'],
         fullName: 'Maria Silva',
         cpf: '935.411.347-80',
         email: 'maria@teste.com',
         phone: '(11)98888-7777',
         birthDate: '1990-01-01',
         type: 'NOVO',
+        documentChoice: 'CNH',
         address: {
           cep: '01001-000',
           street: 'Rua Teste',
           district: 'Centro',
           city: 'Sao Paulo',
           state: 'SP',
+        },
+        consent: {
+          accepted: true,
+          version: 'v1',
+          at: new Date().toISOString(),
         },
       },
     };
@@ -167,6 +195,12 @@ describe('Public flow (e2e)', () => {
 
     expect(update.status).toBe(200);
     expect(update.body.data.fullName).toBe('Maria Silva');
+
+    prismaStub.__documents.push({
+      id: 'doc-1',
+      draftId,
+      type: DocumentType.CNH,
+    });
 
     const submit = await request(app.getHttpServer())
       .post('/public/proposals')

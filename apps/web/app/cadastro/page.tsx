@@ -26,7 +26,7 @@ import { cn } from '../lib/utils';
 type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
 type ProposalType = 'NOVO' | 'MIGRACAO';
 type DocumentChoice = 'RG' | 'CNH';
-type DocumentType = 'RG_FRENTE' | 'RG_VERSO' | 'CNH';
+type DocumentType = 'RG_FRENTE' | 'RG_VERSO' | 'CNH' | 'DESFILIACAO' | 'COMPROVANTE_RESIDENCIA';
 
 type DraftMeta = {
   draftId: string;
@@ -46,6 +46,8 @@ type DraftFormState = {
   profileRoles: ProfileRole[];
   profileRoleOther: string;
   proposalType: ProposalType;
+  migrationEntity: string;
+  migrationConfirmed: boolean;
   fullName: string;
   cpf: string;
   email: string;
@@ -67,6 +69,8 @@ type DraftFormState = {
     rgFront: UploadState;
     rgBack: UploadState;
     cnh: UploadState;
+    desfiliacao: UploadState;
+    residence: UploadState;
   };
 };
 
@@ -82,13 +86,50 @@ type TrackingResponse = {
   ocr: { at: string; data: Record<string, unknown> } | null;
 };
 
+type DraftOcrResult = {
+  id: string;
+  documentFileId?: string | null;
+  structuredData: Record<string, unknown>;
+  createdAt: string;
+  heuristics?: Record<string, unknown> | null;
+};
+
 const STORAGE_KEY = 'cadastro-draft-v1';
 const AUTO_SAVE_INTERVAL = 15000;
 const CONSENT_VERSION = process.env.NEXT_PUBLIC_CONSENT_VERSION ?? 'v1';
 
-const steps = [
+const readStoredDraft = () => {
+  if (typeof window === 'undefined') return null;
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as {
+      form?: DraftFormState;
+      draftMeta?: DraftMeta | null;
+      stepIndex?: number;
+    };
+    if (!parsed.form) return null;
+    return {
+      form: parsed.form,
+      draftMeta: parsed.draftMeta ?? null,
+      stepIndex: parsed.stepIndex,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const baseSteps = [
   { id: 'perfil', title: 'Perfil', subtitle: 'Quem esta solicitando' },
   { id: 'dados', title: 'Dados', subtitle: 'Informacoes pessoais' },
+  { id: 'documentos', title: 'Docs', subtitle: 'Upload e OCR' },
+  { id: 'revisao', title: 'Revisao', subtitle: 'Confirme tudo' },
+];
+
+const migrationSteps = [
+  { id: 'perfil', title: 'Perfil', subtitle: 'Quem esta solicitando' },
+  { id: 'dados', title: 'Dados', subtitle: 'Informacoes pessoais' },
+  { id: 'migracao', title: 'Migracao', subtitle: 'Entidade anterior' },
   { id: 'documentos', title: 'Docs', subtitle: 'Upload e OCR' },
   { id: 'revisao', title: 'Revisao', subtitle: 'Confirme tudo' },
 ];
@@ -97,6 +138,8 @@ const defaultForm: DraftFormState = {
   profileRoles: [],
   profileRoleOther: '',
   proposalType: 'NOVO',
+  migrationEntity: '',
+  migrationConfirmed: false,
   fullName: '',
   cpf: '',
   email: '',
@@ -118,6 +161,8 @@ const defaultForm: DraftFormState = {
     rgFront: { status: 'idle' },
     rgBack: { status: 'idle' },
     cnh: { status: 'idle' },
+    desfiliacao: { status: 'idle' },
+    residence: { status: 'idle' },
   },
 };
 
@@ -140,6 +185,8 @@ const formatDate = (value: string) => {
 const buildDraftPayload = (form: DraftFormState) => {
   const payload: Record<string, unknown> = {};
 
+  if (form.profileRoles.length > 0) payload.profileRoles = form.profileRoles;
+  if (safeTrim(form.profileRoleOther)) payload.profileRoleOther = safeTrim(form.profileRoleOther);
   if (safeTrim(form.fullName)) payload.fullName = safeTrim(form.fullName);
   if (safeTrim(form.cpf)) payload.cpf = normalizeCpf(form.cpf);
   if (safeTrim(form.email)) payload.email = normalizeEmail(form.email);
@@ -149,6 +196,9 @@ const buildDraftPayload = (form: DraftFormState) => {
   }
   if (form.birthDate) payload.birthDate = form.birthDate;
   if (form.proposalType) payload.type = form.proposalType;
+  payload.documentChoice = form.documentChoice;
+  if (safeTrim(form.migrationEntity)) payload.migrationEntity = safeTrim(form.migrationEntity);
+  payload.migrationConfirmed = form.migrationConfirmed;
   payload.consent = {
     accepted: form.consentAccepted,
     version: CONSENT_VERSION,
@@ -173,8 +223,12 @@ const buildDraftPayload = (form: DraftFormState) => {
 
 const resolveOcrField = (data: Record<string, unknown> | null, keys: string[]) => {
   if (!data) return '';
+  const raw =
+    typeof data.fields === 'object' && data.fields
+      ? (data.fields as Record<string, unknown>)
+      : data;
   for (const key of keys) {
-    const value = data[key];
+    const value = raw[key];
     if (typeof value === 'string' && value.trim().length > 0) {
       return value;
     }
@@ -207,8 +261,28 @@ const similarity = (a: string, b: string) => {
 const toDocTypeLabel = (choice: DocumentChoice) =>
   choice === 'RG' ? 'RG (frente e verso)' : 'CNH (documento unico)';
 
+const loadImageSize = (file: File) =>
+  new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    const cleanup = () => URL.revokeObjectURL(url);
+    image.onload = () => {
+      resolve({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      });
+      cleanup();
+    };
+    image.onerror = () => {
+      cleanup();
+      reject(new Error('Falha ao ler imagem'));
+    };
+    image.src = url;
+  });
+
 export default function CadastroPage() {
-  const [hydrated, setHydrated] = useState(false);
+  const initialRestore = useMemo(() => readStoredDraft(), []);
+  const [hydrated, setHydrated] = useState(!initialRestore);
   const [stepIndex, setStepIndex] = useState(0);
   const [form, setForm] = useState<DraftFormState>(defaultForm);
   const [draftMeta, setDraftMeta] = useState<DraftMeta | null>(null);
@@ -218,6 +292,13 @@ export default function CadastroPage() {
     'idle',
   );
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
+  const [draftOcrResults, setDraftOcrResults] = useState<DraftOcrResult[]>([]);
+  const [restoreDraft, setRestoreDraft] = useState<{
+    form: DraftFormState;
+    draftMeta?: DraftMeta | null;
+    stepIndex?: number;
+  } | null>(initialRestore);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(Boolean(initialRestore));
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [mobileFieldIndex, setMobileFieldIndex] = useState(0);
@@ -227,88 +308,41 @@ export default function CadastroPage() {
   const lastPayloadRef = useRef('');
   const previewUrlsRef = useRef<Set<string>>(new Set());
 
+  const steps = useMemo(
+    () => (form.proposalType === 'MIGRACAO' ? migrationSteps : baseSteps),
+    [form.proposalType],
+  );
+  const currentStep = steps[stepIndex]?.id ?? steps[0]?.id;
+
   const cpfValidation = useCpfValidation(form.cpf);
   const emailValidation = useEmailValidation(form.email);
   const phoneValidation = usePhoneValidation(form.phone);
   const cepValidation = useCepValidation(form.address.cep);
   const viaCep = useViaCepAutofill(cepValidation.normalized);
+  const resolvedAddress = useMemo(() => {
+    if (!viaCep.data) return form.address;
+    return {
+      ...form.address,
+      street: form.address.street || viaCep.data.street || '',
+      district: form.address.district || viaCep.data.district || '',
+      city: form.address.city || viaCep.data.city || '',
+      state: form.address.state || viaCep.data.state || '',
+    };
+  }, [form.address, viaCep.data]);
 
   useEffect(() => {
     if (viaCep.data) {
-      setForm((prev) => ({
-        ...prev,
-        address: {
-          ...prev.address,
-          street: viaCep.data?.street ?? prev.address.street,
-          district: viaCep.data?.district ?? prev.address.district,
-          city: viaCep.data?.city ?? prev.address.city,
-          state: viaCep.data?.state ?? prev.address.state,
-        },
-      }));
       dirtyRef.current = true;
     }
   }, [viaCep.data]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as {
-          form?: DraftFormState;
-          draftMeta?: DraftMeta | null;
-          stepIndex?: number;
-        };
-        if (parsed.form) {
-          const parsedForm = parsed.form as DraftFormState & { profileRole?: ProfileRole };
-          const parsedDocs = parsedForm.documents ?? {};
-          const parsedRoles =
-            parsedForm.profileRoles ?? (parsedForm.profileRole ? [parsedForm.profileRole] : []);
-          setForm({
-            ...defaultForm,
-            ...parsedForm,
-            profileRoles: parsedRoles,
-            profileRoleOther: parsedForm.profileRoleOther ?? '',
-            address: {
-              ...defaultForm.address,
-              ...(parsedForm.address ?? {}),
-            },
-            documents: {
-              ...defaultForm.documents,
-              ...parsedDocs,
-              rgFront: {
-                ...defaultForm.documents.rgFront,
-                ...parsedDocs.rgFront,
-                previewUrl: undefined,
-              },
-              rgBack: {
-                ...defaultForm.documents.rgBack,
-                ...parsedDocs.rgBack,
-                previewUrl: undefined,
-              },
-              cnh: { ...defaultForm.documents.cnh, ...parsedDocs.cnh, previewUrl: undefined },
-            },
-          });
-        }
-        if (parsed.draftMeta) setDraftMeta(parsed.draftMeta);
-        if (typeof parsed.stepIndex === 'number') setStepIndex(parsed.stepIndex);
-      } catch {
-        // ignore corrupted storage
-      }
-    }
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
+    const urls = previewUrlsRef.current;
     return () => {
-      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      previewUrlsRef.current.clear();
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
     };
   }, []);
-
-  useEffect(() => {
-    if (stepIndex === 1) setMobileFieldIndex(0);
-  }, [stepIndex]);
 
   useEffect(() => {
     if (!hydrated || typeof window === 'undefined') return;
@@ -345,6 +379,82 @@ export default function CadastroPage() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   }, []);
 
+  const applyStoredDraft = useCallback(
+    (stored: { form: DraftFormState; draftMeta?: DraftMeta | null; stepIndex?: number }) => {
+      const parsedForm = stored.form as DraftFormState & { profileRole?: ProfileRole };
+      const parsedDocs = parsedForm.documents ?? {};
+      const parsedRoles =
+        parsedForm.profileRoles ?? (parsedForm.profileRole ? [parsedForm.profileRole] : []);
+
+      setForm({
+        ...defaultForm,
+        ...parsedForm,
+        profileRoles: parsedRoles,
+        profileRoleOther: parsedForm.profileRoleOther ?? '',
+        address: {
+          ...defaultForm.address,
+          ...(parsedForm.address ?? {}),
+        },
+        documents: {
+          ...defaultForm.documents,
+          ...parsedDocs,
+          rgFront: {
+            ...defaultForm.documents.rgFront,
+            ...parsedDocs.rgFront,
+            previewUrl: undefined,
+          },
+          rgBack: {
+            ...defaultForm.documents.rgBack,
+            ...parsedDocs.rgBack,
+            previewUrl: undefined,
+          },
+          cnh: { ...defaultForm.documents.cnh, ...parsedDocs.cnh, previewUrl: undefined },
+          desfiliacao: {
+            ...defaultForm.documents.desfiliacao,
+            ...parsedDocs.desfiliacao,
+            previewUrl: undefined,
+          },
+          residence: {
+            ...defaultForm.documents.residence,
+            ...parsedDocs.residence,
+            previewUrl: undefined,
+          },
+        },
+      });
+
+      if (stored.draftMeta) setDraftMeta(stored.draftMeta);
+      if (typeof stored.stepIndex === 'number') {
+        const nextSteps = parsedForm.proposalType === 'MIGRACAO' ? migrationSteps : baseSteps;
+        const nextIndex = Math.min(stored.stepIndex, nextSteps.length - 1);
+        setStepIndex(nextIndex);
+        if (nextSteps[nextIndex]?.id === 'dados') {
+          setMobileFieldIndex(0);
+        }
+      }
+    },
+    [setDraftMeta, setMobileFieldIndex],
+  );
+
+  const restoreFromStorage = () => {
+    if (!restoreDraft) {
+      setShowRestorePrompt(false);
+      setHydrated(true);
+      return;
+    }
+    applyStoredDraft(restoreDraft);
+    setShowRestorePrompt(false);
+    setHydrated(true);
+  };
+
+  const discardStoredDraft = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+    setRestoreDraft(null);
+    setShowRestorePrompt(false);
+    setHydrated(true);
+  };
+
   const updateAddress = useCallback(
     (patch: Partial<DraftFormState['address']>) => {
       setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }));
@@ -367,6 +477,15 @@ export default function CadastroPage() {
     [setForm],
   );
 
+  const buildPayload = useCallback(
+    () =>
+      buildDraftPayload({
+        ...form,
+        address: resolvedAddress,
+      }),
+    [form, resolvedAddress],
+  );
+
   const ensureDraft = useCallback(
     async (payload: Record<string, unknown>) => {
       if (draftMeta) return draftMeta;
@@ -384,9 +503,46 @@ export default function CadastroPage() {
     [draftMeta],
   );
 
+  const fetchDraftOcr = useCallback(
+    async (meta: DraftMeta) => {
+      try {
+        const response = await apiFetch<{ results: DraftOcrResult[] }>(
+          `/public/drafts/${meta.draftId}/ocr`,
+          {
+            headers: { 'x-draft-token': meta.draftToken },
+          },
+        );
+        setDraftOcrResults(response.results ?? []);
+        return response.results ?? [];
+      } catch {
+        return [];
+      }
+    },
+    [setDraftOcrResults],
+  );
+
+  const pollDraftOcr = useCallback(
+    (meta: DraftMeta, documentId?: string) => {
+      let attempts = 0;
+      const poll = async () => {
+        const results = await fetchDraftOcr(meta);
+        const hasMatch = documentId
+          ? results.some((entry) => entry.documentFileId === documentId)
+          : results.length > 0;
+        if (hasMatch) return;
+        attempts += 1;
+        if (attempts < 6) {
+          setTimeout(poll, 4000);
+        }
+      };
+      void poll();
+    },
+    [fetchDraftOcr],
+  );
+
   const syncDraft = useCallback(
     async (force = false) => {
-      const payload = buildDraftPayload(form);
+      const payload = buildPayload();
       const serialized = JSON.stringify(payload);
       if (!force && serialized === lastPayloadRef.current) return;
       setSyncStatus('saving');
@@ -408,7 +564,7 @@ export default function CadastroPage() {
         setSyncStatus('error');
       }
     },
-    [form, draftMeta, ensureDraft],
+    [buildPayload, draftMeta, ensureDraft],
   );
 
   useEffect(() => {
@@ -446,8 +602,10 @@ export default function CadastroPage() {
     });
     setOcrConfirmed(false);
     try {
-      const payload = buildDraftPayload(form);
+      const payload = buildPayload();
       const meta = await ensureDraft(payload);
+      const isImage = file.type.startsWith('image/');
+      const dimensions = isImage ? await loadImageSize(file) : null;
       const presign = await apiFetch<{
         uploadUrl: string;
         headers: Record<string, string>;
@@ -462,6 +620,8 @@ export default function CadastroPage() {
           fileName: file.name,
           contentType: file.type || 'application/octet-stream',
           size: file.size,
+          imageWidth: dimensions?.width,
+          imageHeight: dimensions?.height,
         },
       });
 
@@ -475,6 +635,14 @@ export default function CadastroPage() {
         status: 'uploaded',
         documentId: presign.documentId,
       });
+
+      if (['RG_FRENTE', 'CNH', 'COMPROVANTE_RESIDENCIA'].includes(docType)) {
+        await apiFetch(`/public/drafts/${meta.draftId}/ocr`, {
+          method: 'POST',
+          headers: { 'x-draft-token': meta.draftToken },
+        });
+        pollDraftOcr(meta, presign.documentId);
+      }
     } catch (error) {
       updateDocument(key, {
         status: 'error',
@@ -500,18 +668,31 @@ export default function CadastroPage() {
   };
 
   const handleNext = async () => {
-    if (stepIndex === 0 && !profileStepValid) return;
+    if (currentStep === 'perfil' && !profileStepValid) return;
+    if (currentStep === 'dados' && !dataStepValid) return;
+    if (currentStep === 'migracao' && !migrationStepValid) return;
+    if (currentStep === 'documentos' && !documentsStepValid) return;
     await syncDraft(true);
-    setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
+    const nextIndex = Math.min(stepIndex + 1, steps.length - 1);
+    setStepIndex(nextIndex);
+    if (steps[nextIndex]?.id === 'dados') {
+      setMobileFieldIndex(0);
+    }
   };
 
-  const handleBack = () => setStepIndex((prev) => Math.max(prev - 1, 0));
+  const handleBack = () => {
+    const nextIndex = Math.max(stepIndex - 1, 0);
+    setStepIndex(nextIndex);
+    if (steps[nextIndex]?.id === 'dados') {
+      setMobileFieldIndex(0);
+    }
+  };
 
   const submitProposal = async () => {
     setSubmitStatus('submitting');
     try {
       await syncDraft(true);
-      const meta = await ensureDraft(buildDraftPayload(form));
+      const meta = await ensureDraft(buildPayload());
       const response = await apiFetch<SubmissionState>('/public/proposals', {
         method: 'POST',
         body: { draftId: meta.draftId, draftToken: meta.draftToken },
@@ -520,6 +701,13 @@ export default function CadastroPage() {
       setSubmitStatus('done');
       setDraftMeta(null);
       window.localStorage.removeItem(STORAGE_KEY);
+      if (typeof window !== 'undefined') {
+        window.location.assign(
+          `/acompanhar?protocolo=${encodeURIComponent(response.protocol)}&token=${encodeURIComponent(
+            response.trackingToken,
+          )}`,
+        );
+      }
     } catch {
       setSubmitStatus('error');
     }
@@ -530,6 +718,16 @@ export default function CadastroPage() {
       consentAccepted: accepted,
       consentAt: accepted ? new Date().toISOString() : '',
     });
+  };
+
+  const handleProposalTypeSelect = (type: ProposalType) => {
+    updateForm({ proposalType: type });
+    const nextSteps = type === 'MIGRACAO' ? migrationSteps : baseSteps;
+    const nextIndex = Math.min(stepIndex, nextSteps.length - 1);
+    setStepIndex(nextIndex);
+    if (nextSteps[nextIndex]?.id === 'dados') {
+      setMobileFieldIndex(0);
+    }
   };
 
   useEffect(() => {
@@ -554,8 +752,47 @@ export default function CadastroPage() {
     void poll();
   }, [submission]);
 
+  const documentPreview = useMemo(() => {
+    if (form.documentChoice === 'RG') {
+      if (form.documents.rgFront.previewUrl) {
+        return {
+          key: 'rgFront',
+          label: 'RG - frente',
+          state: form.documents.rgFront,
+          documentId: form.documents.rgFront.documentId,
+        };
+      }
+      if (form.documents.rgBack.previewUrl) {
+        return {
+          key: 'rgBack',
+          label: 'RG - verso',
+          state: form.documents.rgBack,
+          documentId: form.documents.rgBack.documentId,
+        };
+      }
+      return null;
+    }
+    if (form.documents.cnh.previewUrl) {
+      return {
+        key: 'cnh',
+        label: 'CNH',
+        state: form.documents.cnh,
+        documentId: form.documents.cnh.documentId,
+      };
+    }
+    return null;
+  }, [form.documentChoice, form.documents]);
+
+  const previewOcrResult = useMemo(() => {
+    if (!documentPreview?.documentId) return null;
+    return (
+      draftOcrResults.find((entry) => entry.documentFileId === documentPreview.documentId) ?? null
+    );
+  }, [draftOcrResults, documentPreview]);
+
   const ocrAlert = useMemo(() => {
-    const data = tracking?.ocr?.data ?? null;
+    const data =
+      tracking?.ocr?.data ?? (previewOcrResult?.structuredData as Record<string, unknown> | null);
     if (!data) return null;
     const name = resolveOcrField(data, ['nome', 'name', 'fullName']);
     const cpf = resolveOcrField(data, ['cpf', 'document', 'documento']);
@@ -567,26 +804,22 @@ export default function CadastroPage() {
       name,
       cpf,
     };
-  }, [tracking, form.fullName, form.cpf]);
+  }, [tracking?.ocr?.data, previewOcrResult, form.fullName, form.cpf]);
 
-  const documentPreview = useMemo(() => {
-    if (form.documentChoice === 'RG') {
-      if (form.documents.rgFront.previewUrl) {
-        return { key: 'rgFront', label: 'RG - frente', state: form.documents.rgFront };
-      }
-      if (form.documents.rgBack.previewUrl) {
-        return { key: 'rgBack', label: 'RG - verso', state: form.documents.rgBack };
-      }
-      return null;
-    }
-    if (form.documents.cnh.previewUrl) {
-      return { key: 'cnh', label: 'CNH', state: form.documents.cnh };
+  const legibilityWarning = useMemo(() => {
+    const heuristics = previewOcrResult?.heuristics as
+      | { legibility?: { ok?: boolean } }
+      | undefined;
+    if (!heuristics?.legibility) return null;
+    if (heuristics.legibility.ok === false) {
+      return 'Imagem com baixa legibilidade. Tente refazer a foto.';
     }
     return null;
-  }, [form.documentChoice, form.documents]);
+  }, [previewOcrResult]);
 
   const ocrPreviewFields = useMemo(() => {
-    const data = tracking?.ocr?.data ?? null;
+    const data =
+      tracking?.ocr?.data ?? (previewOcrResult?.structuredData as Record<string, unknown> | null);
     const name = resolveOcrField(data, ['nome', 'name', 'fullName']) || form.fullName;
     const cpf = resolveOcrField(data, ['cpf', 'document', 'documento']) || form.cpf;
     const birthDate =
@@ -595,6 +828,7 @@ export default function CadastroPage() {
     const docNumber = resolveOcrField(data, [
       'rg',
       'cnh',
+      'rg_cnh',
       'numero_documento',
       'numero',
       'document_number',
@@ -610,20 +844,48 @@ export default function CadastroPage() {
       { label: 'Emissao', value: issueDate || '-' },
       { label: 'Orgao emissor', value: issuer || '-' },
     ];
-  }, [tracking?.ocr?.data, form.fullName, form.cpf, form.birthDate]);
+  }, [tracking?.ocr?.data, previewOcrResult, form.fullName, form.cpf, form.birthDate]);
 
   const otherRoleSelected = form.profileRoles.includes('OUTRO');
   const profileStepValid =
     form.profileRoles.length > 0 &&
     (!otherRoleSelected || Boolean(form.profileRoleOther.trim().length));
+  const migrationStepValid =
+    form.proposalType !== 'MIGRACAO' ||
+    (Boolean(form.migrationEntity.trim().length) &&
+      form.migrationConfirmed &&
+      form.documents.desfiliacao.status === 'uploaded');
+  const docsMainValid =
+    form.documentChoice === 'RG'
+      ? form.documents.rgFront.status === 'uploaded' && form.documents.rgBack.status === 'uploaded'
+      : form.documents.cnh.status === 'uploaded';
+  const documentsStepValid = docsMainValid;
+
+  const requiredFieldStatus = (value: string, key: string, min = 1) => {
+    if (!touched[key]) return 'idle';
+    return value.trim().length >= min ? 'valid' : 'invalid';
+  };
 
   const fullNameValid = form.fullName.trim().split(/\s+/).filter(Boolean).length >= 2;
   const birthDateValid = isAdult(form.birthDate);
+  const addressRequiredValid =
+    cepValidation.isValid &&
+    resolvedAddress.street.trim().length >= 2 &&
+    resolvedAddress.district.trim().length >= 2 &&
+    resolvedAddress.city.trim().length >= 2 &&
+    resolvedAddress.state.trim().length >= 2;
   const fullNameStatus = touched.fullName ? (fullNameValid ? 'valid' : 'invalid') : 'idle';
   const birthDateStatus = touched.birthDate ? (birthDateValid ? 'valid' : 'invalid') : 'idle';
   const cpfStatus = touched.cpf ? (form.cpf ? cpfValidation.status : 'invalid') : 'idle';
   const emailStatus = touched.email ? (form.email ? emailValidation.status : 'invalid') : 'idle';
   const phoneStatus = touched.phone ? (form.phone ? phoneValidation.status : 'invalid') : 'idle';
+  const dataStepValid =
+    fullNameValid &&
+    birthDateValid &&
+    cpfValidation.isValid &&
+    emailValidation.isValid &&
+    phoneValidation.isValid &&
+    addressRequiredValid;
 
   const canSubmit = form.consentAccepted && submitStatus !== 'submitting';
 
@@ -631,7 +893,7 @@ export default function CadastroPage() {
     <>
       <InputMasked
         label="CEP"
-        value={form.address.cep}
+        value={resolvedAddress.cep}
         onChange={(value) => updateAddress({ cep: value })}
         onBlur={() => handleFieldBlur('address.cep')}
         mask="cep"
@@ -642,16 +904,17 @@ export default function CadastroPage() {
       />
       <InputMasked
         label="Rua"
-        value={form.address.street}
+        value={resolvedAddress.street}
         onChange={(value) => updateAddress({ street: value })}
         onBlur={() => handleFieldBlur('address.street')}
-        showStatus={false}
+        status={requiredFieldStatus(resolvedAddress.street, 'address.street', 2)}
+        showStatus={Boolean(touched['address.street'])}
         placeholder="Rua ou avenida"
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <InputMasked
           label="Numero"
-          value={form.address.number}
+          value={resolvedAddress.number}
           onChange={(value) => updateAddress({ number: value })}
           onBlur={() => handleFieldBlur('address.number')}
           showStatus={false}
@@ -659,7 +922,7 @@ export default function CadastroPage() {
         />
         <InputMasked
           label="Complemento"
-          value={form.address.complement}
+          value={resolvedAddress.complement}
           onChange={(value) => updateAddress({ complement: value })}
           onBlur={() => handleFieldBlur('address.complement')}
           showStatus={false}
@@ -669,25 +932,28 @@ export default function CadastroPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <InputMasked
           label="Bairro"
-          value={form.address.district}
+          value={resolvedAddress.district}
           onChange={(value) => updateAddress({ district: value })}
           onBlur={() => handleFieldBlur('address.district')}
-          showStatus={false}
+          status={requiredFieldStatus(resolvedAddress.district, 'address.district', 2)}
+          showStatus={Boolean(touched['address.district'])}
         />
         <InputMasked
           label="Cidade"
-          value={form.address.city}
+          value={resolvedAddress.city}
           onChange={(value) => updateAddress({ city: value })}
           onBlur={() => handleFieldBlur('address.city')}
-          showStatus={false}
+          status={requiredFieldStatus(resolvedAddress.city, 'address.city', 2)}
+          showStatus={Boolean(touched['address.city'])}
         />
       </div>
       <InputMasked
         label="UF"
-        value={form.address.state}
+        value={resolvedAddress.state}
         onChange={(value) => updateAddress({ state: value })}
         onBlur={() => handleFieldBlur('address.state')}
-        showStatus={false}
+        status={requiredFieldStatus(resolvedAddress.state, 'address.state', 2)}
+        showStatus={Boolean(touched['address.state'])}
         placeholder="SP"
       />
     </>
@@ -807,6 +1073,25 @@ export default function CadastroPage() {
   return (
     <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-sheen" />
+      {showRestorePrompt ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl">
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Retomar cadastro</p>
+            <h2 className="mt-2 text-lg font-semibold text-zinc-900">
+              Deseja continuar de onde parou?
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500">
+              Encontramos um rascunho salvo neste dispositivo.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={restoreFromStorage}>Continuar</Button>
+              <Button variant="secondary" onClick={discardStoredDraft}>
+                Comecar do zero
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_1.6fr]">
         <aside className="flex flex-col gap-6">
           <div className="rounded-3xl border border-zinc-200 bg-white/80 p-6 shadow-lg backdrop-blur">
@@ -869,7 +1154,7 @@ export default function CadastroPage() {
         <main className="flex flex-col gap-6">
           <ProgressBar steps={steps} current={stepIndex} />
 
-          {stepIndex === 0 ? (
+          {currentStep === 'perfil' ? (
             <StepLayout
               title="Seu perfil"
               description="Escolha o papel principal e o tipo de proposta."
@@ -938,7 +1223,7 @@ export default function CadastroPage() {
                   </label>
                   {otherRoleSelected && !form.profileRoleOther.trim() ? (
                     <p className="mt-2 text-xs text-red-600">
-                      Informe sua atuacao para a opcao "Outro".
+                      Informe sua atuacao para a opcao &quot;Outro&quot;.
                     </p>
                   ) : null}
                 </div>
@@ -959,7 +1244,7 @@ export default function CadastroPage() {
                           ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
                           : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
                       )}
-                      onClick={() => updateForm({ proposalType: type })}
+                      onClick={() => handleProposalTypeSelect(type)}
                     >
                       {type === 'NOVO' ? 'Novo cadastro' : 'Migracao'}
                     </button>
@@ -969,7 +1254,7 @@ export default function CadastroPage() {
             </StepLayout>
           ) : null}
 
-          {stepIndex === 1 ? (
+          {currentStep === 'dados' ? (
             <StepLayout
               title="Dados pessoais"
               description="Seus dados aparecem para nossa analise. Mantenha tudo atualizado."
@@ -978,7 +1263,9 @@ export default function CadastroPage() {
                   <Button variant="secondary" onClick={handleBack}>
                     Voltar
                   </Button>
-                  <Button onClick={handleNext}>Continuar</Button>
+                  <Button onClick={handleNext} disabled={!dataStepValid}>
+                    Continuar
+                  </Button>
                 </>
               }
             >
@@ -1038,7 +1325,99 @@ export default function CadastroPage() {
             </StepLayout>
           ) : null}
 
-          {stepIndex === 2 ? (
+          {currentStep === 'migracao' ? (
+            <StepLayout
+              title="Migracao"
+              description="Informe a entidade anterior e envie a declaracao."
+              footer={
+                <>
+                  <Button variant="secondary" onClick={handleBack}>
+                    Voltar
+                  </Button>
+                  <Button onClick={handleNext} disabled={!migrationStepValid}>
+                    Continuar
+                  </Button>
+                </>
+              }
+            >
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  Entidade anterior
+                </p>
+                {(() => {
+                  const preset = ['Abramus', 'UBC'];
+                  const isCustom =
+                    form.migrationEntity.length > 0 && !preset.includes(form.migrationEntity);
+                  return (
+                    <>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        {['Abramus', 'UBC', 'Outras'].map((entity) => (
+                          <button
+                            key={entity}
+                            type="button"
+                            className={cn(
+                              'rounded-full px-4 py-2 text-sm font-semibold transition',
+                              entity === 'Outras'
+                                ? isCustom
+                                : form.migrationEntity === entity
+                                  ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                                  : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
+                            )}
+                            onClick={() =>
+                              updateForm({ migrationEntity: entity === 'Outras' ? '' : entity })
+                            }
+                          >
+                            {entity}
+                          </button>
+                        ))}
+                      </div>
+                      {isCustom || form.migrationEntity === '' ? (
+                        <input
+                          value={form.migrationEntity}
+                          onChange={(event) => updateForm({ migrationEntity: event.target.value })}
+                          onBlur={() => handleFieldBlur('migrationEntity')}
+                          className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                          placeholder="Informe a entidade"
+                        />
+                      ) : null}
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                    checked={form.migrationConfirmed}
+                    onChange={(event) => updateForm({ migrationConfirmed: event.target.checked })}
+                  />
+                  <span>Confirmo que desejo migrar para a SBACEM.</span>
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <UploadCard
+                  title="Declaracao de desfiliação"
+                  state={form.documents.desfiliacao}
+                  onSelect={(file) => handleUpload('DESFILIACAO', file, 'desfiliacao')}
+                />
+              </div>
+
+              {!form.migrationEntity.trim() ? (
+                <p className="text-xs text-red-600">Informe a entidade anterior.</p>
+              ) : null}
+              {!form.migrationConfirmed ? (
+                <p className="text-xs text-red-600">Confirme que deseja migrar para continuar.</p>
+              ) : null}
+              {form.documents.desfiliacao.status !== 'uploaded' ? (
+                <p className="text-xs text-red-600">Envie a declaracao de desfiliação.</p>
+              ) : null}
+            </StepLayout>
+          ) : null}
+
+          {currentStep === 'documentos' ? (
             <StepLayout
               title="Documentos"
               description="Envie fotos legiveis. O OCR compara com os dados informados."
@@ -1047,7 +1426,9 @@ export default function CadastroPage() {
                   <Button variant="secondary" onClick={handleBack}>
                     Voltar
                   </Button>
-                  <Button onClick={handleNext}>Continuar</Button>
+                  <Button onClick={handleNext} disabled={!documentsStepValid}>
+                    Continuar
+                  </Button>
                 </>
               }
             >
@@ -1095,7 +1476,16 @@ export default function CadastroPage() {
                     onSelect={(file) => handleUpload('CNH', file, 'cnh')}
                   />
                 )}
+                <UploadCard
+                  title="Comprovante de residencia (opcional)"
+                  state={form.documents.residence}
+                  onSelect={(file) => handleUpload('COMPROVANTE_RESIDENCIA', file, 'residence')}
+                />
               </div>
+
+              {!docsMainValid ? (
+                <p className="text-xs text-red-600">Envie o documento principal para continuar.</p>
+              ) : null}
 
               {documentPreview?.state.previewUrl ? (
                 <div className="rounded-2xl border border-zinc-200 bg-white p-5">
@@ -1105,7 +1495,7 @@ export default function CadastroPage() {
                       <p className="text-sm font-semibold text-zinc-900">{documentPreview.label}</p>
                     </div>
                     <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
-                      {tracking?.ocr?.data ? 'OCR processado' : 'OCR em processamento'}
+                      {previewOcrResult ? 'OCR processado' : 'OCR em processamento'}
                     </span>
                   </div>
 
@@ -1143,6 +1533,11 @@ export default function CadastroPage() {
                       {ocrConfirmed ? (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                           Dados confirmados pelo candidato.
+                        </div>
+                      ) : null}
+                      {legibilityWarning ? (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                          {legibilityWarning}
                         </div>
                       ) : null}
                       <div className="grid gap-2">
@@ -1183,7 +1578,7 @@ export default function CadastroPage() {
 
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
                 OCR status:{' '}
-                {tracking?.ocr?.data
+                {previewOcrResult
                   ? 'Processado com sucesso.'
                   : documentPreview
                     ? 'Imagem enviada. OCR em processamento.'
@@ -1192,7 +1587,7 @@ export default function CadastroPage() {
             </StepLayout>
           ) : null}
 
-          {stepIndex === 3 ? (
+          {currentStep === 'revisao' ? (
             <StepLayout
               title="Revisao final"
               description="Confira tudo antes de enviar."
@@ -1215,6 +1610,11 @@ export default function CadastroPage() {
                 </div>
                 <div className="grid gap-2">
                   <span className="text-xs text-zinc-500">{profileSummary}</span>
+                  {form.proposalType === 'MIGRACAO' ? (
+                    <span className="text-xs text-zinc-500">
+                      Migracao: {form.migrationEntity || 'Entidade anterior'}
+                    </span>
+                  ) : null}
                   <span className="font-semibold text-zinc-900">{form.fullName || 'Nome'}</span>
                   <span>{form.cpf || 'CPF'}</span>
                   <span>{form.email || 'Email'}</span>

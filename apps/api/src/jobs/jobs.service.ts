@@ -30,7 +30,8 @@ export class JobsService implements OnModuleDestroy {
   }
 
   async enqueueOcr(payload: {
-    proposalId: string;
+    proposalId?: string;
+    draftId?: string;
     documentFileId: string;
     requestId?: string;
   }) {
@@ -39,6 +40,7 @@ export class JobsService implements OnModuleDestroy {
       'ocr.process',
       {
         proposalId: payload.proposalId,
+        draftId: payload.draftId,
         documentFileId: payload.documentFileId,
         requestId,
       },

@@ -6,6 +6,8 @@
   "setupFiles": ["<rootDir>/jest-e2e.setup.ts"],
   "moduleNameMapper": {
     "^@sistemacadastro/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
+    "^@sistemacadastro/shared/dist/(.*)\\.js$": "<rootDir>/../../../packages/shared/src/$1.ts",
+    "^@sistemacadastro/shared/dist/(.*)$": "<rootDir>/../../../packages/shared/src/$1",
     "^@sistemacadastro/shared/(.*)$": "<rootDir>/../../../packages/shared/src/$1"
   },
   "transform": {

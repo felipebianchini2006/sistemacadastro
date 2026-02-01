@@ -8,6 +8,8 @@ export type OcrFields = {
   dataValidade?: string;
   orgaoEmissor?: string;
   uf?: string;
+  cep?: string;
+  endereco?: string;
 };
 
 export type OcrParseResult = {
@@ -21,7 +23,8 @@ export type OcrParseResult = {
 };
 
 export type OcrJobPayload = {
-  proposalId: string;
+  proposalId?: string;
+  draftId?: string;
   documentFileId: string;
   requestId: string;
 };

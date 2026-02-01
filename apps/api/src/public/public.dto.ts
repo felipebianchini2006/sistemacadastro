@@ -7,12 +7,17 @@ export interface DraftResponse {
 }
 
 export interface DraftDataPayload {
+  profileRoles?: string[];
+  profileRoleOther?: string;
   fullName?: string;
   cpf?: string;
   email?: string;
   phone?: string;
   birthDate?: string;
   type?: 'NOVO' | 'MIGRACAO';
+  documentChoice?: 'RG' | 'CNH';
+  migrationEntity?: string;
+  migrationConfirmed?: boolean;
   address?: {
     cep?: string;
     street?: string;

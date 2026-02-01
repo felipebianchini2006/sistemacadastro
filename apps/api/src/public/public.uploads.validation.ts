@@ -5,6 +5,7 @@ export const ALLOWED_PUBLIC_DOC_TYPES = new Set<DocumentType>([
   DocumentType.RG_FRENTE,
   DocumentType.RG_VERSO,
   DocumentType.CNH,
+  DocumentType.COMPROVANTE_RESIDENCIA,
   DocumentType.SELFIE,
   DocumentType.DESFILIACAO,
 ]);

@@ -20,6 +20,7 @@ const DOC_OPTIONS = [
   { value: 'RG_FRENTE', label: 'RG - frente' },
   { value: 'RG_VERSO', label: 'RG - verso' },
   { value: 'CNH', label: 'CNH' },
+  { value: 'COMPROVANTE_RESIDENCIA', label: 'Comprovante de residencia' },
   { value: 'SELFIE', label: 'Selfie' },
   { value: 'DESFILIACAO', label: 'Documento adicional' },
 ] as const;

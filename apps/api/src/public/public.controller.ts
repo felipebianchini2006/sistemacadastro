@@ -49,6 +49,25 @@ export class PublicController {
     return this.publicService.getDraft(draftId, headerToken ?? token);
   }
 
+  @Post('drafts/:draftId/ocr')
+  @Throttle({ default: { limit: 10, ttl: 60 } })
+  requestDraftOcr(
+    @Param('draftId') draftId: string,
+    @Headers('x-draft-token') draftToken?: string,
+  ) {
+    return this.publicService.requestDraftOcr(draftId, draftToken);
+  }
+
+  @Get('drafts/:draftId/ocr')
+  @Throttle({ default: { limit: 30, ttl: 60 } })
+  getDraftOcr(
+    @Param('draftId') draftId: string,
+    @Query('token') token?: string,
+    @Headers('x-draft-token') headerToken?: string,
+  ) {
+    return this.publicService.getDraftOcr(draftId, headerToken ?? token);
+  }
+
   @Post('proposals')
   @Throttle({ default: { limit: 10, ttl: 60 } })
   submitProposal(@Body() body: SubmitProposalDto, @Req() req: Request) {

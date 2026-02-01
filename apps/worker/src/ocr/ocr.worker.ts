@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { DocumentType, ProposalStatus } from '@prisma/client';
@@ -7,11 +7,15 @@ import { prisma } from '../prisma';
 import { VisionOcrService } from '../services/vision-ocr.service';
 import { StorageClient } from '../services/storage-client';
 import { preprocessImage } from '../services/image-preprocessor';
-import { parseDocumentText } from './ocr-parser';
+import { parseAddressText, parseDocumentText } from './ocr-parser';
 import { compareOcrWithProposal } from './ocr-compare';
 import { OcrJobPayload } from './ocr.types';
 
-const OCR_DOC_TYPES = new Set<DocumentType>([DocumentType.RG_FRENTE, DocumentType.CNH]);
+const OCR_DOC_TYPES = new Set<DocumentType>([
+  DocumentType.RG_FRENTE,
+  DocumentType.CNH,
+  DocumentType.COMPROVANTE_RESIDENCIA,
+]);
 
 export class OcrWorker {
   private readonly connection: IORedis;
@@ -65,6 +69,7 @@ export class OcrWorker {
         requestId,
         jobId: job.id,
         proposalId: job.data.proposalId,
+        draftId: job.data.draftId,
         documentFileId: job.data.documentFileId,
       },
       'ocr.start',
@@ -78,6 +83,7 @@ export class OcrWorker {
             person: true,
           },
         },
+        draft: true,
       },
     });
 
@@ -85,8 +91,16 @@ export class OcrWorker {
       throw new Error('DocumentFile not found');
     }
 
-    if (documentFile.proposalId !== job.data.proposalId) {
+    if (!job.data.proposalId && !job.data.draftId) {
+      throw new Error('OCR payload missing proposalId or draftId');
+    }
+
+    if (job.data.proposalId && documentFile.proposalId !== job.data.proposalId) {
       throw new Error('DocumentFile does not match proposal');
+    }
+
+    if (job.data.draftId && documentFile.draftId !== job.data.draftId) {
+      throw new Error('DocumentFile does not match draft');
     }
 
     if (!OCR_DOC_TYPES.has(documentFile.type)) {
@@ -125,38 +139,90 @@ export class OcrWorker {
     }
 
     const visionResult = await this.vision.documentTextDetection(buffer);
-    const parsed = parseDocumentText(visionResult.rawText);
+    const rawText = visionResult.rawText ?? '';
+    const legibilityMin = parseNumber(process.env.OCR_MIN_TEXT_LENGTH, 20);
+    const legible = rawText.trim().length >= legibilityMin;
+
+    const parsed =
+      documentFile.type === DocumentType.COMPROVANTE_RESIDENCIA ? null : parseDocumentText(rawText);
+    const address =
+      documentFile.type === DocumentType.COMPROVANTE_RESIDENCIA ? parseAddressText(rawText) : null;
 
     const proposal = documentFile.proposal;
-    const comparison = compareOcrWithProposal({
-      fields: parsed.fields,
-      proposalName: proposal?.person?.fullName,
-      proposalCpfHash: proposal?.person?.cpfHash,
-    });
+    let comparison = {
+      mismatch: false,
+      reasons: [] as string[],
+      nameSimilarity: 1,
+      cpfMatches: undefined as boolean | undefined,
+    };
+    if (parsed) {
+      if (proposal?.person) {
+        comparison = compareOcrWithProposal({
+          fields: parsed.fields,
+          proposalName: proposal.person.fullName,
+          proposalCpfHash: proposal.person.cpfHash,
+        });
+      } else if (documentFile.draftId) {
+        const draft = await prisma.draft.findUnique({
+          where: { id: documentFile.draftId },
+          select: { data: true },
+        });
+        const draftData = (draft?.data ?? {}) as { fullName?: string; cpf?: string };
+        const cpfHash = draftData.cpf
+          ? createHash('sha256').update(draftData.cpf).digest('hex')
+          : undefined;
+        comparison = compareOcrWithProposal({
+          fields: parsed.fields,
+          proposalName: draftData.fullName,
+          proposalCpfHash: cpfHash,
+        });
+      }
+    }
+
+    const expired =
+      parsed?.fields?.dataValidade &&
+      !Number.isNaN(new Date(parsed.fields.dataValidade).getTime()) &&
+      new Date(parsed.fields.dataValidade) < new Date();
 
     await prisma.ocrResult.create({
       data: {
-        proposalId: job.data.proposalId,
+        proposalId: job.data.proposalId ?? null,
+        draftId: job.data.draftId ?? null,
         documentFileId: documentFile.id,
-        rawText: visionResult.rawText,
+        rawText,
         structuredData: {
-          document_type: parsed.documentType,
-          fields: {
-            nome: parsed.fields.nome,
-            cpf: parsed.fields.cpf,
-            rg_cnh: parsed.fields.rgCnh,
-            data_emissao: parsed.fields.dataEmissao,
-            data_validade: parsed.fields.dataValidade,
-            orgao_emissor: parsed.fields.orgaoEmissor,
-            uf: parsed.fields.uf,
-          },
+          document_type:
+            documentFile.type === DocumentType.COMPROVANTE_RESIDENCIA
+              ? 'COMPROVANTE_RESIDENCIA'
+              : parsed?.documentType,
+          fields:
+            documentFile.type === DocumentType.COMPROVANTE_RESIDENCIA
+              ? {
+                  cep: address?.cep,
+                  endereco: address?.endereco,
+                }
+              : {
+                  nome: parsed?.fields.nome,
+                  cpf: parsed?.fields.cpf,
+                  rg_cnh: parsed?.fields.rgCnh,
+                  data_emissao: parsed?.fields.dataEmissao,
+                  data_validade: parsed?.fields.dataValidade,
+                  orgao_emissor: parsed?.fields.orgaoEmissor,
+                  uf: parsed?.fields.uf,
+                },
         },
         score: comparison.nameSimilarity,
         heuristics: {
-          ...parsed.heuristics,
+          ...(parsed?.heuristics ?? {}),
           preprocess: preprocessInfo,
           comparison,
           requestId,
+          legibility: {
+            ok: legible,
+            minTextLength: legibilityMin,
+            rawLength: rawText.trim().length,
+          },
+          expired,
         },
       },
     });
@@ -171,6 +237,7 @@ export class OcrWorker {
         requestId,
         jobId: job.id,
         proposalId: job.data.proposalId,
+        draftId: job.data.draftId,
         documentFileId: job.data.documentFileId,
         durationMs,
       },

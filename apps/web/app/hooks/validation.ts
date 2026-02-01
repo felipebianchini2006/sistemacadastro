@@ -4,7 +4,6 @@ import {
   isValidCep,
   isValidCpf,
   isValidEmailFormat,
-  isValidPhone,
   normalizeCep,
   normalizeCpf,
   normalizeEmail,

@@ -29,6 +29,7 @@ enum DocumentType {
   RG_FRENTE
   RG_VERSO
   CNH
+  COMPROVANTE_RESIDENCIA
   SELFIE
   DESFILIACAO
   OUTROS
@@ -93,6 +94,10 @@ model Proposal {
   status        ProposalStatus @default(DRAFT)
   draftId       String?
   assignedAnalystId String?
+  profileRoles  Json?
+  profileRoleOther String?
+  migrationEntity String?
+  migrationConfirmed Boolean?
 
   slaStartedAt  DateTime?
   slaDueAt      DateTime?
@@ -136,6 +141,7 @@ model Draft {
 
   proposals  Proposal[]
   documents  DocumentFile[]
+  ocrResults OcrResult[]
 
   @@index([expiresAt])
 }
@@ -209,7 +215,8 @@ model DocumentFile {
 
 model OcrResult {
   id             String      @id @default(uuid())
-  proposalId     String
+  proposalId     String?
+  draftId        String?
   documentFileId String?
 
   structuredData Json?
@@ -219,10 +226,12 @@ model OcrResult {
 
   createdAt      DateTime    @default(now())
 
-  proposal       Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposal       Proposal?   @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  draft          Draft?      @relation(fields: [draftId], references: [id], onDelete: Cascade)
   documentFile   DocumentFile? @relation(fields: [documentFileId], references: [id], onDelete: SetNull)
 
   @@index([proposalId, createdAt])
+  @@index([draftId, createdAt])
 }
 
 model SignatureEnvelope {

@@ -32,14 +32,28 @@ const addressSchema = z
   })
   .partial();
 
+const profileRoleSchema = z.enum([
+  'AUTOR',
+  'COMPOSITOR',
+  'INTERPRETE',
+  'EDITORA',
+  'PRODUTOR',
+  'OUTRO',
+]);
+
 export const draftDataSchema = z
   .object({
+    profileRoles: z.array(profileRoleSchema).optional(),
+    profileRoleOther: z.string().min(2).optional(),
     fullName: z.string().min(2).optional(),
     cpf: z.string().min(11).optional(),
     email: z.string().min(5).optional(),
     phone: z.string().min(8).optional(),
     birthDate: z.string().optional(),
     type: z.nativeEnum(ProposalType).optional(),
+    documentChoice: z.enum(['RG', 'CNH']).optional(),
+    migrationEntity: z.string().min(2).optional(),
+    migrationConfirmed: z.boolean().optional(),
     address: addressSchema.optional(),
     consent: z
       .object({
@@ -56,6 +70,12 @@ export type DraftData = z.infer<typeof draftDataSchema>;
 export const normalizeDraftData = (data: DraftData) => {
   const normalized: DraftData = { ...data };
 
+  if (normalized.profileRoleOther) {
+    normalized.profileRoleOther = normalized.profileRoleOther.trim();
+  }
+  if (normalized.migrationEntity) {
+    normalized.migrationEntity = normalized.migrationEntity.trim();
+  }
   if (normalized.cpf) normalized.cpf = normalizeCpf(normalized.cpf);
   if (normalized.email) normalized.email = normalizeEmail(normalized.email);
   if (normalized.phone) {
@@ -120,13 +140,31 @@ export const validateDraftData = (payload: unknown, required = false) => {
     }
   }
 
+  if (normalized.profileRoles && normalized.profileRoles.length === 0) {
+    throw new Error('Perfil artistico obrigatorio');
+  }
+
   if (required) {
     const missing: string[] = [];
+    if (!normalized.profileRoles || normalized.profileRoles.length === 0) {
+      missing.push('profileRoles');
+    }
+    if (
+      normalized.profileRoles?.includes('OUTRO') &&
+      !normalized.profileRoleOther
+    ) {
+      missing.push('profileRoleOther');
+    }
     if (!normalized.fullName) missing.push('fullName');
     if (!normalized.cpf) missing.push('cpf');
     if (!normalized.email) missing.push('email');
     if (!normalized.phone) missing.push('phone');
     if (!normalized.birthDate) missing.push('birthDate');
+    if (!normalized.documentChoice) missing.push('documentChoice');
+    if (normalized.type === ProposalType.MIGRACAO) {
+      if (!normalized.migrationEntity) missing.push('migrationEntity');
+      if (!normalized.migrationConfirmed) missing.push('migrationConfirmed');
+    }
     if (!normalized.address?.cep) missing.push('address.cep');
     if (!normalized.address?.street) missing.push('address.street');
     if (!normalized.address?.district) missing.push('address.district');

@@ -18,6 +18,7 @@ const ISSUE_DATE_LABELS = [
 ];
 const VALID_DATE_LABELS = ['VALIDADE', 'VALIDO ATE', 'VALIDO ATE'];
 const UF_LABELS = ['UF'];
+const CEP_REGEX = /\b\d{5}-?\d{3}\b/;
 
 export const normalizeText = (value: string) =>
   value
@@ -180,6 +181,38 @@ const extractUf = (text: string, issuer?: string) => {
   return undefined;
 };
 
+const extractCep = (lines: string[], text: string) => {
+  for (const line of lines) {
+    const match = line.match(CEP_REGEX);
+    if (match) {
+      return digitsOnly(match[0]);
+    }
+  }
+  const match = text.match(CEP_REGEX);
+  return match ? digitsOnly(match[0]) : undefined;
+};
+
+const extractAddressLine = (lines: string[], cep?: string) => {
+  if (!lines.length) return undefined;
+  const cepIndex = lines.findIndex((line) => CEP_REGEX.test(line));
+  if (cepIndex >= 0) {
+    const before = lines[cepIndex - 1]?.trim();
+    const current = lines[cepIndex]?.trim();
+    const combined = [before, current].filter(Boolean).join(' ');
+    return combined || current;
+  }
+
+  const keywords = ['RUA', 'AV', 'AVENIDA', 'TRAVESSA', 'ALAMEDA', 'PRACA', 'RODOVIA'];
+  for (const line of lines) {
+    const upper = normalizeUpper(line);
+    if (keywords.some((keyword) => upper.includes(keyword))) {
+      return line.trim();
+    }
+  }
+
+  return undefined;
+};
+
 export const detectDocumentType = (rawText: string) => {
   const text = normalizeUpper(rawText);
   let rgScore = 0;
@@ -244,6 +277,18 @@ export const parseDocumentText = (rawText: string): OcrParseResult => {
       cnhScore: detection.cnhScore,
       matchedKeywords: detection.matchedKeywords,
     },
+  };
+};
+
+export const parseAddressText = (rawText: string) => {
+  const lines = splitLines(rawText);
+  const normalized = normalizeUpper(rawText);
+  const cep = extractCep(lines, normalized);
+  const endereco = extractAddressLine(lines, cep);
+
+  return {
+    cep,
+    endereco,
   };
 };
 

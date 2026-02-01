@@ -101,6 +101,52 @@ export class PublicService {
     };
   }
 
+  async requestDraftOcr(draftId: string, token?: string) {
+    const draft = await this.getDraftOrThrow(draftId, token);
+
+    const draftDocs = await this.prisma.documentFile.findMany({
+      where: { draftId: draft.id },
+      select: { id: true, type: true },
+    });
+
+    const ocrDocTypes = new Set<DocumentType>([
+      DocumentType.RG_FRENTE,
+      DocumentType.CNH,
+      DocumentType.COMPROVANTE_RESIDENCIA,
+    ]);
+    const ocrDocs = draftDocs.filter((doc) => ocrDocTypes.has(doc.type));
+
+    if (ocrDocs.length === 0) {
+      throw new BadRequestException('Nenhum documento disponivel para OCR');
+    }
+
+    await Promise.all(
+      ocrDocs.map((doc) =>
+        this.jobs.enqueueOcr({
+          draftId: draft.id,
+          documentFileId: doc.id,
+        }),
+      ),
+    );
+
+    return { ok: true, count: ocrDocs.length };
+  }
+
+  async getDraftOcr(draftId: string, token?: string) {
+    const draft = await this.getDraftOrThrow(draftId, token);
+
+    const results = await this.prisma.ocrResult.findMany({
+      where: { draftId: draft.id },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+
+    return {
+      draftId: draft.id,
+      results,
+    };
+  }
+
   async submitProposal(
     dto: SubmitProposalDto,
     context: SubmitRequestContext = {},
@@ -151,6 +197,32 @@ export class PublicService {
       ? now
       : acceptedAt;
 
+    const draftDocs = await this.prisma.documentFile.findMany({
+      where: { draftId: draft.id },
+      select: { id: true, type: true },
+    });
+
+    const docTypes = new Set(draftDocs.map((doc) => doc.type));
+    if (data.documentChoice === 'RG') {
+      if (
+        !docTypes.has(DocumentType.RG_FRENTE) ||
+        !docTypes.has(DocumentType.RG_VERSO)
+      ) {
+        throw new BadRequestException('RG frente e verso obrigatorios');
+      }
+    }
+    if (data.documentChoice === 'CNH') {
+      if (!docTypes.has(DocumentType.CNH)) {
+        throw new BadRequestException('CNH obrigatoria');
+      }
+    }
+    if (
+      data.type === ProposalType.MIGRACAO &&
+      !docTypes.has(DocumentType.DESFILIACAO)
+    ) {
+      throw new BadRequestException('Documento de desfiliação obrigatorio');
+    }
+
     const proposal = await this.prisma.$transaction(async (tx) => {
       const created = await tx.proposal.create({
         data: {
@@ -159,6 +231,10 @@ export class PublicService {
           status: ProposalStatus.SUBMITTED,
           submittedAt: now,
           draftId: draft.id,
+          profileRoles: data.profileRoles ?? undefined,
+          profileRoleOther: data.profileRoleOther ?? undefined,
+          migrationEntity: data.migrationEntity ?? undefined,
+          migrationConfirmed: data.migrationConfirmed ?? undefined,
           person: {
             create: personData,
           },
@@ -191,11 +267,6 @@ export class PublicService {
       return created;
     });
 
-    const draftDocs = await this.prisma.documentFile.findMany({
-      where: { draftId: draft.id },
-      select: { id: true, type: true },
-    });
-
     if (draftDocs.length > 0) {
       await this.prisma.documentFile.updateMany({
         where: { draftId: draft.id },
@@ -205,6 +276,7 @@ export class PublicService {
       const ocrDocTypes = new Set<DocumentType>([
         DocumentType.RG_FRENTE,
         DocumentType.CNH,
+        DocumentType.COMPROVANTE_RESIDENCIA,
       ]);
       const ocrDocs = draftDocs.filter((doc) => ocrDocTypes.has(doc.type));
 
