@@ -80,7 +80,8 @@ export class TotvsWorker {
       return;
     }
 
-    if (![ProposalStatus.SIGNED, ProposalStatus.APPROVED].includes(proposal.status)) {
+    const allowedStatuses: ProposalStatus[] = [ProposalStatus.SIGNED, ProposalStatus.APPROVED];
+    if (!allowedStatuses.includes(proposal.status)) {
       console.info(
         { requestId, proposalId: proposal.id, status: proposal.status },
         'totvs.skip_status',

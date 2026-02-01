@@ -149,11 +149,10 @@ export class OcrWorker {
       documentFile.type === DocumentType.COMPROVANTE_RESIDENCIA ? parseAddressText(rawText) : null;
 
     const proposal = documentFile.proposal;
-    let comparison = {
+    let comparison: ReturnType<typeof compareOcrWithProposal> = {
       mismatch: false,
-      reasons: [] as string[],
+      reasons: [],
       nameSimilarity: 1,
-      cpfMatches: undefined as boolean | undefined,
     };
     if (parsed) {
       if (proposal?.person) {
