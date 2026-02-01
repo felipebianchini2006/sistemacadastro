@@ -42,6 +42,7 @@ export const envSchema = z.object({
   EMAIL_MX_CHECK: z.coerce.boolean().optional().default(false),
 
   CONSENT_VERSION: z.string().default('v1'),
+  PRIVACY_POLICY_VERSION: z.string().default('v1'),
 
   METRICS_ENABLED: z.coerce.boolean().optional().default(true),
   METRICS_PATH: z.string().default('/metrics'),

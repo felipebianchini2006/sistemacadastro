@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   normalizeCep,
   normalizeCpf,
@@ -57,6 +58,8 @@ type DraftFormState = {
   birthDate: string;
   consentAccepted: boolean;
   consentAt: string;
+  privacyAccepted: boolean;
+  privacyAt: string;
   address: {
     cep: string;
     street: string;
@@ -110,6 +113,7 @@ type DraftOcrResult = {
 const STORAGE_KEY = 'cadastro-draft-v1';
 const AUTO_SAVE_INTERVAL = 15000;
 const CONSENT_VERSION = process.env.NEXT_PUBLIC_CONSENT_VERSION ?? 'v1';
+const PRIVACY_VERSION = process.env.NEXT_PUBLIC_PRIVACY_VERSION ?? 'v1';
 
 const readStoredDraft = () => {
   if (typeof window === 'undefined') return null;
@@ -160,6 +164,8 @@ const defaultForm: DraftFormState = {
   birthDate: '',
   consentAccepted: false,
   consentAt: '',
+  privacyAccepted: false,
+  privacyAt: '',
   address: {
     cep: '',
     street: '',
@@ -227,6 +233,9 @@ const buildDraftPayload = (form: DraftFormState) => {
     accepted: form.consentAccepted,
     version: CONSENT_VERSION,
     at: form.consentAccepted ? form.consentAt || new Date().toISOString() : undefined,
+    privacyAccepted: form.privacyAccepted,
+    privacyVersion: PRIVACY_VERSION,
+    privacyAt: form.privacyAccepted ? form.privacyAt || new Date().toISOString() : undefined,
   };
 
   const address = {
@@ -770,6 +779,13 @@ export default function CadastroPage() {
     });
   };
 
+  const handlePrivacyChange = (accepted: boolean) => {
+    updateForm({
+      privacyAccepted: accepted,
+      privacyAt: accepted ? new Date().toISOString() : '',
+    });
+  };
+
   const handleProposalTypeSelect = (type: ProposalType) => {
     updateForm({ proposalType: type });
     const nextSteps = type === 'MIGRACAO' ? migrationSteps : baseSteps;
@@ -937,7 +953,7 @@ export default function CadastroPage() {
     phoneValidation.isValid &&
     addressRequiredValid;
 
-  const canSubmit = form.consentAccepted && submitStatus !== 'submitting';
+  const canSubmit = form.consentAccepted && form.privacyAccepted && submitStatus !== 'submitting';
 
   const AddressFields = (
     <>
@@ -1535,6 +1551,8 @@ export default function CadastroPage() {
                               'rounded-full px-4 py-2 text-sm font-semibold transition',
                               entity === 'Outras'
                                 ? isCustom
+                                  ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                                  : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60'
                                 : form.migrationEntity === entity
                                   ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
                                   : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
@@ -1834,9 +1852,34 @@ export default function CadastroPage() {
                   />
                   <span>Declaro que as informacoes fornecidas sao verdadeiras.</span>
                 </label>
+                <label className="mt-3 flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                    checked={form.privacyAccepted}
+                    onChange={(event) => handlePrivacyChange(event.target.checked)}
+                  />
+                  <span>
+                    Li e aceito a{' '}
+                    <Link
+                      href="/privacidade"
+                      className="font-semibold text-orange-600 underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Politica de Privacidade
+                    </Link>
+                    .
+                  </span>
+                </label>
                 {!form.consentAccepted ? (
                   <p className="mt-2 text-xs text-amber-600">
                     Aceite o consentimento para enviar a proposta.
+                  </p>
+                ) : null}
+                {!form.privacyAccepted ? (
+                  <p className="mt-2 text-xs text-amber-600">
+                    Aceite a politica de privacidade para enviar a proposta.
                   </p>
                 ) : null}
               </div>

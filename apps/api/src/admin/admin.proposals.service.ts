@@ -128,7 +128,11 @@ export class AdminProposalsService {
     );
   }
 
-  async getById(id: string) {
+  async getById(
+    id: string,
+    adminUserId?: string,
+    context: { ip?: string; userAgent?: string } = {},
+  ) {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
       include: {
@@ -151,6 +155,20 @@ export class AdminProposalsService {
 
     if (!proposal) {
       throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    if (adminUserId) {
+      await this.prisma.auditLog.create({
+        data: {
+          adminUserId,
+          proposalId: proposal.id,
+          action: 'VIEW_DOSSIER',
+          entityType: 'Proposal',
+          entityId: proposal.id,
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+      });
     }
 
     const cpfMasked = proposal.person?.cpfEncrypted

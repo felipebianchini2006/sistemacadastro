@@ -31,6 +31,9 @@ export interface DraftDataPayload {
     accepted?: boolean;
     version?: string;
     at?: string;
+    privacyAccepted?: boolean;
+    privacyVersion?: string;
+    privacyAt?: string;
   };
   bank?: {
     bankCode?: string;
@@ -80,4 +83,21 @@ export interface UploadPresignResponse {
   expiresIn: number;
   method: 'PUT';
   headers: Record<string, string>;
+}
+
+export interface OtpSendDto {
+  protocol: string;
+  phone: string;
+  channel?: 'sms' | 'whatsapp';
+}
+
+export interface OtpVerifyDto {
+  protocol: string;
+  phone: string;
+  code: string;
+}
+
+export interface DeleteProposalDto {
+  protocol: string;
+  token: string;
 }

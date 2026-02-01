@@ -50,8 +50,14 @@ export class AdminProposalsController {
 
   @Get(':proposalId')
   @Roles(RoleName.ADMIN, RoleName.ANALYST, RoleName.VIEWER)
-  getById(@Param('proposalId') proposalId: string) {
-    return this.service.getById(proposalId);
+  getById(
+    @Param('proposalId') proposalId: string,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    return this.service.getById(proposalId, req.user?.id, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
   }
 
   @Post(':proposalId/assign')

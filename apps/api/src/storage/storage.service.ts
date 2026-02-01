@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export type PresignPutObjectInput = {
@@ -70,6 +74,16 @@ export class StorageService {
         Body: input.body,
         ContentType: input.contentType,
         Metadata: input.metadata,
+      }),
+    );
+  }
+
+  async deleteObject(key: string) {
+    const config = this.getConfig();
+    await this.getClient().send(
+      new DeleteObjectCommand({
+        Bucket: config.bucket,
+        Key: key,
       }),
     );
   }

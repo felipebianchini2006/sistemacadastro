@@ -78,12 +78,32 @@ export const draftDataSchema = z
         accepted: z.boolean().optional(),
         version: z.string().optional(),
         at: z.string().optional(),
+        privacyAccepted: z.boolean().optional(),
+        privacyVersion: z.string().optional(),
+        privacyAt: z.string().optional(),
       })
       .optional(),
   })
   .strict();
 
 export type DraftData = z.infer<typeof draftDataSchema>;
+
+const otpSendSchema = z.object({
+  protocol: z.string().min(4),
+  phone: z.string().min(8),
+  channel: z.enum(['sms', 'whatsapp']).optional(),
+});
+
+const otpVerifySchema = z.object({
+  protocol: z.string().min(4),
+  phone: z.string().min(8),
+  code: z.string().min(4),
+});
+
+const deleteProposalSchema = z.object({
+  protocol: z.string().min(4),
+  token: z.string().min(6),
+});
 
 export const normalizeDraftData = (data: DraftData) => {
   const normalized: DraftData = { ...data };
@@ -225,6 +245,9 @@ export const validateDraftData = (payload: unknown, required = false) => {
     if (!normalized.address?.city) missing.push('address.city');
     if (!normalized.address?.state) missing.push('address.state');
     if (!normalized.consent?.accepted) missing.push('consent.accepted');
+    if (!normalized.consent?.privacyAccepted) {
+      missing.push('consent.privacyAccepted');
+    }
 
     if (missing.length > 0) {
       throw new Error(`Campos obrigatorios: ${missing.join(', ')}`);
@@ -232,4 +255,44 @@ export const validateDraftData = (payload: unknown, required = false) => {
   }
 
   return normalized;
+};
+
+export const validateOtpSend = (payload: unknown) => {
+  const parsed = otpSendSchema.parse(payload);
+  const phone = normalizePhoneToE164(parsed.phone);
+  const normalized = phone.e164 ?? normalizePhone(parsed.phone);
+
+  if (!isValidPhone(normalized)) {
+    throw new Error('Telefone invalido');
+  }
+
+  return {
+    protocol: parsed.protocol.trim(),
+    phone: normalized,
+    channel: parsed.channel ?? 'sms',
+  };
+};
+
+export const validateOtpVerify = (payload: unknown) => {
+  const parsed = otpVerifySchema.parse(payload);
+  const phone = normalizePhoneToE164(parsed.phone);
+  const normalized = phone.e164 ?? normalizePhone(parsed.phone);
+
+  if (!isValidPhone(normalized)) {
+    throw new Error('Telefone invalido');
+  }
+
+  return {
+    protocol: parsed.protocol.trim(),
+    phone: normalized,
+    code: parsed.code.trim(),
+  };
+};
+
+export const validateDeleteProposal = (payload: unknown) => {
+  const parsed = deleteProposalSchema.parse(payload);
+  return {
+    protocol: parsed.protocol.trim(),
+    token: parsed.token.trim(),
+  };
 };

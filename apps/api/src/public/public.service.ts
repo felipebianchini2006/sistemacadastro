@@ -11,7 +11,9 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OtpService } from '../notifications/otp.service';
 import { CryptoService } from '../common/crypto/crypto.service';
+import { StorageService } from '../storage/storage.service';
 import {
   CreateDraftDto,
   SubmitProposalDto,
@@ -21,6 +23,9 @@ import {
   validateDraftData,
   DraftData,
   validateEmailMx,
+  validateOtpSend,
+  validateOtpVerify,
+  validateDeleteProposal,
 } from './public.validation';
 
 const DEFAULT_DRAFT_TTL_DAYS = 7;
@@ -38,6 +43,8 @@ export class PublicService {
     private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
     private readonly crypto: CryptoService,
+    private readonly otpService: OtpService,
+    private readonly storage: StorageService,
   ) {}
 
   async createDraft(dto: CreateDraftDto) {
@@ -209,10 +216,22 @@ export class PublicService {
       data.consent?.version ??
       this.configService.get<string>('CONSENT_VERSION', { infer: true }) ??
       'v1';
+    const privacyVersion =
+      data.consent?.privacyVersion ??
+      this.configService.get<string>('PRIVACY_POLICY_VERSION', {
+        infer: true,
+      }) ??
+      'v1';
     const acceptedAt = data.consent?.at ? new Date(data.consent.at) : now;
     const acceptedAtSafe = Number.isNaN(acceptedAt.getTime())
       ? now
       : acceptedAt;
+    const privacyAt = data.consent?.privacyAt
+      ? new Date(data.consent.privacyAt)
+      : acceptedAtSafe;
+    const privacyAtSafe = Number.isNaN(privacyAt.getTime())
+      ? acceptedAtSafe
+      : privacyAt;
 
     const draftDocs = await this.prisma.documentFile.findMany({
       where: { draftId: draft.id },
@@ -281,6 +300,17 @@ export class PublicService {
         },
       });
 
+      await tx.consentLog.create({
+        data: {
+          proposalId: created.id,
+          type: 'privacy',
+          version: privacyVersion,
+          acceptedAt: privacyAtSafe,
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+      });
+
       return created;
     });
 
@@ -332,7 +362,11 @@ export class PublicService {
     };
   }
 
-  async trackProposal(protocol: string, token: string) {
+  async trackProposal(
+    protocol: string,
+    token: string,
+    context: SubmitRequestContext = {},
+  ) {
     const proposal = await this.prisma.proposal.findUnique({
       where: { protocol },
       include: {
@@ -351,6 +385,17 @@ export class PublicService {
     if (!proposal || proposal.publicToken !== token) {
       throw new NotFoundException('Proposta nao encontrada');
     }
+
+    await this.prisma.auditLog.create({
+      data: {
+        proposalId: proposal.id,
+        action: 'PUBLIC_TRACK',
+        entityType: 'Proposal',
+        entityId: proposal.id,
+        ip: context.ip,
+        userAgent: context.userAgent,
+      },
+    });
 
     const latestOcr = await this.prisma.ocrResult.findFirst({
       where: { proposalId: proposal.id },
@@ -384,6 +429,138 @@ export class PublicService {
             data: latestOcr.structuredData,
           }
         : null,
+    };
+  }
+
+  async sendOtp(payload: unknown) {
+    const data = this.safeValidateOtpSend(payload);
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { protocol: data.protocol },
+      include: { person: true },
+    });
+
+    if (!proposal || !proposal.person) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const storedPhone = await this.crypto.decrypt(
+      proposal.person.phoneEncrypted,
+    );
+
+    if (!this.matchPhone(storedPhone, data.phone)) {
+      throw new BadRequestException('Telefone nao confere');
+    }
+
+    await this.otpService.sendOtp({
+      to: data.phone,
+      channel: data.channel,
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        proposalId: proposal.id,
+        action: 'OTP_SENT',
+        entityType: 'Proposal',
+        entityId: proposal.id,
+        metadata: { channel: data.channel },
+      },
+    });
+
+    return { ok: true };
+  }
+
+  async verifyOtp(payload: unknown) {
+    const data = this.safeValidateOtpVerify(payload);
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { protocol: data.protocol },
+      include: { person: true },
+    });
+
+    if (!proposal || !proposal.person) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const storedPhone = await this.crypto.decrypt(
+      proposal.person.phoneEncrypted,
+    );
+
+    if (!this.matchPhone(storedPhone, data.phone)) {
+      throw new BadRequestException('Telefone nao confere');
+    }
+
+    const result = await this.otpService.verifyOtp({
+      to: data.phone,
+      code: data.code,
+    });
+
+    const status = (result as { status?: string }).status ?? 'unknown';
+    if (status !== 'approved') {
+      throw new BadRequestException('Codigo invalido');
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        proposalId: proposal.id,
+        action: 'OTP_VERIFIED',
+        entityType: 'Proposal',
+        entityId: proposal.id,
+      },
+    });
+
+    return {
+      ok: true,
+      token: proposal.publicToken,
+      proposalId: proposal.id,
+    };
+  }
+
+  async deleteProposal(payload: unknown, context: SubmitRequestContext = {}) {
+    const data = this.safeValidateDeleteProposal(payload);
+
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { protocol: data.protocol },
+      include: { documents: true },
+    });
+
+    if (!proposal || proposal.publicToken !== data.token) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const storageErrors: string[] = [];
+    await Promise.all(
+      proposal.documents.map(async (doc) => {
+        try {
+          await this.storage.deleteObject(doc.storageKey);
+        } catch (error) {
+          storageErrors.push(doc.storageKey);
+        }
+      }),
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.auditLog.create({
+        data: {
+          proposalId: proposal.id,
+          action: 'ERASURE_REQUEST',
+          entityType: 'Proposal',
+          entityId: proposal.id,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          metadata: {
+            protocol: proposal.protocol,
+            deletedDocuments: proposal.documents.length,
+            storageErrors,
+          },
+        },
+      });
+
+      await tx.proposal.delete({ where: { id: proposal.id } });
+    });
+
+    return {
+      ok: true,
+      deletedDocuments: proposal.documents.length,
+      storageErrors,
     };
   }
 
@@ -426,6 +603,36 @@ export class PublicService {
   private safeValidate(data: unknown, required = false) {
     try {
       return validateDraftData(data, required);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Dados invalidos';
+      throw new BadRequestException(message);
+    }
+  }
+
+  private safeValidateOtpSend(payload: unknown) {
+    try {
+      return validateOtpSend(payload);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Dados invalidos';
+      throw new BadRequestException(message);
+    }
+  }
+
+  private safeValidateOtpVerify(payload: unknown) {
+    try {
+      return validateOtpVerify(payload);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Dados invalidos';
+      throw new BadRequestException(message);
+    }
+  }
+
+  private safeValidateDeleteProposal(payload: unknown) {
+    try {
+      return validateDeleteProposal(payload);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Dados invalidos';
@@ -523,6 +730,12 @@ export class PublicService {
         infer: true,
       }) ?? DEFAULT_DRAFT_TTL_DAYS
     );
+  }
+
+  private matchPhone(left: string, right: string) {
+    const leftDigits = left.replace(/\D+/g, '');
+    const rightDigits = right.replace(/\D+/g, '');
+    return leftDigits === rightDigits;
   }
 
   private async buildBankAccountData(bank?: DraftData['bank']) {

@@ -15,6 +15,8 @@ import type { Request } from 'express';
 import { PublicService } from './public.service';
 import type {
   CreateDraftDto,
+  OtpSendDto,
+  OtpVerifyDto,
   SubmitProposalDto,
   UpdateDraftDto,
 } from './public.dto';
@@ -79,7 +81,35 @@ export class PublicController {
 
   @Get('proposals/track')
   @Throttle({ default: { limit: 30, ttl: 60 } })
-  track(@Query('protocol') protocol: string, @Query('token') token: string) {
-    return this.publicService.trackProposal(protocol, token);
+  track(
+    @Query('protocol') protocol: string,
+    @Query('token') token: string,
+    @Req() req: Request,
+  ) {
+    return this.publicService.trackProposal(protocol, token, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
+  }
+
+  @Post('proposals/delete')
+  @Throttle({ default: { limit: 5, ttl: 60 } })
+  delete(@Body() body: unknown, @Req() req: Request) {
+    return this.publicService.deleteProposal(body, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined,
+    });
+  }
+
+  @Post('otp/send')
+  @Throttle({ default: { limit: 5, ttl: 60 } })
+  sendOtp(@Body() body: OtpSendDto) {
+    return this.publicService.sendOtp(body ?? {});
+  }
+
+  @Post('otp/verify')
+  @Throttle({ default: { limit: 10, ttl: 60 } })
+  verifyOtp(@Body() body: OtpVerifyDto) {
+    return this.publicService.verifyOtp(body ?? {});
   }
 }

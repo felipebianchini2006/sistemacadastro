@@ -146,7 +146,7 @@ export default function AdminProposalDetailsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [sending, setSending] = useState(false);
   const [activeDoc, setActiveDoc] = useState<ProposalDetails['documents'][number] | null>(null);
-  const [editForm, setEditForm] = useState<{
+  type EditForm = {
     profileRoles: ProfileRole[];
     profileRoleOther: string;
     person: {
@@ -164,7 +164,8 @@ export default function AdminProposalDetailsPage() {
       city: string;
       state: string;
     };
-  } | null>(null);
+  };
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [noteText, setNoteText] = useState('');
   const [messageText, setMessageText] = useState('');
   const [messageSubject, setMessageSubject] = useState('');
@@ -219,15 +220,16 @@ export default function AdminProposalDetailsPage() {
   const latestOcr = details?.ocrResults?.[0];
   const latestSignature = details?.signatures?.[0];
   const ocrComparison = useMemo(() => {
-    if (!latestOcr || !details?.person) return [];
+    const person = details?.person ?? null;
+    if (!latestOcr || !person) return [];
 
     return OCR_FIELDS.map((field) => {
       const ocrValue = latestOcr.structuredData?.[field.key];
       const expected =
         field.key === 'nome'
-          ? details.person.fullName
+          ? person.fullName
           : field.key === 'cpf'
-            ? (details.person.cpfMasked ?? undefined)
+            ? (person.cpfMasked ?? undefined)
             : undefined;
       return {
         label: field.label,
@@ -275,14 +277,14 @@ export default function AdminProposalDetailsPage() {
     });
   };
 
-  const updateEditPerson = (patch: Partial<(typeof editForm)['person']>) => {
+  const updateEditPerson = (patch: Partial<EditForm['person']>) => {
     setEditForm((prev) => {
       if (!prev) return prev;
       return { ...prev, person: { ...prev.person, ...patch } };
     });
   };
 
-  const updateEditAddress = (patch: Partial<(typeof editForm)['address']>) => {
+  const updateEditAddress = (patch: Partial<EditForm['address']>) => {
     setEditForm((prev) => {
       if (!prev) return prev;
       return { ...prev, address: { ...prev.address, ...patch } };
