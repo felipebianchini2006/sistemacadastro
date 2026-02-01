@@ -13,6 +13,16 @@ export type ProposalListItem = {
   person: { fullName: string; cpfMasked: string | null } | null;
   sla?: { startedAt?: string | null; dueAt?: string | null; breachedAt?: string | null };
   assignedAnalyst?: { id: string; name: string; email: string } | null;
+  statusHistory?: Array<{ toStatus: string; createdAt: string }>;
+};
+
+const hasRecentUpdate = (proposal: ProposalListItem) => {
+  const history = proposal.statusHistory;
+  if (!history?.length) return false;
+  const last = history[history.length - 1];
+  if (last.toStatus !== 'SUBMITTED') return false;
+  const age = Date.now() - new Date(last.createdAt).getTime();
+  return age < 48 * 60 * 60 * 1000;
 };
 
 const resolveSla = (proposal: ProposalListItem) => {
@@ -51,12 +61,23 @@ export const ProposalsTable = ({ items }: { items: ProposalListItem[] }) => {
         <tbody>
           {items.map((proposal) => {
             const sla = resolveSla(proposal);
+            const updated = hasRecentUpdate(proposal);
             return (
-              <tr key={proposal.id} className="border-t border-zinc-100">
+              <tr
+                key={proposal.id}
+                className={cn('border-t border-zinc-100', updated && 'bg-blue-50/50')}
+              >
                 <td className="px-4 py-3 font-semibold text-zinc-900">
-                  <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">
-                    {proposal.protocol}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">
+                      {proposal.protocol}
+                    </Link>
+                    {updated ? (
+                      <span className="rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                        Atualizado
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-700">{proposal.person?.fullName ?? '-'}</td>
                 <td className="px-4 py-3 text-zinc-500">{proposal.person?.cpfMasked ?? '-'}</td>

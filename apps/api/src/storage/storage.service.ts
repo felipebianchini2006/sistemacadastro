@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -58,6 +59,22 @@ export class StorageService {
       key: input.key,
       expiresIn,
     };
+  }
+
+  async presignGetObject(
+    key: string,
+    expiresIn?: number,
+  ): Promise<{ url: string; expiresIn: number }> {
+    const config = this.getConfig();
+    const ttl = expiresIn ?? config.presignTtlSeconds;
+    const command = new GetObjectCommand({
+      Bucket: config.bucket,
+      Key: key,
+    });
+    const url = await getSignedUrl(this.getClient(), command, {
+      expiresIn: ttl,
+    });
+    return { url, expiresIn: ttl };
   }
 
   async uploadObject(input: {

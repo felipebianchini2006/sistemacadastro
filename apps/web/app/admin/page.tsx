@@ -31,6 +31,22 @@ const formatDurationHours = (ms: number) => {
   return `${hours.toFixed(1)}h`;
 };
 
+const getWeekLabel = (date: Date) => {
+  const start = new Date(date);
+  start.setDate(start.getDate() - start.getDay());
+  return `${start.getDate().toString().padStart(2, '0')}/${(start.getMonth() + 1).toString().padStart(2, '0')}`;
+};
+
+const STATUS_CHART_LABELS: Record<string, { label: string; color: string }> = {
+  SUBMITTED: { label: 'Aguardando', color: '#3B82F6' },
+  UNDER_REVIEW: { label: 'Em analise', color: '#F59E0B' },
+  PENDING_DOCS: { label: 'Pend. doc', color: '#EF4444' },
+  PENDING_SIGNATURE: { label: 'Aguard. assin.', color: '#A855F7' },
+  SIGNED: { label: 'Assinado', color: '#22C55E' },
+  APPROVED: { label: 'Concluido', color: '#16A34A' },
+  REJECTED: { label: 'Reprovado', color: '#6B7280' },
+};
+
 export default function AdminDashboardPage() {
   const [items, setItems] = useState<ProposalListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,6 +127,35 @@ export default function AdminDashboardPage() {
     };
   }, [items]);
 
+  const weeklyData = useMemo(() => {
+    const weeks = new Map<string, number>();
+    const now = new Date();
+    for (let i = 7; i >= 0; i -= 1) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i * 7);
+      weeks.set(getWeekLabel(d), 0);
+    }
+    items.forEach((item) => {
+      const label = getWeekLabel(new Date(item.createdAt));
+      if (weeks.has(label)) {
+        weeks.set(label, (weeks.get(label) ?? 0) + 1);
+      }
+    });
+    return Array.from(weeks.entries()).map(([label, count]) => ({ label, count }));
+  }, [items]);
+
+  const statusDistribution = useMemo(() => {
+    const entries = Object.entries(metrics.counts)
+      .filter(([status]) => STATUS_CHART_LABELS[status])
+      .map(([status, count]) => ({
+        status,
+        count,
+        label: STATUS_CHART_LABELS[status].label,
+        color: STATUS_CHART_LABELS[status].color,
+      }));
+    return entries;
+  }, [metrics.counts]);
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -160,6 +205,179 @@ export default function AdminDashboardPage() {
           value={`${(metrics.conversion * 100).toFixed(1)}%`}
           hint={`Aprovadas: ${metrics.approved} | Reprovadas: ${metrics.rejected}`}
         />
+      </div>
+
+      {/* Charts row */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Weekly line chart */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Filiacoes por semana</p>
+          <div className="mt-4">
+            {(() => {
+              const maxCount = Math.max(...weeklyData.map((d) => d.count), 1);
+              const w = 280;
+              const h = 120;
+              const padX = 30;
+              const padY = 10;
+              const chartW = w - padX;
+              const chartH = h - padY * 2;
+              const step = chartW / Math.max(weeklyData.length - 1, 1);
+              const points = weeklyData.map((d, i) => ({
+                x: padX + i * step,
+                y: padY + chartH - (d.count / maxCount) * chartH,
+                ...d,
+              }));
+              const linePath = points
+                .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`)
+                .join(' ');
+              const areaPath = `${linePath} L${points[points.length - 1]?.x ?? 0},${padY + chartH} L${padX},${padY + chartH} Z`;
+              return (
+                <svg
+                  viewBox={`0 0 ${w} ${h + 20}`}
+                  className="w-full"
+                  aria-label="Grafico de filiacoes por semana"
+                >
+                  <defs>
+                    <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22C55E" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#22C55E" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  <path d={areaPath} fill="url(#lineGrad)" />
+                  <path
+                    d={linePath}
+                    fill="none"
+                    stroke="#22C55E"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {points.map((p) => (
+                    <g key={p.label}>
+                      <circle cx={p.x} cy={p.y} r="3" fill="#22C55E" />
+                      <text
+                        x={p.x}
+                        y={p.y - 8}
+                        textAnchor="middle"
+                        className="fill-zinc-600"
+                        style={{ fontSize: '8px' }}
+                      >
+                        {p.count}
+                      </text>
+                      <text
+                        x={p.x}
+                        y={h + 14}
+                        textAnchor="middle"
+                        className="fill-zinc-400"
+                        style={{ fontSize: '7px' }}
+                      >
+                        {p.label}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Status donut chart */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Status das propostas</p>
+          <div className="mt-4 flex items-center gap-4">
+            {(() => {
+              const total = statusDistribution.reduce((s, d) => s + d.count, 0) || 1;
+              const r = 44;
+              const cx = 50;
+              const cy = 50;
+              const strokeW = 14;
+              const circumference = 2 * Math.PI * r;
+              let offset = 0;
+              return (
+                <>
+                  <svg
+                    viewBox="0 0 100 100"
+                    className="h-28 w-28 shrink-0"
+                    aria-label="Grafico de status"
+                  >
+                    {statusDistribution.map((d) => {
+                      const pct = d.count / total;
+                      const dashArray = `${pct * circumference} ${circumference}`;
+                      const dashOffset = -offset * circumference;
+                      offset += pct;
+                      return (
+                        <circle
+                          key={d.status}
+                          cx={cx}
+                          cy={cy}
+                          r={r}
+                          fill="none"
+                          stroke={d.color}
+                          strokeWidth={strokeW}
+                          strokeDasharray={dashArray}
+                          strokeDashoffset={dashOffset}
+                          transform={`rotate(-90 ${cx} ${cy})`}
+                        />
+                      );
+                    })}
+                    <text
+                      x={cx}
+                      y={cy + 3}
+                      textAnchor="middle"
+                      className="fill-zinc-900 font-semibold"
+                      style={{ fontSize: '14px' }}
+                    >
+                      {items.length}
+                    </text>
+                  </svg>
+                  <div className="grid gap-1 text-xs">
+                    {statusDistribution.map((d) => (
+                      <div key={d.status} className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: d.color }}
+                        />
+                        <span className="text-zinc-600">{d.label}</span>
+                        <span className="font-semibold text-zinc-900">{d.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* SLA bar chart */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+            SLA: dentro/fora do prazo
+          </p>
+          <div className="mt-4 grid gap-3">
+            {[
+              { label: 'No prazo', value: metrics.ok, color: '#22C55E', bg: 'bg-emerald-50' },
+              { label: 'Atencao', value: metrics.warning, color: '#F59E0B', bg: 'bg-amber-50' },
+              { label: 'Estourado', value: metrics.danger, color: '#EF4444', bg: 'bg-red-50' },
+            ].map((item) => {
+              const max = Math.max(metrics.ok, metrics.warning, metrics.danger, 1);
+              const pct = Math.round((item.value / max) * 100);
+              return (
+                <div key={item.label}>
+                  <div className="flex items-center justify-between text-xs text-zinc-600">
+                    <span>{item.label}</span>
+                    <span className="font-semibold text-zinc-900">{item.value}</span>
+                  </div>
+                  <div className={`mt-1 h-3 w-full overflow-hidden rounded-full ${item.bg}`}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, backgroundColor: item.color }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">

@@ -60,6 +60,15 @@ export class AdminProposalsController {
     });
   }
 
+  @Get(':proposalId/documents/:documentId/view-url')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST, RoleName.VIEWER)
+  getDocumentViewUrl(
+    @Param('proposalId') proposalId: string,
+    @Param('documentId') documentId: string,
+  ) {
+    return this.service.getDocumentViewUrl(proposalId, documentId);
+  }
+
   @Post(':proposalId/assign')
   @Roles(RoleName.ADMIN)
   assign(

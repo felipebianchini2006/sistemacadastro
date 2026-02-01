@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { adminFetchWithRefresh } from '../../lib/api';
 import { StatusBadge, STATUS_LABELS } from '../../../components/StatusBadge';
@@ -90,6 +90,8 @@ type ProposalDetails = {
     createdAt: string;
     rawText: string;
     structuredData: Record<string, unknown>;
+    heuristics?: Record<string, unknown>;
+    documentFileId?: string;
   }>;
   statusHistory: Array<{
     fromStatus: string | null;
@@ -146,6 +148,8 @@ export default function AdminProposalDetailsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [sending, setSending] = useState(false);
   const [activeDoc, setActiveDoc] = useState<ProposalDetails['documents'][number] | null>(null);
+  const [docViewUrl, setDocViewUrl] = useState<string | null>(null);
+  const [docViewLoading, setDocViewLoading] = useState(false);
   type EditForm = {
     profileRoles: ProfileRole[];
     profileRoleOther: string;
@@ -216,6 +220,32 @@ export default function AdminProposalDetailsPage() {
       },
     });
   }, [details]);
+
+  const openDoc = useCallback(
+    (doc: ProposalDetails['documents'][number]) => {
+      setActiveDoc(doc);
+      setDocViewUrl(null);
+      setDocViewLoading(true);
+      adminFetchWithRefresh<{ url: string }>(
+        `/admin/proposals/${proposalId}/documents/${doc.id}/view-url`,
+      )
+        .then((res) => setDocViewUrl(res.url))
+        .catch(() => setDocViewUrl(null))
+        .finally(() => setDocViewLoading(false));
+    },
+    [proposalId],
+  );
+
+  const expiredDocIds = useMemo(() => {
+    const ids = new Set<string>();
+    details?.ocrResults?.forEach((ocr) => {
+      const heuristics = ocr.heuristics as { expired?: boolean } | undefined;
+      if (heuristics?.expired && ocr.documentFileId) {
+        ids.add(ocr.documentFileId);
+      }
+    });
+    return ids;
+  }, [details?.ocrResults]);
 
   const latestOcr = details?.ocrResults?.[0];
   const latestSignature = details?.signatures?.[0];
@@ -382,37 +412,57 @@ export default function AdminProposalDetailsPage() {
 
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-zinc-900">Documentos</h3>
+              {expiredDocIds.size > 0 ? (
+                <div className="mt-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  <p className="font-semibold">Documento(s) vencido(s) detectado(s)</p>
+                  <p className="mt-1 text-xs text-red-600">
+                    {expiredDocIds.size} documento(s) com data de validade expirada. Solicite novo
+                    documento ao candidato.
+                  </p>
+                </div>
+              ) : null}
               <div className="mt-4 grid gap-3">
                 {details.documents.length === 0 ? (
                   <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
                     Nenhum documento enviado.
                   </div>
                 ) : (
-                  details.documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-200 px-4 py-3 text-sm"
-                    >
-                      <div>
-                        <p className="font-semibold text-zinc-900">{doc.fileName}</p>
-                        <p className="text-xs text-zinc-500">
-                          {doc.type} • {Math.round(doc.size / 1024)}kb
-                        </p>
+                  details.documents.map((doc) => {
+                    const isExpired = expiredDocIds.has(doc.id);
+                    return (
+                      <div
+                        key={doc.id}
+                        className={cn(
+                          'flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3 text-sm',
+                          isExpired ? 'border-red-300 bg-red-50' : 'border-zinc-200',
+                        )}
+                      >
+                        <div>
+                          <p className="font-semibold text-zinc-900">{doc.fileName}</p>
+                          <p className="text-xs text-zinc-500">
+                            {doc.type} • {Math.round(doc.size / 1024)}kb
+                          </p>
+                          {isExpired ? (
+                            <p className="mt-1 text-xs font-semibold text-red-600">
+                              Documento vencido
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-zinc-500">
+                            {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openDoc(doc)}
+                            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
+                          >
+                            Ver
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-zinc-500">
-                          {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveDoc(doc)}
-                          className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
-                        >
-                          Ver
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </section>
@@ -1047,22 +1097,26 @@ export default function AdminProposalDetailsPage() {
 
       {activeDoc ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           role="dialog"
           aria-modal="true"
           onClick={() => setActiveDoc(null)}
         >
           <div
-            className="w-full max-w-3xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl"
+            className="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-zinc-200 bg-white shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 p-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Documento</p>
                 <h3 className="text-lg font-semibold text-zinc-900">{activeDoc.fileName}</h3>
                 <p className="mt-1 text-xs text-zinc-500">
-                  {activeDoc.type} • {Math.round(activeDoc.size / 1024)}kb
+                  {activeDoc.type} • {Math.round(activeDoc.size / 1024)}kb •{' '}
+                  {new Date(activeDoc.createdAt).toLocaleString('pt-BR')}
                 </p>
+                {expiredDocIds.has(activeDoc.id) ? (
+                  <p className="mt-1 text-xs font-semibold text-red-600">Documento vencido</p>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -1073,16 +1127,42 @@ export default function AdminProposalDetailsPage() {
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>Enviado em</span>
-                <span className="font-semibold text-zinc-900">
-                  {new Date(activeDoc.createdAt).toLocaleString('pt-BR')}
-                </span>
-              </div>
-              <div className="mt-3 flex h-56 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-white text-xs text-zinc-500">
-                Pre-visualizacao disponivel apos integracao com o storage.
-              </div>
+            <div className="flex-1 overflow-auto p-5">
+              {docViewLoading ? (
+                <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
+                  Carregando documento...
+                </div>
+              ) : docViewUrl ? (
+                activeDoc.contentType.startsWith('image/') ? (
+                  <img
+                    src={docViewUrl}
+                    alt={activeDoc.fileName}
+                    className="mx-auto max-h-[70vh] rounded-xl object-contain"
+                  />
+                ) : activeDoc.contentType === 'application/pdf' ? (
+                  <iframe
+                    src={docViewUrl}
+                    title={activeDoc.fileName}
+                    className="h-[70vh] w-full rounded-xl border border-zinc-200"
+                  />
+                ) : (
+                  <div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-zinc-500">
+                    <p>Formato nao suportado para pre-visualizacao.</p>
+                    <a
+                      href={docViewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:border-zinc-300"
+                    >
+                      Baixar documento
+                    </a>
+                  </div>
+                )
+              ) : (
+                <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
+                  Nao foi possivel carregar o documento.
+                </div>
+              )}
             </div>
           </div>
         </div>

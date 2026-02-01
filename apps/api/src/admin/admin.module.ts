@@ -10,6 +10,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CryptoModule } from '../common/crypto/crypto.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CryptoModule } from '../common/crypto/crypto.module';
     JobsModule,
     PrismaModule,
     CryptoModule,
+    StorageModule,
   ],
   controllers: [AdminController, AdminProposalsController],
   providers: [

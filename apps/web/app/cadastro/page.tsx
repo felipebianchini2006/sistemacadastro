@@ -384,6 +384,28 @@ export default function CadastroPage() {
   }, [viaCep.data]);
 
   useEffect(() => {
+    if (!form.address.cep) {
+      const residenceOcr = draftOcrResults.find((entry) => {
+        const sd = entry.structuredData as { document_type?: string; fields?: { cep?: string } };
+        return sd?.document_type === 'COMPROVANTE_RESIDENCIA' && sd?.fields?.cep;
+      });
+      if (residenceOcr) {
+        const fields = (
+          residenceOcr.structuredData as { fields?: { cep?: string; endereco?: string } }
+        ).fields;
+        if (fields?.cep) {
+          setForm((prev) => ({
+            ...prev,
+            address: { ...prev.address, cep: fields.cep! },
+          }));
+          dirtyRef.current = true;
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftOcrResults]);
+
+  useEffect(() => {
     const urls = previewUrlsRef.current;
     return () => {
       urls.forEach((url) => URL.revokeObjectURL(url));
@@ -1329,8 +1351,8 @@ export default function CadastroPage() {
 
           {currentStep === 'perfil' ? (
             <StepLayout
-              title="Seu perfil"
-              description="Escolha o papel principal e o tipo de proposta."
+              title="Como voce atua na musica?"
+              description="Selecione todas as opcoes que se aplicam ao seu perfil artistico."
               footer={
                 <>
                   <Button onClick={handleNext} disabled={!profileStepValid}>
@@ -1649,6 +1671,32 @@ export default function CadastroPage() {
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-800">
+                  Antes de enviar seu documento:
+                </p>
+                <ul className="mt-2 grid gap-1.5 text-sm text-amber-700">
+                  <li className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
+                      1
+                    </span>
+                    Use boa iluminacao
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
+                      2
+                    </span>
+                    Evite reflexos e sombras
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
+                      3
+                    </span>
+                    Mantenha o documento legivel e centralizado
+                  </li>
+                </ul>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 {form.documentChoice === 'RG' ? (
                   <>
@@ -1761,14 +1809,45 @@ export default function CadastroPage() {
                 </div>
               ) : null}
 
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-                <h3 className="text-sm font-semibold text-zinc-700">Dicas rapidas</h3>
-                <ul className="mt-3 grid gap-2 text-sm text-zinc-500">
-                  <li>- Use boa iluminacao.</li>
-                  <li>- Evite reflexos e sombras.</li>
-                  <li>- Mantenha o documento legivel e centralizado.</li>
-                </ul>
-              </div>
+              {ocrAlert?.divergence && previewOcrResult ? (
+                <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+                  <p className="font-semibold">
+                    Divergencia detectada entre OCR e dados informados
+                  </p>
+                  <p className="mt-1 text-xs">
+                    Os dados extraidos do documento nao conferem com os dados digitados na etapa
+                    anterior. Verifique e corrija antes de continuar.
+                  </p>
+                  <div className="mt-2 grid gap-1 text-xs">
+                    {ocrAlert.name ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600">Nome OCR:</span>
+                        <span className="font-semibold">{ocrAlert.name}</span>
+                        <span className="text-red-600">vs</span>
+                        <span className="font-semibold">{form.fullName || '(vazio)'}</span>
+                      </div>
+                    ) : null}
+                    {ocrAlert.cpf ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600">CPF OCR:</span>
+                        <span className="font-semibold">{ocrAlert.cpf}</span>
+                        <span className="text-red-600">vs</span>
+                        <span className="font-semibold">{form.cpf || '(vazio)'}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="mt-3 text-xs"
+                    onClick={() => {
+                      setStepIndex(steps.findIndex((s) => s.id === 'dados'));
+                      setMobileFieldIndex(0);
+                    }}
+                  >
+                    Corrigir dados pessoais
+                  </Button>
+                </div>
+              ) : null}
 
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
                 OCR status:{' '}
@@ -1905,6 +1984,51 @@ export default function CadastroPage() {
           ) : null}
         </main>
       </div>
+
+      {/* Floating autosave indicator - visible on mobile where sidebar is hidden */}
+      {hydrated && !showRestorePrompt ? (
+        <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 lg:hidden">
+          <div
+            className={cn(
+              'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg backdrop-blur transition-all',
+              syncStatus === 'saving'
+                ? 'border-amber-200 bg-amber-50/90 text-amber-700'
+                : syncStatus === 'saved'
+                  ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
+                  : syncStatus === 'error'
+                    ? 'border-red-200 bg-red-50/90 text-red-700'
+                    : 'border-zinc-200 bg-white/90 text-zinc-500',
+            )}
+          >
+            <span
+              className={cn(
+                'h-2 w-2 rounded-full',
+                syncStatus === 'saving'
+                  ? 'animate-pulse bg-amber-500'
+                  : syncStatus === 'saved'
+                    ? 'bg-emerald-500'
+                    : syncStatus === 'error'
+                      ? 'bg-red-500'
+                      : 'bg-zinc-400',
+              )}
+            />
+            {syncStatus === 'saving'
+              ? 'Salvando...'
+              : syncStatus === 'saved'
+                ? `Salvo ${
+                    lastSavedAt
+                      ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : 'agora'
+                  }`
+                : syncStatus === 'error'
+                  ? 'Erro ao salvar'
+                  : 'Autosave ativo'}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

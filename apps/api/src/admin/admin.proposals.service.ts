@@ -20,6 +20,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { SignatureService } from '../signature/signature.service';
 import { JobsService } from '../jobs/jobs.service';
 import { CryptoService } from '../common/crypto/crypto.service';
+import { StorageService } from '../storage/storage.service';
 import {
   AssignProposalDto,
   ListProposalsQuery,
@@ -45,6 +46,7 @@ export class AdminProposalsService {
     private readonly jobs: JobsService,
     private readonly configService: ConfigService,
     private readonly crypto: CryptoService,
+    private readonly storage: StorageService,
   ) {}
 
   async list(query: ListProposalsQuery) {
@@ -126,6 +128,19 @@ export class AdminProposalsService {
         };
       }),
     );
+  }
+
+  async getDocumentViewUrl(proposalId: string, documentId: string) {
+    const doc = await this.prisma.documentFile.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!doc || doc.proposalId !== proposalId) {
+      throw new NotFoundException('Documento nao encontrado');
+    }
+
+    const result = await this.storage.presignGetObject(doc.storageKey, 600);
+    return { url: result.url, contentType: doc.contentType };
   }
 
   async getById(
