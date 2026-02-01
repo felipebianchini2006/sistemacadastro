@@ -95,6 +95,8 @@ export const envSchema = z.object({
   TOTVS_BASE_URL: z.string().optional(),
   TOTVS_TOKEN: z.string().optional(),
   TOTVS_WEBHOOK_SECRET: z.string().optional(),
+
+  TEAM_NOTIFICATION_EMAILS: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -37,6 +37,7 @@ const buildService = (overrides?: {
 
   const jobs = {
     enqueueTotvsSync: jest.fn(),
+    enqueueSignatureAudit: jest.fn(),
   } as unknown as JobsService;
 
   return {

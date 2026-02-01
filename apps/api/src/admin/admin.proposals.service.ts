@@ -10,6 +10,7 @@ import {
   RoleName,
   Prisma,
   SignatureStatus,
+  NotificationChannel,
 } from '@prisma/client';
 import { createHash, randomUUID } from 'crypto';
 
@@ -21,9 +22,18 @@ import { CryptoService } from '../common/crypto/crypto.service';
 import {
   AssignProposalDto,
   ListProposalsQuery,
+  UpdateProposalDto,
+  AddNoteDto,
+  SendMessageDto,
   RejectProposalDto,
   RequestChangesDto,
 } from './admin.proposals.dto';
+import {
+  normalizePhone,
+  normalizePhoneToE164,
+} from '@sistemacadastro/shared/dist/validators/phone.js';
+import { normalizeCpf as normalizeCpfValue } from '@sistemacadastro/shared/dist/validators/cpf.js';
+import { normalizeEmail as normalizeEmailValue } from '@sistemacadastro/shared/dist/validators/email.js';
 
 @Injectable()
 export class AdminProposalsService {
@@ -246,6 +256,191 @@ export class AdminProposalsService {
       missingItems: dto.missingItems,
       secureLink: link,
       whatsappOptIn: true,
+    });
+
+    return { ok: true };
+  }
+
+  async updateProposal(
+    proposalId: string,
+    dto: UpdateProposalDto,
+    adminUserId: string,
+  ) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { person: true, address: true },
+    });
+    if (!proposal || !proposal.person) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const changes: string[] = [];
+
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.profileRoles) {
+        changes.push('profileRoles');
+        await tx.proposal.update({
+          where: { id: proposal.id },
+          data: { profileRoles: dto.profileRoles as Prisma.InputJsonValue },
+        });
+      }
+      if (dto.profileRoleOther !== undefined) {
+        changes.push('profileRoleOther');
+        await tx.proposal.update({
+          where: { id: proposal.id },
+          data: { profileRoleOther: dto.profileRoleOther },
+        });
+      }
+
+      if (dto.person) {
+        const personUpdates: Prisma.PersonUpdateInput = {};
+        if (dto.person.fullName) {
+          personUpdates.fullName = dto.person.fullName;
+          changes.push('person.fullName');
+        }
+        if (dto.person.cpf) {
+          const cpf = normalizeCpfValue(dto.person.cpf);
+          personUpdates.cpfEncrypted = await this.crypto.encrypt(cpf);
+          personUpdates.cpfHash = this.hashSearch(cpf);
+          changes.push('person.cpf');
+        }
+        if (dto.person.email) {
+          const email = normalizeEmailValue(dto.person.email);
+          personUpdates.emailEncrypted = await this.crypto.encrypt(email);
+          personUpdates.emailHash = this.hashSearch(email);
+          changes.push('person.email');
+        }
+        if (dto.person.phone) {
+          const phone = normalizePhoneToE164(dto.person.phone);
+          const phoneValue = phone.e164 ?? normalizePhone(dto.person.phone);
+          personUpdates.phoneEncrypted = await this.crypto.encrypt(phoneValue);
+          personUpdates.phoneHash = this.hashSearch(phoneValue);
+          changes.push('person.phone');
+        }
+        if (dto.person.birthDate) {
+          const birth = new Date(dto.person.birthDate);
+          if (!Number.isNaN(birth.getTime())) {
+            personUpdates.birthDate = birth;
+            changes.push('person.birthDate');
+          }
+        }
+
+        if (Object.keys(personUpdates).length > 0) {
+          await tx.person.update({
+            where: { proposalId: proposal.id },
+            data: personUpdates,
+          });
+        }
+      }
+
+      if (dto.address) {
+        if (
+          !proposal.address &&
+          (!dto.address.cep ||
+            !dto.address.street ||
+            !dto.address.district ||
+            !dto.address.city ||
+            !dto.address.state)
+        ) {
+          throw new BadRequestException('Endereco incompleto');
+        }
+
+        const addressData: Prisma.AddressUpdateInput = {
+          cep: dto.address.cep,
+          street: dto.address.street,
+          number: dto.address.number,
+          complement: dto.address.complement,
+          district: dto.address.district,
+          city: dto.address.city,
+          state: dto.address.state,
+        };
+
+        if (proposal.address) {
+          await tx.address.update({
+            where: { proposalId: proposal.id },
+            data: addressData,
+          });
+        } else {
+          await tx.address.create({
+            data: {
+              proposalId: proposal.id,
+              cep: dto.address.cep ?? '',
+              street: dto.address.street ?? '',
+              number: dto.address.number,
+              complement: dto.address.complement,
+              district: dto.address.district ?? '',
+              city: dto.address.city ?? '',
+              state: dto.address.state ?? '',
+            },
+          });
+        }
+        changes.push('address');
+      }
+    });
+
+    await this.createAuditLog(adminUserId, proposal.id, 'UPDATE_PROPOSAL', {
+      changes,
+    });
+
+    return { ok: true };
+  }
+
+  async addNote(proposalId: string, dto: AddNoteDto, adminUserId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      select: { id: true },
+    });
+    if (!proposal) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    await this.createAuditLog(adminUserId, proposal.id, 'NOTE', {
+      note: dto.note,
+    });
+
+    return { ok: true };
+  }
+
+  async sendMessage(
+    proposalId: string,
+    dto: SendMessageDto,
+    adminUserId: string,
+  ) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { person: true },
+    });
+
+    if (!proposal || !proposal.person) {
+      throw new NotFoundException('Proposta nao encontrada');
+    }
+
+    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
+    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
+    const channel =
+      dto.channel === 'EMAIL'
+        ? NotificationChannel.EMAIL
+        : dto.channel === 'SMS'
+          ? NotificationChannel.SMS
+          : NotificationChannel.WHATSAPP;
+
+    const target =
+      channel === NotificationChannel.EMAIL ? email : phone || undefined;
+    if (!target) {
+      throw new BadRequestException('Contato do candidato nao encontrado');
+    }
+
+    await this.notifications.notifyAdminMessage({
+      proposalId: proposal.id,
+      to: target,
+      channel,
+      message: dto.message,
+      subject: dto.subject,
+      whatsappOptIn: true,
+    });
+
+    await this.createAuditLog(adminUserId, proposal.id, 'ADMIN_MESSAGE', {
+      channel: dto.channel,
     });
 
     return { ok: true };

@@ -13,8 +13,9 @@ import { createHash } from 'crypto';
 
 import { prisma } from '../prisma';
 import { StorageClient } from '../services/storage-client';
+import { decryptValue } from '../services/crypto';
 import { ClicksignClient } from './clicksign.client';
-import { PdfJobPayload, SignatureJobPayload } from './signature.types';
+import { PdfJobPayload, SignatureJobPayload, SignatureAuditJobPayload } from './signature.types';
 
 export class SignatureWorker {
   private readonly connection: IORedis;
@@ -64,15 +65,42 @@ export class SignatureWorker {
       return this.handleSignatureJob(job as Job<SignatureJobPayload>);
     }
 
+    if (job.name === 'signature.audit') {
+      return this.handleAuditJob(job as Job<SignatureAuditJobPayload>);
+    }
+
     console.info({ jobId: job.id, jobName: job.name }, 'signature.skip');
   }
 
   private async handlePdfJob(job: Job<PdfJobPayload>) {
     const { proposalId, protocol, candidate, requestId } = job.data;
 
+    const proposal = await prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: {
+        person: true,
+        address: true,
+        documents: true,
+      },
+    });
+
+    const cpf = proposal?.person?.cpfEncrypted
+      ? decryptValue(proposal.person.cpfEncrypted)
+      : undefined;
+    const email = proposal?.person?.emailEncrypted
+      ? decryptValue(proposal.person.emailEncrypted)
+      : undefined;
+    const phone = proposal?.person?.phoneEncrypted
+      ? decryptValue(proposal.person.phoneEncrypted)
+      : undefined;
+
     const pdfBuffer = await buildPdfContract({
       protocol,
       candidateName: candidate.name,
+      proposal,
+      cpf,
+      email,
+      phone,
     });
     const checksum = createHash('sha256').update(pdfBuffer).digest('hex');
 
@@ -260,6 +288,53 @@ export class SignatureWorker {
     }
   }
 
+  private async handleAuditJob(job: Job<SignatureAuditJobPayload>) {
+    const { proposalId, envelopeId } = job.data;
+
+    const envelope = await prisma.signatureEnvelope.findFirst({
+      where: { envelopeId },
+      include: {
+        proposal: {
+          include: {
+            person: true,
+            address: true,
+          },
+        },
+      },
+    });
+
+    if (!envelope || !envelope.proposal) {
+      throw new Error('Signature envelope not found');
+    }
+
+    const pdfBuffer = await buildAuditPdf({
+      proposal: envelope.proposal,
+      envelope,
+    });
+    const checksum = createHash('sha256').update(pdfBuffer).digest('hex');
+
+    const storageKey = `audit/${proposalId}/${Date.now()}-trilha-assinatura.pdf`;
+    const fileName = `trilha-assinatura-${envelope.proposal.protocol}.pdf`;
+
+    await this.storage.upload({
+      key: storageKey,
+      buffer: pdfBuffer,
+      contentType: 'application/pdf',
+    });
+
+    await prisma.documentFile.create({
+      data: {
+        proposalId,
+        type: DocumentType.TRILHA_ASSINATURA,
+        storageKey,
+        fileName,
+        contentType: 'application/pdf',
+        size: pdfBuffer.length,
+        checksum,
+      },
+    });
+  }
+
   private async queueNotification(input: {
     proposalId: string;
     channel: NotificationChannel;
@@ -322,40 +397,178 @@ const maskContact = (value: string) => {
   return `***${digits.slice(-4)}`;
 };
 
-const buildPdfContract = async (input: { protocol: string; candidateName: string }) => {
+const buildPdfContract = async (input: {
+  protocol: string;
+  candidateName: string;
+  proposal?: {
+    person?: {
+      birthDate?: Date | null;
+    } | null;
+    address?: {
+      street?: string | null;
+      number?: string | null;
+      complement?: string | null;
+      district?: string | null;
+      city?: string | null;
+      state?: string | null;
+      cep?: string | null;
+    } | null;
+    profileRoles?: unknown | null;
+    profileRoleOther?: string | null;
+    documents?: Array<{ type: DocumentType; storageKey: string }> | null;
+  } | null;
+  cpf?: string;
+  email?: string;
+  phone?: string;
+}) => {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595.28, 841.89]);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  let page = pdfDoc.addPage([595.28, 841.89]);
+  let y = 780;
 
-  page.drawText('Contrato de Associacao', {
-    x: 50,
-    y: 780,
-    size: 22,
-    font,
-    color: rgb(0.1, 0.1, 0.1),
-  });
+  const addLine = (text: string, size = 11, gap = 16) => {
+    if (y < 60) {
+      page = pdfDoc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+    page.drawText(text, {
+      x: 50,
+      y,
+      size,
+      font,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+    y -= gap;
+  };
 
-  page.drawText(`Protocolo: ${input.protocol}`, {
-    x: 50,
-    y: 740,
-    size: 12,
-    font,
-  });
+  const addSection = (title: string) => {
+    addLine(title, 13, 20);
+  };
 
-  page.drawText(`Associado: ${input.candidateName}`, {
-    x: 50,
-    y: 720,
-    size: 12,
-    font,
-  });
+  addLine('Contrato de Associacao', 20, 26);
+  addLine(`Protocolo: ${input.protocol}`, 12, 18);
+  addLine(`Associado: ${input.candidateName}`, 12, 18);
 
-  page.drawText('Este documento foi gerado automaticamente para fins de assinatura eletronica.', {
-    x: 50,
-    y: 680,
-    size: 11,
-    font,
-    color: rgb(0.2, 0.2, 0.2),
-  });
+  addSection('Dados pessoais');
+  if (input.cpf) addLine(`CPF: ${input.cpf}`);
+  if (input.email) addLine(`Email: ${input.email}`);
+  if (input.phone) addLine(`Telefone: ${input.phone}`);
+  if (input.proposal?.person?.birthDate) {
+    addLine(`Data nascimento: ${input.proposal.person.birthDate.toLocaleDateString('pt-BR')}`);
+  }
+
+  const rolesRaw = Array.isArray(input.proposal?.profileRoles)
+    ? (input.proposal?.profileRoles as string[])
+    : [];
+  const roles = [
+    ...rolesRaw,
+    input.proposal?.profileRoleOther ? `Outro: ${input.proposal.profileRoleOther}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  if (roles) {
+    addSection('Perfil artistico');
+    addLine(roles);
+  }
+
+  if (input.proposal?.address) {
+    addSection('Endereco');
+    const address = input.proposal.address;
+    const line1 = [address.street, address.number].filter(Boolean).join(', ');
+    const line2 = [address.district, address.city, address.state].filter(Boolean).join(' - ');
+    if (line1) addLine(line1);
+    if (line2) addLine(line2);
+    if (address.cep) addLine(`CEP: ${address.cep}`);
+    if (address.complement) addLine(`Complemento: ${address.complement}`);
+  }
+
+  if (input.proposal?.documents?.length) {
+    addSection('Documentos enviados');
+    input.proposal.documents.forEach((doc) => addLine(`${doc.type}`));
+  }
+
+  addLine('Este documento foi gerado automaticamente para fins de assinatura eletronica.', 10, 14);
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
+};
+
+const buildAuditPdf = async (input: {
+  proposal: {
+    protocol: string;
+    person?: { fullName: string } | null;
+  };
+  envelope: {
+    envelopeId: string;
+    signedAt?: Date | null;
+    signerIp?: string | null;
+    signerUserAgent?: string | null;
+    signerMethod?: string | null;
+    signerGeo?: string | null;
+    originalFileHash?: string | null;
+    signedFileHash?: string | null;
+    certificateFileHash?: string | null;
+  };
+}) => {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  let page = pdfDoc.addPage([595.28, 841.89]);
+  let y = 780;
+
+  const addLine = (text: string, size = 11, gap = 16) => {
+    if (y < 60) {
+      page = pdfDoc.addPage([595.28, 841.89]);
+      y = 780;
+    }
+    page.drawText(text, {
+      x: 50,
+      y,
+      size,
+      font,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+    y -= gap;
+  };
+
+  const addSection = (title: string) => {
+    addLine(title, 13, 20);
+  };
+
+  addLine('Trilha de Auditoria da Assinatura', 18, 24);
+  addLine(`Protocolo: ${input.proposal.protocol}`, 12, 18);
+  if (input.proposal.person?.fullName) {
+    addLine(`Associado: ${input.proposal.person.fullName}`, 12, 18);
+  }
+
+  addSection('Detalhes da assinatura');
+  addLine(`Envelope ID: ${input.envelope.envelopeId}`);
+  if (input.envelope.signedAt) {
+    addLine(`Assinado em: ${input.envelope.signedAt.toLocaleString('pt-BR')}`);
+  }
+  if (input.envelope.signerMethod) {
+    addLine(`Metodo: ${input.envelope.signerMethod}`);
+  }
+  if (input.envelope.signerIp) {
+    addLine(`IP: ${input.envelope.signerIp}`);
+  }
+  if (input.envelope.signerUserAgent) {
+    addLine(`User-Agent: ${input.envelope.signerUserAgent}`);
+  }
+  if (input.envelope.signerGeo) {
+    addLine(`Geolocalizacao: ${input.envelope.signerGeo}`);
+  }
+
+  addSection('Hashes');
+  if (input.envelope.originalFileHash) {
+    addLine(`Original: ${input.envelope.originalFileHash}`);
+  }
+  if (input.envelope.signedFileHash) {
+    addLine(`Assinado: ${input.envelope.signedFileHash}`);
+  }
+  if (input.envelope.certificateFileHash) {
+    addLine(`Certificado: ${input.envelope.certificateFileHash}`);
+  }
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);

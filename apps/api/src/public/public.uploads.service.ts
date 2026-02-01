@@ -10,6 +10,7 @@ import { createHash } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { buildDocumentStorageKey } from '../storage/storage.naming';
 import {
   ALLOWED_MIME_TYPES,
@@ -35,6 +36,7 @@ export class PublicUploadsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly configService: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {
     const maxSizeMb =
       this.configService.get<number>('UPLOAD_MAX_SIZE_MB', {
@@ -87,7 +89,7 @@ export class PublicUploadsService {
       });
 
       if (proposal?.status === ProposalStatus.PENDING_DOCS) {
-        await this.prisma.proposal.update({
+        const updated = await this.prisma.proposal.update({
           where: { id: owner.id },
           data: {
             status: ProposalStatus.UNDER_REVIEW,
@@ -99,7 +101,17 @@ export class PublicUploadsService {
               },
             },
           },
+          include: { person: true },
         });
+
+        if (updated.person) {
+          const name = updated.person.fullName;
+          await this.notifications.notifyInternalDocsReceived({
+            proposalId: updated.id,
+            protocol: updated.protocol,
+            name,
+          });
+        }
       }
     }
 

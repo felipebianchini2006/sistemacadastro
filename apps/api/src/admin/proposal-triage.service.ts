@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProposalStatus, RoleName } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ProposalTriageService {
@@ -11,11 +12,13 @@ export class ProposalTriageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   @Cron('*/5 * * * *')
   async recalcSlaAndAssign() {
     await this.recalculateSla();
+    await this.notifySlaDueSoon();
 
     const autoAssign =
       this.configService.get<boolean>('AUTO_ASSIGN_ANALYST', {
@@ -130,6 +133,45 @@ export class ProposalTriageService {
       });
 
       loadMap.set(target[0], target[1] + 1);
+    }
+  }
+
+  private async notifySlaDueSoon() {
+    const now = new Date();
+    const dueSoonHours =
+      this.configService.get<number>('SLA_DUE_SOON_HOURS', {
+        infer: true,
+      }) ?? 24;
+    const soon = new Date(now.getTime() + dueSoonHours * 60 * 60 * 1000);
+
+    const proposals = await this.prisma.proposal.findMany({
+      where: {
+        status: { in: [ProposalStatus.SUBMITTED, ProposalStatus.UNDER_REVIEW] },
+        slaDueAt: { gte: now, lte: soon },
+        slaBreachedAt: null,
+      },
+      include: { person: true },
+    });
+
+    for (const proposal of proposals) {
+      if (!proposal.person) continue;
+      const exists = await this.prisma.notification.findFirst({
+        where: {
+          proposalId: proposal.id,
+          payloadRedacted: {
+            path: ['template'],
+            equals: 'internal_sla_due',
+          },
+        },
+        select: { id: true },
+      });
+      if (exists) continue;
+
+      await this.notifications.notifyInternalSlaDue({
+        proposalId: proposal.id,
+        protocol: proposal.protocol,
+        name: proposal.person.fullName,
+      });
     }
   }
 }

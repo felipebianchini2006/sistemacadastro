@@ -168,6 +168,10 @@ export class ClicksignWebhookService {
         payload,
         signedAt ?? new Date(),
       );
+      await this.jobs.enqueueSignatureAudit({
+        proposalId: envelope.proposalId,
+        envelopeId: envelope.envelopeId,
+      });
       await this.jobs.enqueueTotvsSync({ proposalId: envelope.proposalId });
     }
 

@@ -18,12 +18,18 @@ import { AdminProposalsService } from './admin.proposals.service';
 import type {
   AssignProposalDto,
   ListProposalsQuery,
+  UpdateProposalDto,
+  AddNoteDto,
+  SendMessageDto,
   RejectProposalDto,
   RequestChangesDto,
 } from './admin.proposals.dto';
 import {
   assignProposalSchema,
   listProposalsQuerySchema,
+  updateProposalSchema,
+  addNoteSchema,
+  sendMessageSchema,
   rejectProposalSchema,
   requestChangesSchema,
 } from './admin.proposals.dto';
@@ -57,6 +63,47 @@ export class AdminProposalsController {
   ) {
     const parsed = assignProposalSchema.parse(body);
     return this.service.assign(proposalId, parsed, req.user?.id ?? 'system');
+  }
+
+  @Post(':proposalId/notes')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  addNote(
+    @Param('proposalId') proposalId: string,
+    @Body() body: AddNoteDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    const parsed = addNoteSchema.parse(body);
+    return this.service.addNote(proposalId, parsed, req.user?.id ?? 'system');
+  }
+
+  @Post(':proposalId/message')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  sendMessage(
+    @Param('proposalId') proposalId: string,
+    @Body() body: SendMessageDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    const parsed = sendMessageSchema.parse(body);
+    return this.service.sendMessage(
+      proposalId,
+      parsed,
+      req.user?.id ?? 'system',
+    );
+  }
+
+  @Post(':proposalId/update')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  update(
+    @Param('proposalId') proposalId: string,
+    @Body() body: UpdateProposalDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    const parsed = updateProposalSchema.parse(body);
+    return this.service.updateProposal(
+      proposalId,
+      parsed,
+      req.user?.id ?? 'system',
+    );
   }
 
   @Post(':proposalId/request-changes')

@@ -3,7 +3,14 @@ export type NotificationTemplateKey =
   | 'proposal_pending'
   | 'proposal_approved'
   | 'proposal_rejected'
-  | 'proposal_signed';
+  | 'proposal_signed'
+  | 'proposal_concluded'
+  | 'signature_reminder_3'
+  | 'signature_reminder_6'
+  | 'internal_new_proposal'
+  | 'internal_docs_received'
+  | 'internal_sla_due'
+  | 'admin_message';
 
 export type NotificationJobPayload = {
   notificationId: string;

@@ -3,6 +3,9 @@
 export type AdminAction =
   | 'view'
   | 'startReview'
+  | 'update'
+  | 'note'
+  | 'message'
   | 'approve'
   | 'reject'
   | 'requestChanges'
@@ -13,6 +16,9 @@ export type AdminAction =
 const ACTION_ROLES: Record<AdminAction, AdminRole[]> = {
   view: ['ADMIN', 'ANALYST', 'VIEWER'],
   startReview: ['ADMIN', 'ANALYST'],
+  update: ['ADMIN', 'ANALYST'],
+  note: ['ADMIN', 'ANALYST'],
+  message: ['ADMIN', 'ANALYST'],
   approve: ['ADMIN', 'ANALYST'],
   reject: ['ADMIN', 'ANALYST'],
   requestChanges: ['ADMIN', 'ANALYST'],

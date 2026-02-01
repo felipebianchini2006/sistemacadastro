@@ -22,6 +22,17 @@ const OCR_FIELDS = [
   { key: 'uf', label: 'UF' },
 ];
 
+type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
+
+const PROFILE_ROLE_LABELS: Record<ProfileRole, string> = {
+  AUTOR: 'Autor(a)',
+  COMPOSITOR: 'Compositor(a)',
+  INTERPRETE: 'Interprete',
+  EDITORA: 'Editora',
+  PRODUTOR: 'Produtor(a)',
+  OUTRO: 'Outro',
+};
+
 type ProposalDetails = {
   id: string;
   protocol: string;
@@ -29,6 +40,8 @@ type ProposalDetails = {
   type: string;
   createdAt: string;
   publicToken: string;
+  profileRoles?: string[] | null;
+  profileRoleOther?: string | null;
   person: {
     fullName: string;
     cpfMasked?: string | null;
@@ -114,6 +127,29 @@ export default function AdminProposalDetailsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [sending, setSending] = useState(false);
   const [activeDoc, setActiveDoc] = useState<ProposalDetails['documents'][number] | null>(null);
+  const [editForm, setEditForm] = useState<{
+    profileRoles: ProfileRole[];
+    profileRoleOther: string;
+    person: {
+      fullName: string;
+      email: string;
+      phone: string;
+      birthDate: string;
+    };
+    address: {
+      cep: string;
+      street: string;
+      number: string;
+      complement: string;
+      district: string;
+      city: string;
+      state: string;
+    };
+  } | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [messageSubject, setMessageSubject] = useState('');
+  const [messageChannel, setMessageChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL');
 
   const user = getStoredAdminUser();
 
@@ -137,6 +173,29 @@ export default function AdminProposalDetailsPage() {
       void load();
     }
   }, [proposalId]);
+
+  useEffect(() => {
+    if (!details || !details.person) return;
+    setEditForm({
+      profileRoles: (details.profileRoles as ProfileRole[] | null) ?? [],
+      profileRoleOther: details.profileRoleOther ?? '',
+      person: {
+        fullName: details.person.fullName ?? '',
+        email: '',
+        phone: '',
+        birthDate: details.person.birthDate ? details.person.birthDate.slice(0, 10) : '',
+      },
+      address: {
+        cep: details.address?.cep ?? '',
+        street: details.address?.street ?? '',
+        number: details.address?.number ?? '',
+        complement: details.address?.complement ?? '',
+        district: details.address?.district ?? '',
+        city: details.address?.city ?? '',
+        state: details.address?.state ?? '',
+      },
+    });
+  }, [details]);
 
   const latestOcr = details?.ocrResults?.[0];
   const latestSignature = details?.signatures?.[0];
@@ -182,6 +241,60 @@ export default function AdminProposalDetailsPage() {
     } finally {
       setSending(false);
     }
+  };
+
+  const toggleRole = (role: ProfileRole) => {
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      const set = new Set(prev.profileRoles);
+      if (set.has(role)) {
+        set.delete(role);
+      } else {
+        set.add(role);
+      }
+      return { ...prev, profileRoles: Array.from(set) };
+    });
+  };
+
+  const updateEditPerson = (patch: Partial<(typeof editForm)['person']>) => {
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      return { ...prev, person: { ...prev.person, ...patch } };
+    });
+  };
+
+  const updateEditAddress = (patch: Partial<(typeof editForm)['address']>) => {
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      return { ...prev, address: { ...prev.address, ...patch } };
+    });
+  };
+
+  const buildUpdatePayload = () => {
+    if (!editForm) return null;
+    const person = {
+      fullName: editForm.person.fullName.trim() || undefined,
+      email: editForm.person.email.trim() || undefined,
+      phone: editForm.person.phone.trim() || undefined,
+      birthDate: editForm.person.birthDate || undefined,
+    };
+    const address = {
+      cep: editForm.address.cep.trim() || undefined,
+      street: editForm.address.street.trim() || undefined,
+      number: editForm.address.number.trim() || undefined,
+      complement: editForm.address.complement.trim() || undefined,
+      district: editForm.address.district.trim() || undefined,
+      city: editForm.address.city.trim() || undefined,
+      state: editForm.address.state.trim() || undefined,
+    };
+    const hasAddress = Object.values(address).some((value) => value);
+
+    return {
+      profileRoles: editForm.profileRoles,
+      profileRoleOther: editForm.profileRoleOther.trim() || undefined,
+      person,
+      address: hasAddress ? address : undefined,
+    };
   };
 
   return (
@@ -416,6 +529,243 @@ export default function AdminProposalDetailsPage() {
                     </div>
                   ) : null}
                 </div>
+              </section>
+            ) : null}
+
+            {editForm && can(user?.roles, 'update') ? (
+              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-zinc-900">Editar dados</h3>
+                <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+                  <label className="grid gap-2">
+                    Nome completo
+                    <input
+                      value={editForm.person.fullName}
+                      onChange={(event) => updateEditPerson({ fullName: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    Email (deixe em branco para manter)
+                    <input
+                      value={editForm.person.email}
+                      onChange={(event) => updateEditPerson({ email: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      type="email"
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    Telefone (deixe em branco para manter)
+                    <input
+                      value={editForm.person.phone}
+                      onChange={(event) => updateEditPerson({ phone: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    Data nascimento
+                    <input
+                      value={editForm.person.birthDate}
+                      onChange={(event) => updateEditPerson({ birthDate: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      type="date"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Perfil artistico
+                  </p>
+                  <div className="mt-3 grid gap-2">
+                    {(Object.keys(PROFILE_ROLE_LABELS) as ProfileRole[]).map((role) => (
+                      <label key={role} className="flex items-center gap-2 text-sm text-zinc-700">
+                        <input
+                          type="checkbox"
+                          checked={editForm.profileRoles.includes(role)}
+                          onChange={() => toggleRole(role)}
+                          className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                        />
+                        <span>{PROFILE_ROLE_LABELS[role]}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {editForm.profileRoles.includes('OUTRO') ? (
+                    <input
+                      value={editForm.profileRoleOther}
+                      onChange={(event) =>
+                        setEditForm({ ...editForm, profileRoleOther: event.target.value })
+                      }
+                      className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="Descreva a atuacao"
+                    />
+                  ) : null}
+                </div>
+
+                <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Endereco
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      value={editForm.address.cep}
+                      onChange={(event) => updateEditAddress({ cep: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="CEP"
+                    />
+                    <input
+                      value={editForm.address.street}
+                      onChange={(event) => updateEditAddress({ street: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="Rua"
+                    />
+                    <input
+                      value={editForm.address.number}
+                      onChange={(event) => updateEditAddress({ number: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="Numero"
+                    />
+                    <input
+                      value={editForm.address.complement}
+                      onChange={(event) => updateEditAddress({ complement: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="Complemento"
+                    />
+                    <input
+                      value={editForm.address.district}
+                      onChange={(event) => updateEditAddress({ district: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="Bairro"
+                    />
+                    <input
+                      value={editForm.address.city}
+                      onChange={(event) => updateEditAddress({ city: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="Cidade"
+                    />
+                    <input
+                      value={editForm.address.state}
+                      onChange={(event) => updateEditAddress({ state: event.target.value })}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      placeholder="UF"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  className="mt-4"
+                  onClick={() => {
+                    const payload = buildUpdatePayload();
+                    if (!payload) return;
+                    void handleAction(() =>
+                      adminFetchWithRefresh(`/admin/proposals/${details.id}/update`, {
+                        method: 'POST',
+                        body: payload,
+                      }),
+                    );
+                  }}
+                  disabled={sending}
+                >
+                  Salvar alteracoes
+                </Button>
+              </section>
+            ) : null}
+
+            {can(user?.roles, 'note') ? (
+              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-zinc-900">Notas internas</h3>
+                <textarea
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                  rows={3}
+                  placeholder="Escreva uma nota interna"
+                />
+                <Button
+                  className="mt-3"
+                  onClick={() =>
+                    handleAction(() =>
+                      adminFetchWithRefresh(`/admin/proposals/${details.id}/notes`, {
+                        method: 'POST',
+                        body: { note: noteText },
+                      }),
+                    )
+                  }
+                  disabled={sending || !noteText.trim()}
+                >
+                  Adicionar nota
+                </Button>
+                {details.auditLogs
+                  .filter((log) => log.action === 'NOTE')
+                  .map((log) => (
+                    <div
+                      key={log.id}
+                      className="mt-3 rounded-2xl border border-zinc-200 p-3 text-xs"
+                    >
+                      <p className="font-semibold text-zinc-700">
+                        {new Date(log.createdAt).toLocaleString('pt-BR')}
+                      </p>
+                      <pre className="mt-2 whitespace-pre-wrap text-[11px] text-zinc-600">
+                        {JSON.stringify(log.metadata, null, 2)}
+                      </pre>
+                    </div>
+                  ))}
+              </section>
+            ) : null}
+
+            {can(user?.roles, 'message') ? (
+              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-zinc-900">Mensagem ao candidato</h3>
+                <label className="mt-3 flex flex-col gap-2 text-sm text-zinc-600">
+                  Canal
+                  <select
+                    value={messageChannel}
+                    onChange={(event) =>
+                      setMessageChannel(event.target.value as 'EMAIL' | 'SMS' | 'WHATSAPP')
+                    }
+                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                  >
+                    <option value="EMAIL">Email</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="SMS">SMS</option>
+                  </select>
+                </label>
+                {messageChannel === 'EMAIL' ? (
+                  <label className="mt-3 flex flex-col gap-2 text-sm text-zinc-600">
+                    Assunto
+                    <input
+                      value={messageSubject}
+                      onChange={(event) => setMessageSubject(event.target.value)}
+                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    />
+                  </label>
+                ) : null}
+                <label className="mt-3 flex flex-col gap-2 text-sm text-zinc-600">
+                  Mensagem
+                  <textarea
+                    value={messageText}
+                    onChange={(event) => setMessageText(event.target.value)}
+                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    rows={4}
+                  />
+                </label>
+                <Button
+                  className="mt-3"
+                  onClick={() =>
+                    handleAction(() =>
+                      adminFetchWithRefresh(`/admin/proposals/${details.id}/message`, {
+                        method: 'POST',
+                        body: {
+                          channel: messageChannel,
+                          subject: messageSubject || undefined,
+                          message: messageText,
+                        },
+                      }),
+                    )
+                  }
+                  disabled={sending || !messageText.trim()}
+                >
+                  Enviar mensagem
+                </Button>
               </section>
             ) : null}
 

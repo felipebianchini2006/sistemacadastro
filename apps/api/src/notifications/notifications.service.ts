@@ -202,6 +202,188 @@ export class NotificationsService {
     }
   }
 
+  async notifyConcluded(input: {
+    proposalId: string;
+    email: string;
+    phone?: string;
+    memberNumber: string;
+    whatsappOptIn?: boolean;
+  }) {
+    const payload: NotificationTemplateData = {
+      template: 'proposal_concluded',
+      memberNumber: input.memberNumber,
+    };
+
+    await this.queueEmail({
+      proposalId: input.proposalId,
+      to: input.email,
+      template: payload.template,
+      data: payload,
+    });
+
+    if (input.phone) {
+      await this.queueWhatsapp({
+        proposalId: input.proposalId,
+        to: input.phone,
+        template: payload.template,
+        data: payload,
+        optIn: input.whatsappOptIn ?? true,
+      });
+    }
+  }
+
+  async notifySignatureReminder(input: {
+    proposalId: string;
+    email: string;
+    phone?: string;
+    signatureLink: string;
+    step: 3 | 6;
+    whatsappOptIn?: boolean;
+  }) {
+    const template =
+      input.step === 3 ? 'signature_reminder_3' : 'signature_reminder_6';
+    const payload: NotificationTemplateData = {
+      template,
+      signatureLink: input.signatureLink,
+    };
+
+    await this.queueEmail({
+      proposalId: input.proposalId,
+      to: input.email,
+      template: payload.template,
+      data: payload,
+    });
+
+    if (input.phone) {
+      await this.queueWhatsapp({
+        proposalId: input.proposalId,
+        to: input.phone,
+        template: payload.template,
+        data: payload,
+        optIn: input.whatsappOptIn ?? true,
+      });
+    }
+  }
+
+  async notifyInternalNewProposal(input: {
+    proposalId: string;
+    protocol: string;
+    name: string;
+  }) {
+    const emails = this.getTeamEmails();
+    if (emails.length === 0) return;
+
+    const payload: NotificationTemplateData = {
+      template: 'internal_new_proposal',
+      protocol: input.protocol,
+      name: input.name,
+    };
+
+    await Promise.all(
+      emails.map((email) =>
+        this.queueEmail({
+          proposalId: input.proposalId,
+          to: email,
+          template: payload.template,
+          data: payload,
+        }),
+      ),
+    );
+  }
+
+  async notifyInternalDocsReceived(input: {
+    proposalId: string;
+    protocol: string;
+    name: string;
+  }) {
+    const emails = this.getTeamEmails();
+    if (emails.length === 0) return;
+
+    const payload: NotificationTemplateData = {
+      template: 'internal_docs_received',
+      protocol: input.protocol,
+      name: input.name,
+    };
+
+    await Promise.all(
+      emails.map((email) =>
+        this.queueEmail({
+          proposalId: input.proposalId,
+          to: email,
+          template: payload.template,
+          data: payload,
+        }),
+      ),
+    );
+  }
+
+  async notifyInternalSlaDue(input: {
+    proposalId: string;
+    protocol: string;
+    name: string;
+  }) {
+    const emails = this.getTeamEmails();
+    if (emails.length === 0) return;
+
+    const payload: NotificationTemplateData = {
+      template: 'internal_sla_due',
+      protocol: input.protocol,
+      name: input.name,
+    };
+
+    await Promise.all(
+      emails.map((email) =>
+        this.queueEmail({
+          proposalId: input.proposalId,
+          to: email,
+          template: payload.template,
+          data: payload,
+        }),
+      ),
+    );
+  }
+
+  async notifyAdminMessage(input: {
+    proposalId: string;
+    to: string;
+    channel: NotificationChannel;
+    message: string;
+    subject?: string;
+    whatsappOptIn?: boolean;
+  }) {
+    const payload: NotificationTemplateData = {
+      template: 'admin_message',
+      message: input.message,
+      subject: input.subject,
+    };
+
+    if (input.channel === NotificationChannel.EMAIL) {
+      return this.queueEmail({
+        proposalId: input.proposalId,
+        to: input.to,
+        template: payload.template,
+        data: payload,
+      });
+    }
+
+    if (input.channel === NotificationChannel.SMS) {
+      return this.queueSms({
+        proposalId: input.proposalId,
+        to: input.to,
+        template: payload.template,
+        data: payload,
+      });
+    }
+
+    return this.queueWhatsapp({
+      proposalId: input.proposalId,
+      to: input.to,
+      template: payload.template,
+      data: payload,
+      optIn: input.whatsappOptIn,
+    });
+  }
+
   private async enqueue(input: {
     channel: NotificationChannel;
     proposalId: string;
@@ -259,6 +441,14 @@ export class NotificationsService {
     }
 
     return notification;
+  }
+
+  private getTeamEmails() {
+    const raw = process.env.TEAM_NOTIFICATION_EMAILS ?? '';
+    return raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
   }
 }
 

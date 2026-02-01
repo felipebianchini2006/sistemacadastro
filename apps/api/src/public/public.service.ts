@@ -311,6 +311,12 @@ export class PublicService {
       whatsappOptIn: true,
     });
 
+    await this.notifications.notifyInternalNewProposal({
+      proposalId: proposal.id,
+      protocol: proposal.protocol,
+      name: personData.fullName,
+    });
+
     await this.prisma.draft.delete({ where: { id: draft.id } });
 
     return {

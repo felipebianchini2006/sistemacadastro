@@ -1,6 +1,15 @@
-﻿import { Worker, Job } from 'bullmq';
+﻿import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { DocumentType, ProposalStatus, TotvsSyncStatus, ProposalType } from '@prisma/client';
+import {
+  DocumentType,
+  NotificationChannel,
+  NotificationStatus,
+  Prisma,
+  ProposalStatus,
+  TotvsSyncStatus,
+  ProposalType,
+} from '@prisma/client';
+import { createHash } from 'crypto';
 
 import { prisma } from '../prisma';
 import { TotvsJobPayload } from './totvs.types';
@@ -9,12 +18,16 @@ import { decryptValue } from '../services/crypto';
 export class TotvsWorker {
   private readonly connection: IORedis;
   private readonly worker: Worker<TotvsJobPayload>;
+  private readonly notificationQueue: Queue;
 
   constructor() {
     const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
     this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
     const concurrency = parseNumber(process.env.TOTVS_CONCURRENCY, 2);
+    this.notificationQueue = new Queue('notification-jobs', {
+      connection: this.connection,
+    });
 
     this.worker = new Worker<TotvsJobPayload>('totvs-jobs', (job) => this.handleJob(job), {
       connection: this.connection,
@@ -29,6 +42,7 @@ export class TotvsWorker {
 
   async shutdown() {
     await this.worker.close();
+    await this.notificationQueue.close();
     await this.connection.quit();
     await prisma.$disconnect();
   }
@@ -143,6 +157,26 @@ export class TotvsWorker {
         });
       }
 
+      const memberNumber = externalId ?? proposal.totvsSync?.externalId ?? '';
+      await this.queueNotification({
+        proposalId: proposal.id,
+        channel: NotificationChannel.EMAIL,
+        to: email,
+        template: 'proposal_concluded',
+        data: { memberNumber },
+      });
+
+      if (phone) {
+        await this.queueNotification({
+          proposalId: proposal.id,
+          channel: NotificationChannel.WHATSAPP,
+          to: phone,
+          template: 'proposal_concluded',
+          data: { memberNumber },
+          optIn: true,
+        });
+      }
+
       console.info({ requestId, proposalId: proposal.id }, 'totvs.synced');
       return;
     }
@@ -161,6 +195,54 @@ export class TotvsWorker {
     });
 
     throw new Error(response.error ?? `Totvs sync failed (${response.status})`);
+  }
+
+  private async queueNotification(input: {
+    proposalId: string;
+    channel: NotificationChannel;
+    to: string;
+    template: string;
+    data: Record<string, unknown>;
+    optIn?: boolean;
+  }) {
+    const notification = await prisma.notification.create({
+      data: {
+        proposalId: input.proposalId,
+        channel: input.channel,
+        status: NotificationStatus.PENDING,
+        payloadRedacted: {
+          toHash: hashValue(input.to),
+          toMasked: maskContact(input.to),
+          template: input.template,
+          dataKeys: Object.keys(input.data ?? {}),
+          optIn: input.optIn ?? null,
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    const jobName =
+      input.channel === NotificationChannel.EMAIL
+        ? 'notify.email'
+        : input.channel === NotificationChannel.SMS
+          ? 'notify.sms'
+          : 'notify.whatsapp';
+
+    await this.notificationQueue.add(
+      jobName,
+      {
+        notificationId: notification.id,
+        to: input.to,
+        template: input.template,
+        data: input.data,
+        requestId: notification.id,
+        optIn: input.optIn,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
   }
 }
 
@@ -270,6 +352,19 @@ const formatPhone = (value: string) => {
     }
   }
   return value;
+};
+
+const hashValue = (value: string) => createHash('sha256').update(value).digest('hex');
+
+const maskContact = (value: string) => {
+  if (value.includes('@')) {
+    const [user, domain] = value.split('@');
+    if (!domain) return '***';
+    return `${user?.slice(0, 2) ?? '**'}***@${domain}`;
+  }
+  const digits = value.replace(/\D+/g, '');
+  if (digits.length <= 4) return '***';
+  return `***${digits.slice(-4)}`;
 };
 
 const parseNumber = (value: string | undefined, fallback: number) => {
