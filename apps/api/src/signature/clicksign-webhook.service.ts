@@ -6,6 +6,7 @@ import { DocumentType, ProposalStatus, SignatureStatus } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { buildDocumentStorageKey } from '../storage/storage.naming';
 import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export type ClicksignWebhookResult = {
   ok: boolean;
@@ -22,6 +23,7 @@ export class ClicksignWebhookService {
     private readonly configService: ConfigService,
     private readonly storage: StorageService,
     private readonly jobs: JobsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   verifySignature(rawBody: Buffer, signatureHeader?: string | string[]) {
@@ -173,6 +175,18 @@ export class ClicksignWebhookService {
         envelopeId: envelope.envelopeId,
       });
       await this.jobs.enqueueTotvsSync({ proposalId: envelope.proposalId });
+
+      if (envelope.proposal) {
+        const person = await this.prisma.person.findUnique({
+          where: { proposalId: envelope.proposalId },
+          select: { fullName: true },
+        });
+        await this.notifications.notifyInternalCandidateSigned({
+          proposalId: envelope.proposalId,
+          protocol: envelope.proposal.protocol,
+          name: person?.fullName ?? 'Candidato',
+        });
+      }
     }
 
     await this.prisma.auditLog.create({

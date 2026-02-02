@@ -86,9 +86,17 @@ export class AdminProposalsService {
 
     this.applySlaFilter(where, query.sla);
 
+    const dir = query.sortDir ?? 'desc';
+    let orderBy: Prisma.ProposalOrderByWithRelationInput = { createdAt: dir };
+    if (query.sortBy === 'protocol') orderBy = { protocol: dir };
+    else if (query.sortBy === 'status') orderBy = { status: dir };
+    else if (query.sortBy === 'type') orderBy = { type: dir };
+    else if (query.sortBy === 'fullName')
+      orderBy = { person: { fullName: dir } };
+
     const proposals = await this.prisma.proposal.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         person: true,
         assignedAnalyst: { select: { id: true, name: true, email: true } },

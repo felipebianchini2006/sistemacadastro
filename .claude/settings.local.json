@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "allow": ["Bash(npx next build:*)"]
+    "allow": ["Bash(npx next build:*)", "Bash(npx tsc:*)"]
   }
 }

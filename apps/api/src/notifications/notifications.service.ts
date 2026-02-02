@@ -317,6 +317,32 @@ export class NotificationsService {
     );
   }
 
+  async notifyInternalCandidateSigned(input: {
+    proposalId: string;
+    protocol: string;
+    name: string;
+  }) {
+    const emails = this.getTeamEmails();
+    if (emails.length === 0) return;
+
+    const payload: NotificationTemplateData = {
+      template: 'internal_candidate_signed',
+      protocol: input.protocol,
+      name: input.name,
+    };
+
+    await Promise.all(
+      emails.map((email) =>
+        this.queueEmail({
+          proposalId: input.proposalId,
+          to: email,
+          template: payload.template,
+          data: payload,
+        }),
+      ),
+    );
+  }
+
   async notifyInternalSlaDue(input: {
     proposalId: string;
     protocol: string;

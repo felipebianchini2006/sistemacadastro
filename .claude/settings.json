@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["Bash(cd /c/projetos/cliente freelas/sistemacadastro)"]
+  }
+}

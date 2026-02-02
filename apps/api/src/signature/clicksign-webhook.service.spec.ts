@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createHmac } from 'crypto';
 import { StorageService } from '../storage/storage.service';
 import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const buildService = (overrides?: {
   secret?: string;
@@ -40,8 +41,18 @@ const buildService = (overrides?: {
     enqueueSignatureAudit: jest.fn(),
   } as unknown as JobsService;
 
+  const notifications = {
+    notifyInternalCandidateSigned: jest.fn(),
+  } as unknown as NotificationsService;
+
   return {
-    service: new ClicksignWebhookService(prisma, config, storage, jobs),
+    service: new ClicksignWebhookService(
+      prisma,
+      config,
+      storage,
+      jobs,
+      notifications,
+    ),
     prisma,
     config,
   };

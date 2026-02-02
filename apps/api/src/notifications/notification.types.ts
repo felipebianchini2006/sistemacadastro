@@ -9,6 +9,7 @@ export type NotificationTemplateKey =
   | 'signature_reminder_6'
   | 'internal_new_proposal'
   | 'internal_docs_received'
+  | 'internal_candidate_signed'
   | 'internal_sla_due'
   | 'admin_message';
 
@@ -56,6 +57,11 @@ export type NotificationTemplateData =
     }
   | {
       template: 'internal_docs_received';
+      protocol: string;
+      name: string;
+    }
+  | {
+      template: 'internal_candidate_signed';
       protocol: string;
       name: string;
     }

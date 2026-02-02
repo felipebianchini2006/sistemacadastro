@@ -2,6 +2,8 @@
 import { AdminController } from './admin.controller';
 import { AdminProposalsController } from './admin.proposals.controller';
 import { AdminProposalsService } from './admin.proposals.service';
+import { AdminTotvsController } from './admin.totvs.controller';
+import { AdminTotvsService } from './admin.totvs.service';
 import { ProposalTriageService } from './proposal-triage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -21,11 +23,16 @@ import { StorageModule } from '../storage/storage.module';
     CryptoModule,
     StorageModule,
   ],
-  controllers: [AdminController, AdminProposalsController],
+  controllers: [
+    AdminController,
+    AdminProposalsController,
+    AdminTotvsController,
+  ],
   providers: [
     JwtAuthGuard,
     RolesGuard,
     AdminProposalsService,
+    AdminTotvsService,
     ProposalTriageService,
   ],
 })

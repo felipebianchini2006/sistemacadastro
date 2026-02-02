@@ -3,6 +3,13 @@ import { z } from 'zod';
 
 export type ProposalListSlaFilter = 'BREACHED' | 'DUE_SOON' | 'OK';
 
+export type ListProposalsSortField =
+  | 'createdAt'
+  | 'protocol'
+  | 'status'
+  | 'type'
+  | 'fullName';
+
 export type ListProposalsQuery = {
   status?: ProposalStatus;
   type?: ProposalType;
@@ -10,6 +17,8 @@ export type ListProposalsQuery = {
   dateFrom?: string;
   dateTo?: string;
   text?: string;
+  sortBy?: ListProposalsSortField;
+  sortDir?: 'asc' | 'desc';
 };
 
 export type AssignProposalDto = {
@@ -63,6 +72,10 @@ export const listProposalsQuerySchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   text: z.string().optional(),
+  sortBy: z
+    .enum(['createdAt', 'protocol', 'status', 'type', 'fullName'])
+    .optional(),
+  sortDir: z.enum(['asc', 'desc']).optional(),
 });
 
 export const assignProposalSchema = z.object({

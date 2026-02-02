@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/button';
 const navItems = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/propostas', label: 'Propostas' },
+  { href: '/admin/totvs', label: 'Totvs' },
 ];
 
 type ProposalSummary = { id: string; status: string };

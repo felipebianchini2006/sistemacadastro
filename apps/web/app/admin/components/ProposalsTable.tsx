@@ -16,6 +16,10 @@ export type ProposalListItem = {
   statusHistory?: Array<{ toStatus: string; createdAt: string }>;
 };
 
+export type SortField = 'protocol' | 'fullName' | 'status' | 'type' | 'createdAt';
+export type SortDir = 'asc' | 'desc';
+export type SortState = { field: SortField; dir: SortDir };
+
 const hasRecentUpdate = (proposal: ProposalListItem) => {
   const history = proposal.statusHistory;
   if (!history?.length) return false;
@@ -41,18 +45,66 @@ const resolveSla = (proposal: ProposalListItem) => {
   return { label: '0-3 dias', tone: 'ok' as const };
 };
 
-export const ProposalsTable = ({ items }: { items: ProposalListItem[] }) => {
+const SortIcon = ({ field, sort }: { field: SortField; sort?: SortState }) => {
+  if (sort?.field !== field) {
+    return (
+      <span className="ml-1 opacity-30" aria-hidden="true">
+        &#8597;
+      </span>
+    );
+  }
+  return (
+    <span className="ml-1 text-emerald-600" aria-hidden="true">
+      {sort.dir === 'asc' ? '\u25B2' : '\u25BC'}
+    </span>
+  );
+};
+
+type SortableHeader = { field: SortField; label: string };
+
+const HEADERS: (SortableHeader | { label: string })[] = [
+  { field: 'protocol' as SortField, label: 'Protocolo' },
+  { field: 'fullName' as SortField, label: 'Nome' },
+  { label: 'CPF' },
+  { field: 'status' as SortField, label: 'Status' },
+  { field: 'type' as SortField, label: 'Tipo' },
+  { field: 'createdAt' as SortField, label: 'Criada' },
+];
+
+export const ProposalsTable = ({
+  items,
+  sort,
+  onSort,
+}: {
+  items: ProposalListItem[];
+  sort?: SortState;
+  onSort?: (field: SortField) => void;
+}) => {
   return (
     <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-lg">
       <table className="w-full text-left text-sm">
         <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-500">
           <tr>
-            <th className="px-4 py-3">Protocolo</th>
-            <th className="px-4 py-3">Nome</th>
-            <th className="px-4 py-3">CPF</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Tipo</th>
-            <th className="px-4 py-3">Criada</th>
+            {HEADERS.map((header) => {
+              const isSortable = 'field' in header;
+              if (!isSortable) {
+                return (
+                  <th key={header.label} className="px-4 py-3">
+                    {header.label}
+                  </th>
+                );
+              }
+              return (
+                <th
+                  key={header.field}
+                  className="cursor-pointer select-none px-4 py-3 hover:text-zinc-700"
+                  onClick={() => onSort?.(header.field)}
+                >
+                  {header.label}
+                  <SortIcon field={header.field} sort={sort} />
+                </th>
+              );
+            })}
             <th className="px-4 py-3">SLA</th>
             <th className="px-4 py-3">Analista</th>
             <th className="px-4 py-3 text-right">Acoes</th>
