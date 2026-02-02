@@ -44,6 +44,7 @@ enum NotificationChannel {
   SMS
   WHATSAPP
   OTP
+  PUSH
 }
 
 enum NotificationStatus {
@@ -341,8 +342,25 @@ model AdminUser {
   roles        AdminUserRole[]
   auditLogs    AuditLog[]
   assignedProposals Proposal[] @relation("ProposalAssignedAnalyst")
+  pushSubscriptions PushSubscription[]
 
   @@index([isActive])
+}
+
+model PushSubscription {
+  id           String   @id @default(uuid())
+  adminUserId  String
+  endpoint     String   @unique
+  p256dh       String
+  auth         String
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, isActive])
 }
 
 model Role {

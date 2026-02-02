@@ -21,6 +21,7 @@ import { SignatureService } from '../signature/signature.service';
 import { JobsService } from '../jobs/jobs.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { StorageService } from '../storage/storage.service';
+import { PublicSocialService } from '../public/public.social.service';
 import {
   AssignProposalDto,
   ListProposalsQuery,
@@ -47,6 +48,7 @@ export class AdminProposalsService {
     private readonly configService: ConfigService,
     private readonly crypto: CryptoService,
     private readonly storage: StorageService,
+    private readonly socialService: PublicSocialService,
   ) {}
 
   async list(query: ListProposalsQuery) {
@@ -198,12 +200,24 @@ export class AdminProposalsService {
       ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
       : null;
 
-    const socialAccounts =
-      proposal.person?.socialAccounts?.map((account) => ({
-        provider: account.provider,
-        connectedAt: account.createdAt,
-        profile: extractProfile(account.tokenMeta),
-      })) ?? [];
+    const socialAccounts = await Promise.all(
+      (proposal.person?.socialAccounts ?? []).map(async (account) => {
+        let profile = extractProfile(account.tokenMeta);
+        try {
+          const refreshed = await this.socialService.refreshProfileIfStale(
+            account.id,
+          );
+          if (refreshed) profile = refreshed;
+        } catch {
+          // keep cached profile on error
+        }
+        return {
+          provider: account.provider,
+          connectedAt: account.createdAt,
+          profile,
+        };
+      }),
+    );
 
     const bankAccounts = proposal.person?.bankAccounts
       ? await Promise.all(

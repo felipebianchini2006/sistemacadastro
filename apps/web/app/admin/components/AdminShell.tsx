@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getStoredAdminUser } from '../lib/auth';
@@ -20,6 +20,8 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const user = getStoredAdminUser();
   const [submittedCount, setSubmittedCount] = useState(0);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
 
   useEffect(() => {
     if (pathname?.startsWith('/admin/login')) return;
@@ -27,6 +29,57 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
       .then((items) => setSubmittedCount(items.length))
       .catch(() => {});
   }, [pathname]);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window)
+    )
+      return;
+    setPushSupported(true);
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => setPushEnabled(!!sub))
+      .catch(() => {});
+  }, []);
+
+  const togglePush = useCallback(async () => {
+    if (!pushSupported) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (pushEnabled) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await adminFetchWithRefresh('/admin/push/unsubscribe', {
+            method: 'DELETE',
+            body: { endpoint: sub.endpoint },
+          });
+          await sub.unsubscribe();
+        }
+        setPushEnabled(false);
+      } else {
+        const { publicKey } = await adminFetchWithRefresh<{ publicKey: string }>(
+          '/admin/push/vapid-key',
+        );
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: publicKey,
+        });
+        const json = sub.toJSON();
+        await adminFetchWithRefresh('/admin/push/subscribe', {
+          method: 'POST',
+          body: {
+            endpoint: sub.endpoint,
+            keys: { p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' },
+          },
+        });
+        setPushEnabled(true);
+      }
+    } catch {
+      // Permission denied or API error
+    }
+  }, [pushEnabled, pushSupported]);
 
   if (pathname?.startsWith('/admin/login')) {
     return <>{children}</>;
@@ -49,6 +102,7 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center justify-between rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     isActive ? 'bg-emerald-600 text-white' : 'text-zinc-600 hover:bg-zinc-100'
                   }`}
@@ -67,12 +121,28 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
               );
             })}
           </nav>
-          <div className="mt-auto rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-500">
+          <div className="mt-auto rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600">
             <p className="font-semibold text-zinc-700">Logado como</p>
             <p className="mt-1 text-sm text-zinc-700">{user?.email ?? 'usuario'}</p>
             <p className="mt-1 text-[11px] uppercase tracking-[0.2em]">
               {user?.roles?.join(', ') ?? '---'}
             </p>
+            {pushSupported ? (
+              <button
+                type="button"
+                onClick={togglePush}
+                className="mt-3 flex w-full items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50"
+                aria-label={
+                  pushEnabled ? 'Desativar notificacoes push' : 'Ativar notificacoes push'
+                }
+              >
+                <span>Notificacoes push</span>
+                <span
+                  className={`inline-block h-3 w-3 rounded-full ${pushEnabled ? 'bg-emerald-500' : 'bg-zinc-300'}`}
+                  aria-hidden="true"
+                />
+              </button>
+            ) : null}
           </div>
         </aside>
 

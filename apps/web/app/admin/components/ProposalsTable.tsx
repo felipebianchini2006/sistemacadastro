@@ -83,31 +83,53 @@ export const ProposalsTable = ({
   return (
     <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-lg">
       <table className="w-full text-left text-sm">
-        <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-500">
+        <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-600">
           <tr>
             {HEADERS.map((header) => {
               const isSortable = 'field' in header;
               if (!isSortable) {
                 return (
-                  <th key={header.label} className="px-4 py-3">
+                  <th key={header.label} scope="col" className="px-4 py-3">
                     {header.label}
                   </th>
                 );
               }
+              const ariaSortValue =
+                sort?.field === header.field
+                  ? sort.dir === 'asc'
+                    ? ('ascending' as const)
+                    : ('descending' as const)
+                  : ('none' as const);
               return (
                 <th
                   key={header.field}
+                  scope="col"
+                  aria-sort={ariaSortValue}
                   className="cursor-pointer select-none px-4 py-3 hover:text-zinc-700"
+                  tabIndex={0}
+                  role="columnheader"
                   onClick={() => onSort?.(header.field)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSort?.(header.field);
+                    }
+                  }}
                 >
                   {header.label}
                   <SortIcon field={header.field} sort={sort} />
                 </th>
               );
             })}
-            <th className="px-4 py-3">SLA</th>
-            <th className="px-4 py-3">Analista</th>
-            <th className="px-4 py-3 text-right">Acoes</th>
+            <th scope="col" className="px-4 py-3">
+              SLA
+            </th>
+            <th scope="col" className="px-4 py-3">
+              Analista
+            </th>
+            <th scope="col" className="px-4 py-3 text-right">
+              Acoes
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -132,12 +154,12 @@ export const ProposalsTable = ({
                   </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-700">{proposal.person?.fullName ?? '-'}</td>
-                <td className="px-4 py-3 text-zinc-500">{proposal.person?.cpfMasked ?? '-'}</td>
+                <td className="px-4 py-3 text-zinc-600">{proposal.person?.cpfMasked ?? '-'}</td>
                 <td className="px-4 py-3">
                   <StatusBadge status={proposal.status} />
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{proposal.type}</td>
-                <td className="px-4 py-3 text-zinc-500">
+                <td className="px-4 py-3 text-zinc-600">{proposal.type}</td>
+                <td className="px-4 py-3 text-zinc-600">
                   {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
                 </td>
                 <td className="px-4 py-3">
@@ -161,7 +183,7 @@ export const ProposalsTable = ({
                     {sla.label}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-500">
+                <td className="px-4 py-3 text-zinc-600">
                   {proposal.assignedAnalyst?.name ?? 'Nao atribuido'}
                 </td>
                 <td className="px-4 py-3 text-right">

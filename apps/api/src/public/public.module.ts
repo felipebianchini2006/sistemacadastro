@@ -24,5 +24,6 @@ import { PublicSocialService } from './public.social.service';
     PublicUploadsService,
     PublicSocialService,
   ],
+  exports: [PublicSocialService],
 })
 export class PublicModule {}

@@ -14,7 +14,7 @@ export const ProgressBar = ({ steps, current }: { steps: ProgressStep[]; current
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-500">
+      <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-600">
         <span>Cadastro</span>
         <span>
           Etapa {current + 1} de {steps.length}
@@ -28,9 +28,10 @@ export const ProgressBar = ({ steps, current }: { steps: ProgressStep[]; current
           aria-valuemin={0}
           aria-valuemax={steps.length - 1}
           aria-valuenow={current}
+          aria-label={`Progresso do cadastro: etapa ${current + 1} de ${steps.length}`}
         />
       </div>
-      <div className="grid gap-2 text-xs text-zinc-500 sm:grid-cols-4">
+      <div className="grid gap-2 text-xs text-zinc-600 sm:grid-cols-4">
         {steps.map((step, index) => (
           <div
             key={step.id}

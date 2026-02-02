@@ -20,3 +20,15 @@ export type NotificationJobPayload = {
   requestId: string;
   optIn?: boolean;
 };
+
+export type PushJobPayload = {
+  notificationId: string;
+  subscriptionId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  title: string;
+  body: string;
+  url?: string;
+  requestId: string;
+};

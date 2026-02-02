@@ -905,6 +905,14 @@ export default function CadastroPage() {
     return null;
   }, [previewOcrResult]);
 
+  const expiredWarning = useMemo(() => {
+    const heuristics = previewOcrResult?.heuristics as { expired?: boolean } | undefined;
+    if (heuristics?.expired) {
+      return 'Documento vencido. Por favor, envie um documento dentro da validade.';
+    }
+    return null;
+  }, [previewOcrResult]);
+
   const ocrPreviewFields = useMemo(() => {
     const data =
       tracking?.ocr?.data ?? (previewOcrResult?.structuredData as Record<string, unknown> | null);
@@ -1780,6 +1788,11 @@ export default function CadastroPage() {
                       {legibilityWarning ? (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                           {legibilityWarning}
+                        </div>
+                      ) : null}
+                      {expiredWarning ? (
+                        <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                          {expiredWarning}
                         </div>
                       ) : null}
                       <div className="grid gap-2">

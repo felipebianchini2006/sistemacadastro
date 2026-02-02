@@ -6,14 +6,16 @@ import { prisma } from '../prisma';
 import { EmailService } from './email.service';
 import { SmsService } from './sms.service';
 import { WhatsappService } from './whatsapp.service';
-import { NotificationJobPayload } from './notification.types';
+import { PushService } from './push.service';
+import { NotificationJobPayload, PushJobPayload } from './notification.types';
 
 export class NotificationWorker {
   private readonly connection: IORedis;
-  private readonly worker: Worker<NotificationJobPayload>;
+  private readonly worker: Worker<NotificationJobPayload | PushJobPayload>;
   private readonly email: EmailService;
   private readonly sms: SmsService;
   private readonly whatsapp: WhatsappService;
+  private readonly push: PushService;
 
   constructor() {
     const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -24,6 +26,7 @@ export class NotificationWorker {
     this.email = new EmailService();
     this.sms = new SmsService();
     this.whatsapp = new WhatsappService();
+    this.push = new PushService();
 
     this.worker = new Worker<NotificationJobPayload>(
       'notification-jobs',
@@ -48,17 +51,21 @@ export class NotificationWorker {
     await prisma.$disconnect();
   }
 
-  private async handleJob(job: Job<NotificationJobPayload>) {
+  private async handleJob(job: Job<NotificationJobPayload | PushJobPayload>) {
     if (job.name === 'notify.email') {
-      return this.processEmail(job);
+      return this.processEmail(job as Job<NotificationJobPayload>);
     }
 
     if (job.name === 'notify.sms') {
-      return this.processSms(job);
+      return this.processSms(job as Job<NotificationJobPayload>);
     }
 
     if (job.name === 'notify.whatsapp') {
-      return this.processWhatsapp(job);
+      return this.processWhatsapp(job as Job<NotificationJobPayload>);
+    }
+
+    if (job.name === 'notify.push') {
+      return this.processPush(job as Job<PushJobPayload>);
     }
 
     return undefined;
@@ -93,6 +100,48 @@ export class NotificationWorker {
         optIn: job.data.optIn,
       });
     });
+  }
+
+  private async processPush(job: Job<PushJobPayload>) {
+    try {
+      const providerId = await this.push.send({
+        endpoint: job.data.endpoint,
+        p256dh: job.data.p256dh,
+        auth: job.data.auth,
+        title: job.data.title,
+        body: job.data.body,
+        url: job.data.url,
+      });
+
+      await prisma.notification.update({
+        where: { id: job.data.notificationId },
+        data: {
+          status: NotificationStatus.SENT,
+          providerMessageId: providerId,
+        },
+      });
+    } catch (error) {
+      const err = error as any;
+      const statusCode = err?.statusCode ?? err?.status;
+      const gone = statusCode === 404 || statusCode === 410;
+
+      if (gone) {
+        await prisma.pushSubscription.update({
+          where: { id: job.data.subscriptionId },
+          data: { isActive: false },
+        });
+      }
+
+      await prisma.notification.update({
+        where: { id: job.data.notificationId },
+        data: { status: NotificationStatus.FAILED },
+      });
+
+      if (gone) {
+        throw new UnrecoverableError('Subscription expired or removed');
+      }
+      throw err;
+    }
   }
 
   private async processNotification(

@@ -88,3 +88,43 @@ const networkFirst = async (request) => {
     return caches.match(request);
   }
 };
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: 'SBACEM', body: event.data.text() };
+  }
+
+  const options = {
+    body: data.body ?? '',
+    icon: data.icon ?? '/icon.svg',
+    badge: '/icon.svg',
+    data: { url: data.url ?? '/admin' },
+    tag: 'sbacem-notification',
+    renotify: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title ?? 'SBACEM', options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const url = event.notification.data?.url ?? '/admin';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((c) => c.url.includes('/admin'));
+      if (existing) {
+        existing.focus();
+        existing.navigate(url);
+        return;
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});

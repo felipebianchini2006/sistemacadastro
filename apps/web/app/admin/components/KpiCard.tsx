@@ -22,9 +22,9 @@ export const KpiCard = ({
         tone === 'danger' && 'border-red-200 bg-red-50',
       )}
     >
-      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{label}</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-zinc-900">{value}</p>
-      {hint ? <p className="mt-2 text-xs text-zinc-500">{hint}</p> : null}
+      {hint ? <p className="mt-2 text-xs text-zinc-600">{hint}</p> : null}
     </div>
   );
 };

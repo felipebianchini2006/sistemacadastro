@@ -215,6 +215,29 @@ export class JobsService implements OnModuleDestroy {
     );
   }
 
+  async enqueuePushNotification(payload: {
+    notificationId: string;
+    subscriptionId: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    title: string;
+    body: string;
+    url?: string;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.notificationQueue.add(
+      'notify.push',
+      { ...payload, requestId },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
+  }
+
   async enqueueMaintenanceCleanup(payload: { requestId?: string }) {
     const requestId = payload.requestId ?? randomUUID();
     await this.maintenanceQueue.add(

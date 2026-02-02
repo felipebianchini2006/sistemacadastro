@@ -220,17 +220,22 @@ export default function ClientPage() {
         }}
       />
 
-      {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      ) : null}
+      <div aria-live="polite" role="status">
+        {error ? (
+          <div
+            className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
 
-      {loading ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
-          Carregando propostas...
-        </div>
-      ) : null}
+        {loading ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
+            Carregando propostas...
+          </div>
+        ) : null}
+      </div>
 
       <ProposalsTable items={pageItems} sort={sort} onSort={handleSort} />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

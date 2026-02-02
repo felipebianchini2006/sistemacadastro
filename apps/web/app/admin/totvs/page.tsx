@@ -215,15 +215,29 @@ export default function TotvsMonitorPage() {
           </div>
         </div>
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-500">
+          <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-600">
             <tr>
-              <th className="px-4 py-3">Protocolo</th>
-              <th className="px-4 py-3">Candidato</th>
-              <th className="px-4 py-3">Status Sync</th>
-              <th className="px-4 py-3">Status Proposta</th>
-              <th className="px-4 py-3">ID Externo</th>
-              <th className="px-4 py-3">Ultima Sync</th>
-              <th className="px-4 py-3">Atualizado</th>
+              <th scope="col" className="px-4 py-3">
+                Protocolo
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Candidato
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Status Sync
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Status Proposta
+              </th>
+              <th scope="col" className="px-4 py-3">
+                ID Externo
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Ultima Sync
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Atualizado
+              </th>
             </tr>
           </thead>
           <tbody>

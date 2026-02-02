@@ -204,6 +204,45 @@ export class PublicSocialService {
     }
   }
 
+  async refreshProfileIfStale(
+    accountId: string,
+    maxAgeMs = 24 * 60 * 60 * 1000,
+  ) {
+    const account = await this.prisma.socialAccount.findUnique({
+      where: { id: accountId },
+    });
+    if (!account) return null;
+
+    const meta = account.tokenMeta as Record<string, unknown> | null;
+    const fetchedAt = meta?.fetchedAt
+      ? new Date(meta.fetchedAt as string).getTime()
+      : 0;
+    const age = Date.now() - fetchedAt;
+    if (age < maxAgeMs) return meta?.profile ?? null;
+
+    try {
+      const accessToken = await this.crypto.decrypt(
+        account.accessTokenEncrypted,
+      );
+      const profile = await this.fetchProfile(account.provider, accessToken);
+
+      const updatedMeta = {
+        ...(meta ?? {}),
+        profile,
+        fetchedAt: new Date().toISOString(),
+      };
+
+      await this.prisma.socialAccount.update({
+        where: { id: accountId },
+        data: { tokenMeta: updatedMeta as any },
+      });
+
+      return profile;
+    } catch {
+      return meta?.profile ?? null;
+    }
+  }
+
   async disconnect(providerRaw: string, proposalId: string, token: string) {
     const provider = this.parseProvider(providerRaw);
 
