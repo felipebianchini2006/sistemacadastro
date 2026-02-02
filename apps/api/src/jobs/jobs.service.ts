@@ -92,6 +92,27 @@ export class JobsService implements OnModuleDestroy {
     );
   }
 
+  async enqueueDossierPdf(payload: {
+    proposalId: string;
+    protocol: string;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.signatureQueue.add(
+      'dossier.generate',
+      {
+        proposalId: payload.proposalId,
+        protocol: payload.protocol,
+        requestId,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
+  }
+
   async enqueueSignature(payload: {
     proposalId: string;
     documentFileId: string;

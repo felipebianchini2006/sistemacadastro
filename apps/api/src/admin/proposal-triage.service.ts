@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProposalStatus, RoleName } from '@prisma/client';
+import { ProposalStatus, RoleName, ProposalType } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -32,6 +32,9 @@ export class ProposalTriageService {
   private async recalculateSla() {
     const slaDays =
       this.configService.get<number>('SLA_DAYS', { infer: true }) ?? 7;
+    const migrationSlaDays =
+      this.configService.get<number>('MIGRATION_SLA_DAYS', { infer: true }) ??
+      slaDays;
     const now = new Date();
 
     const proposals = await this.prisma.proposal.findMany({
@@ -41,6 +44,7 @@ export class ProposalTriageService {
       select: {
         id: true,
         submittedAt: true,
+        type: true,
         slaStartedAt: true,
         slaDueAt: true,
         slaBreachedAt: true,
@@ -51,8 +55,10 @@ export class ProposalTriageService {
       const startedAt = proposal.slaStartedAt ?? proposal.submittedAt;
       if (!startedAt) continue;
 
+      const effectiveSlaDays =
+        proposal.type === ProposalType.MIGRACAO ? migrationSlaDays : slaDays;
       const dueAt = new Date(
-        startedAt.getTime() + slaDays * 24 * 60 * 60 * 1000,
+        startedAt.getTime() + effectiveSlaDays * 24 * 60 * 60 * 1000,
       );
       const breachedAt = dueAt < now ? now : null;
 

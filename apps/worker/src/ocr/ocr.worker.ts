@@ -183,6 +183,11 @@ export class OcrWorker {
       !Number.isNaN(new Date(parsed.fields.dataValidade).getTime()) &&
       new Date(parsed.fields.dataValidade) < new Date();
 
+    const detectedType = parsed?.documentType ?? null;
+    const uploadedType = resolveUploadedDocType(documentFile.type);
+    const typeMismatch =
+      detectedType && detectedType !== 'UNKNOWN' && uploadedType && detectedType !== uploadedType;
+
     await prisma.ocrResult.create({
       data: {
         proposalId: job.data.proposalId ?? null,
@@ -215,6 +220,11 @@ export class OcrWorker {
           ...(parsed?.heuristics ?? {}),
           preprocess: preprocessInfo,
           comparison,
+          docType: {
+            detected: detectedType,
+            uploaded: uploadedType,
+            mismatch: typeMismatch,
+          },
           requestId,
           legibility: {
             ok: legible,
@@ -278,4 +288,12 @@ const parseNumber = (value: string | undefined, fallback: number) => {
   const parsed = value ? Number(value) : NaN;
   if (Number.isFinite(parsed) && parsed > 0) return parsed;
   return fallback;
+};
+
+const resolveUploadedDocType = (type: DocumentType) => {
+  if (type === DocumentType.CNH) return 'CNH';
+  if (type === DocumentType.RG_FRENTE || type === DocumentType.RG_VERSO) {
+    return 'RG';
+  }
+  return null;
 };

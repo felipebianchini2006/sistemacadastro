@@ -1,4 +1,4 @@
-﻿export type PdfJobPayload = {
+export type PdfJobPayload = {
   proposalId: string;
   protocol: string;
   candidate: {
@@ -6,6 +6,12 @@
     email: string;
     phone?: string;
   };
+  requestId: string;
+};
+
+export type DossierJobPayload = {
+  proposalId: string;
+  protocol: string;
   requestId: string;
 };
 

@@ -718,18 +718,11 @@ export class AdminProposalsService {
       throw new NotFoundException('Proposta nao encontrada');
     }
 
-    const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
-    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
     const requestId = randomUUID();
 
-    await this.jobs.enqueuePdf({
+    await this.jobs.enqueueDossierPdf({
       proposalId: proposal.id,
       protocol: proposal.protocol,
-      candidate: {
-        name: proposal.person.fullName,
-        email,
-        phone: phone || undefined,
-      },
       requestId,
     });
 
