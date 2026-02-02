@@ -19,6 +19,7 @@ import {
   PdfJobPayload,
   DossierJobPayload,
   SignatureJobPayload,
+  SignatureCancelJobPayload,
   SignatureAuditJobPayload,
 } from './signature.types';
 
@@ -72,6 +73,10 @@ export class SignatureWorker {
 
     if (job.name === 'dossier.generate') {
       return this.handleDossierJob(job as Job<DossierJobPayload>);
+    }
+
+    if (job.name === 'signature.cancel') {
+      return this.handleCancelJob(job as Job<SignatureCancelJobPayload>);
     }
 
     if (job.name === 'signature.audit') {
@@ -294,6 +299,23 @@ export class SignatureWorker {
         data: { signatureLink: signerLink },
         optIn: true,
       });
+    }
+  }
+
+  private async handleCancelJob(job: Job<SignatureCancelJobPayload>) {
+    const { proposalId, envelopeId } = job.data;
+    if (!envelopeId) return;
+
+    try {
+      await this.clicksign.cancelEnvelope(envelopeId);
+      await prisma.signatureEnvelope.updateMany({
+        where: { envelopeId },
+        data: { status: SignatureStatus.CANCELED },
+      });
+      console.info({ proposalId, envelopeId }, 'signature.canceled');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'cancel_failed';
+      console.warn({ proposalId, envelopeId, message }, 'signature.cancel_failed');
     }
   }
 

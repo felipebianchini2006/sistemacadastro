@@ -27,6 +27,12 @@ export type SignatureJobPayload = {
   requestId: string;
 };
 
+export type SignatureCancelJobPayload = {
+  proposalId: string;
+  envelopeId: string;
+  requestId: string;
+};
+
 export type SignatureAuditJobPayload = {
   proposalId: string;
   envelopeId: string;

@@ -158,7 +158,16 @@ export const ProposalsTable = ({
                 <td className="px-4 py-3">
                   <StatusBadge status={proposal.status} />
                 </td>
-                <td className="px-4 py-3 text-zinc-600">{proposal.type}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-zinc-600">{proposal.type}</span>
+                    {proposal.type === 'MIGRACAO' ? (
+                      <span className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-orange-700">
+                        Migracao
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-zinc-600">
                   {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
                 </td>

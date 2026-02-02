@@ -65,6 +65,21 @@ export type SendMessageDto = {
   message: string;
 };
 
+export type UpdateOcrDto = {
+  documentType?: string;
+  fields?: {
+    nome?: string;
+    cpf?: string;
+    rg_cnh?: string;
+    data_emissao?: string;
+    data_validade?: string;
+    orgao_emissor?: string;
+    uf?: string;
+    cep?: string;
+    endereco?: string;
+  };
+};
+
 export const listProposalsQuerySchema = z.object({
   status: z.nativeEnum(ProposalStatus).optional(),
   type: z.nativeEnum(ProposalType).optional(),
@@ -134,3 +149,23 @@ export const sendMessageSchema = z.object({
   subject: z.string().optional(),
   message: z.string().min(3),
 });
+
+export const updateOcrSchema = z
+  .object({
+    documentType: z.string().min(1).optional(),
+    fields: z
+      .object({
+        nome: z.string().min(1).optional(),
+        cpf: z.string().min(1).optional(),
+        rg_cnh: z.string().min(1).optional(),
+        data_emissao: z.string().min(1).optional(),
+        data_validade: z.string().min(1).optional(),
+        orgao_emissor: z.string().min(1).optional(),
+        uf: z.string().min(1).optional(),
+        cep: z.string().min(1).optional(),
+        endereco: z.string().min(1).optional(),
+      })
+      .partial()
+      .optional(),
+  })
+  .strict();

@@ -23,6 +23,7 @@ import type {
   SendMessageDto,
   RejectProposalDto,
   RequestChangesDto,
+  UpdateOcrDto,
 } from './admin.proposals.dto';
 import {
   assignProposalSchema,
@@ -32,6 +33,7 @@ import {
   sendMessageSchema,
   rejectProposalSchema,
   requestChangesSchema,
+  updateOcrSchema,
 } from './admin.proposals.dto';
 
 type RequestUser = { id: string; roles?: RoleName[] };
@@ -119,6 +121,17 @@ export class AdminProposalsController {
       parsed,
       req.user?.id ?? 'system',
     );
+  }
+
+  @Post(':proposalId/ocr/update')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  updateOcr(
+    @Param('proposalId') proposalId: string,
+    @Body() body: UpdateOcrDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    const parsed = updateOcrSchema.parse(body);
+    return this.service.updateOcr(proposalId, parsed, req.user?.id ?? 'system');
   }
 
   @Post(':proposalId/request-changes')

@@ -14,12 +14,13 @@ import { cn } from '../../../lib/utils';
 const OCR_FIELDS = [
   { key: 'nome', label: 'Nome' },
   { key: 'cpf', label: 'CPF' },
-  { key: 'rg', label: 'RG' },
-  { key: 'cnh', label: 'CNH' },
+  { key: 'rg_cnh', label: 'RG/CNH' },
   { key: 'data_emissao', label: 'Data emissao' },
   { key: 'data_validade', label: 'Data validade' },
   { key: 'orgao_emissor', label: 'Orgao emissor' },
   { key: 'uf', label: 'UF' },
+  { key: 'cep', label: 'CEP' },
+  { key: 'endereco', label: 'Endereco' },
 ];
 
 type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
@@ -33,6 +34,18 @@ const PROFILE_ROLE_LABELS: Record<ProfileRole, string> = {
   OUTRO: 'Outro',
 };
 
+const resolveOcrValue = (data: Record<string, unknown> | null, key: string) => {
+  if (!data) return '';
+  const rawFields =
+    data.fields && typeof data.fields === 'object'
+      ? (data.fields as Record<string, unknown>)
+      : data;
+  const value = rawFields[key] ?? data[key];
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  return String(value);
+};
+
 type ProposalDetails = {
   id: string;
   protocol: string;
@@ -42,6 +55,8 @@ type ProposalDetails = {
   publicToken: string;
   profileRoles?: string[] | null;
   profileRoleOther?: string | null;
+  migrationEntity?: string | null;
+  migrationConfirmed?: boolean | null;
   person: {
     fullName: string;
     cpfMasked?: string | null;
@@ -169,7 +184,21 @@ export default function AdminProposalDetailsPage() {
       state: string;
     };
   };
+  type OcrEditForm = {
+    id: string;
+    documentType: string;
+    nome: string;
+    cpf: string;
+    rg_cnh: string;
+    data_emissao: string;
+    data_validade: string;
+    orgao_emissor: string;
+    uf: string;
+    cep: string;
+    endereco: string;
+  };
   const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [ocrEdit, setOcrEdit] = useState<OcrEditForm | null>(null);
   const [noteText, setNoteText] = useState('');
   const [messageText, setMessageText] = useState('');
   const [messageSubject, setMessageSubject] = useState('');
@@ -177,26 +206,25 @@ export default function AdminProposalDetailsPage() {
 
   const user = getStoredAdminUser();
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await adminFetchWithRefresh<ProposalDetails>(
-          `/admin/proposals/${proposalId}`,
-        );
-        setDetails(response);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Falha ao carregar dossie');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (proposalId) {
-      void load();
+  const loadDetails = useCallback(async () => {
+    if (!proposalId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await adminFetchWithRefresh<ProposalDetails>(
+        `/admin/proposals/${proposalId}`,
+      );
+      setDetails(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao carregar dossie');
+    } finally {
+      setLoading(false);
     }
   }, [proposalId]);
+
+  useEffect(() => {
+    void loadDetails();
+  }, [loadDetails]);
 
   useEffect(() => {
     if (!details || !details.person) return;
@@ -249,12 +277,79 @@ export default function AdminProposalDetailsPage() {
 
   const latestOcr = details?.ocrResults?.[0];
   const latestSignature = details?.signatures?.[0];
+
+  useEffect(() => {
+    if (!latestOcr) {
+      setOcrEdit(null);
+      return;
+    }
+    setOcrEdit((prev) => {
+      if (prev && prev.id === latestOcr.id) return prev;
+      const data = (latestOcr.structuredData as Record<string, unknown> | null) ?? null;
+      return {
+        id: latestOcr.id,
+        documentType: resolveOcrValue(data, 'document_type'),
+        nome: resolveOcrValue(data, 'nome'),
+        cpf: resolveOcrValue(data, 'cpf'),
+        rg_cnh: resolveOcrValue(data, 'rg_cnh'),
+        data_emissao: resolveOcrValue(data, 'data_emissao'),
+        data_validade: resolveOcrValue(data, 'data_validade'),
+        orgao_emissor: resolveOcrValue(data, 'orgao_emissor'),
+        uf: resolveOcrValue(data, 'uf'),
+        cep: resolveOcrValue(data, 'cep'),
+        endereco: resolveOcrValue(data, 'endereco'),
+      } satisfies OcrEditForm;
+    });
+  }, [latestOcr]);
+
+  const updateOcrEdit = (patch: Partial<OcrEditForm>) => {
+    setOcrEdit((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const buildOcrPayload = (form: OcrEditForm) => {
+    const entries: Record<string, string> = {
+      nome: form.nome,
+      cpf: form.cpf,
+      rg_cnh: form.rg_cnh,
+      data_emissao: form.data_emissao,
+      data_validade: form.data_validade,
+      orgao_emissor: form.orgao_emissor,
+      uf: form.uf,
+      cep: form.cep,
+      endereco: form.endereco,
+    };
+    const fields: Record<string, string> = {};
+    Object.entries(entries).forEach(([key, value]) => {
+      const trimmed = value.trim();
+      if (trimmed) fields[key] = trimmed;
+    });
+
+    return {
+      documentType: form.documentType.trim() || undefined,
+      fields: Object.keys(fields).length ? fields : undefined,
+    };
+  };
+
+  const handleSaveOcr = () => {
+    if (!ocrEdit || !details) return;
+    const payload = buildOcrPayload(ocrEdit);
+    return handleAction(async () => {
+      await adminFetchWithRefresh(`/admin/proposals/${details.id}/ocr/update`, {
+        method: 'POST',
+        body: payload,
+      });
+      await loadDetails();
+    });
+  };
   const ocrComparison = useMemo(() => {
     const person = details?.person ?? null;
     if (!latestOcr || !person) return [];
 
     return OCR_FIELDS.map((field) => {
-      const ocrValue = latestOcr.structuredData?.[field.key];
+      const ocrValue = resolveOcrValue(
+        (latestOcr.structuredData as Record<string, unknown> | null) ?? null,
+        field.key,
+      );
       const expected =
         field.key === 'nome'
           ? person.fullName
@@ -263,7 +358,7 @@ export default function AdminProposalDetailsPage() {
             : undefined;
       return {
         label: field.label,
-        ocr: typeof ocrValue === 'string' ? ocrValue : ocrValue ? String(ocrValue) : '-',
+        ocr: ocrValue || '-',
         expected: expected ?? '-',
         match: undefined as boolean | undefined,
       };
@@ -278,6 +373,32 @@ export default function AdminProposalDetailsPage() {
       at: entry.createdAt,
       reason: entry.reason ?? undefined,
     }));
+  }, [details]);
+
+  const migrationChecklist = useMemo(() => {
+    if (!details || details.type !== 'MIGRACAO') return null;
+    const docTypes = new Set(details.documents.map((doc) => doc.type));
+    const hasRg = docTypes.has('RG_FRENTE') && docTypes.has('RG_VERSO');
+    const hasCnh = docTypes.has('CNH');
+    return [
+      {
+        label: 'Entidade anterior informada',
+        ok: Boolean(details.migrationEntity && details.migrationEntity.trim()),
+        value: details.migrationEntity ?? '',
+      },
+      {
+        label: 'Confirmacao de migracao',
+        ok: Boolean(details.migrationConfirmed),
+      },
+      {
+        label: 'Declaracao de desfilicao enviada',
+        ok: docTypes.has('DESFILIACAO'),
+      },
+      {
+        label: 'Documento principal (RG ou CNH)',
+        ok: hasRg || hasCnh,
+      },
+    ];
   }, [details]);
 
   const handleAction = async (action: () => Promise<unknown>) => {
@@ -467,6 +588,40 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
+            {migrationChecklist ? (
+              <section className="rounded-3xl border border-orange-200 bg-orange-50/40 p-6 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-zinc-900">Checklist de migracao</h3>
+                  <span className="rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-semibold text-orange-700">
+                    Migracao
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-2 text-sm">
+                  {migrationChecklist.map((item) => (
+                    <div
+                      key={item.label}
+                      className={cn(
+                        'flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3',
+                        item.ok
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                          : 'border-amber-200 bg-amber-50 text-amber-800',
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em]">
+                          {item.ok ? 'OK' : 'Pendente'}
+                        </span>
+                        <span className="font-semibold text-zinc-900">{item.label}</span>
+                      </div>
+                      {item.value ? (
+                        <span className="text-xs text-zinc-600">{item.value}</span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-zinc-900">OCR extraido</h3>
               {latestOcr ? (
@@ -500,6 +655,109 @@ export default function AdminProposalDetailsPage() {
                   OCR ainda nao processado.
                 </div>
               )}
+
+              {can(user?.roles, 'update') && ocrEdit ? (
+                <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-900">Editar OCR</p>
+                      <p className="text-xs text-zinc-500">
+                        Ajuste os dados extraidos pelo OCR antes de seguir o fluxo.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      Tipo de documento
+                      <input
+                        value={ocrEdit.documentType}
+                        onChange={(event) => updateOcrEdit({ documentType: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        placeholder="RG ou CNH"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      Nome
+                      <input
+                        value={ocrEdit.nome}
+                        onChange={(event) => updateOcrEdit({ nome: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      CPF
+                      <input
+                        value={ocrEdit.cpf}
+                        onChange={(event) => updateOcrEdit({ cpf: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      RG/CNH
+                      <input
+                        value={ocrEdit.rg_cnh}
+                        onChange={(event) => updateOcrEdit({ rg_cnh: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      Data emissao
+                      <input
+                        value={ocrEdit.data_emissao}
+                        onChange={(event) => updateOcrEdit({ data_emissao: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        placeholder="YYYY-MM-DD"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      Data validade
+                      <input
+                        value={ocrEdit.data_validade}
+                        onChange={(event) => updateOcrEdit({ data_validade: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        placeholder="YYYY-MM-DD"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      Orgao emissor
+                      <input
+                        value={ocrEdit.orgao_emissor}
+                        onChange={(event) => updateOcrEdit({ orgao_emissor: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      UF
+                      <input
+                        value={ocrEdit.uf}
+                        onChange={(event) => updateOcrEdit({ uf: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      CEP
+                      <input
+                        value={ocrEdit.cep}
+                        onChange={(event) => updateOcrEdit({ cep: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                      Endereco
+                      <input
+                        value={ocrEdit.endereco}
+                        onChange={(event) => updateOcrEdit({ endereco: event.target.value })}
+                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-4 flex items-center gap-3">
+                    <Button variant="secondary" onClick={handleSaveOcr} disabled={sending}>
+                      Salvar OCR
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">

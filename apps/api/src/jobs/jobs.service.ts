@@ -138,6 +138,27 @@ export class JobsService implements OnModuleDestroy {
     );
   }
 
+  async enqueueSignatureCancel(payload: {
+    proposalId: string;
+    envelopeId: string;
+    requestId?: string;
+  }) {
+    const requestId = payload.requestId ?? randomUUID();
+    await this.signatureQueue.add(
+      'signature.cancel',
+      {
+        proposalId: payload.proposalId,
+        envelopeId: payload.envelopeId,
+        requestId,
+      },
+      {
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+      },
+    );
+  }
+
   async enqueueSignatureAudit(payload: {
     proposalId: string;
     envelopeId: string;

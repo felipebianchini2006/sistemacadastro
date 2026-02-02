@@ -111,7 +111,7 @@ export class ClicksignClient {
     });
   }
 
-  async updateEnvelope(envelopeId: string, status: 'draft' | 'running') {
+  async updateEnvelope(envelopeId: string, status: 'draft' | 'running' | 'canceled') {
     return this.request(`/api/v3/envelopes/${envelopeId}`, {
       method: 'PATCH',
       body: {
@@ -124,6 +124,10 @@ export class ClicksignClient {
         },
       },
     });
+  }
+
+  async cancelEnvelope(envelopeId: string) {
+    return this.updateEnvelope(envelopeId, 'canceled');
   }
 
   async notifyEnvelope(envelopeId: string) {

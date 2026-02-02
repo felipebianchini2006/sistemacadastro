@@ -30,6 +30,7 @@ import {
   SendMessageDto,
   RejectProposalDto,
   RequestChangesDto,
+  UpdateOcrDto,
 } from './admin.proposals.dto';
 import {
   normalizePhone,
@@ -488,6 +489,55 @@ export class AdminProposalsService {
     return { ok: true };
   }
 
+  async updateOcr(proposalId: string, dto: UpdateOcrDto, adminUserId: string) {
+    const ocr = await this.prisma.ocrResult.findFirst({
+      where: { proposalId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!ocr) {
+      throw new NotFoundException('OCR nao encontrado');
+    }
+
+    const structured =
+      (ocr.structuredData as Record<string, unknown> | null) ?? {};
+    const currentFields =
+      structured.fields && typeof structured.fields === 'object'
+        ? (structured.fields as Record<string, unknown>)
+        : {};
+
+    const updates: Record<string, string> = {};
+    if (dto.fields) {
+      for (const [key, value] of Object.entries(dto.fields)) {
+        if (typeof value !== 'string') continue;
+        const trimmed = value.trim();
+        if (!trimmed) continue;
+        updates[key] = trimmed;
+      }
+    }
+
+    const next: Record<string, unknown> = { ...structured };
+    if (Object.keys(updates).length > 0) {
+      next.fields = { ...currentFields, ...updates };
+    }
+    if (dto.documentType && dto.documentType.trim()) {
+      next.document_type = dto.documentType.trim();
+    }
+
+    await this.prisma.ocrResult.update({
+      where: { id: ocr.id },
+      data: { structuredData: next as Prisma.InputJsonValue },
+    });
+
+    await this.createAuditLog(adminUserId, proposalId, 'OCR_UPDATE', {
+      ocrId: ocr.id,
+      fields: Object.keys(updates),
+      documentType: dto.documentType?.trim() || null,
+    });
+
+    return { ok: true };
+  }
+
   async addNote(proposalId: string, dto: AddNoteDto, adminUserId: string) {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id: proposalId },
@@ -659,6 +709,10 @@ export class AdminProposalsService {
       await this.prisma.signatureEnvelope.update({
         where: { id: latestEnvelope.id },
         data: { status: SignatureStatus.CANCELED },
+      });
+      await this.jobs.enqueueSignatureCancel({
+        proposalId: proposal.id,
+        envelopeId: latestEnvelope.envelopeId,
       });
     }
 

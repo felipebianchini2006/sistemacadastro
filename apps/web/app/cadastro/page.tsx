@@ -1650,11 +1650,11 @@ export default function CadastroPage() {
                   Modelo de declaracao de desfiliação
                 </p>
                 <p className="mt-1 text-xs text-blue-600">
-                  Nao tem a declaracao? Baixe nosso modelo, preencha e assine.
+                  Nao tem a declaracao? Baixe nosso modelo em PDF, preencha e assine.
                 </p>
                 <button
                   type="button"
-                  onClick={() => downloadDesfilicaoTemplate(form.fullName || 'Candidato')}
+                  onClick={() => downloadDesfilicaoTemplate()}
                   className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2396,49 +2396,13 @@ const SocialConnectionsStep = ({
 };
 
 // Função para gerar e baixar template de desfiliação
-const downloadDesfilicaoTemplate = (nome: string) => {
-  const data = new Date().toLocaleDateString('pt-BR');
-  const conteudo = `
-DECLARAÇÃO DE DESFILIAÇÃO
-
-Eu, ${nome}, portador(a) do CPF ________________________________,
-declaro para os devidos fins que:
-
-1. Sou filiado(a) à entidade de gestão coletiva: ________________________________
-
-2. Solicito formalmente o cancelamento da minha filiação referente à 
-execução pública do meu repertório musical, conforme previsto no 
-Estatuto Social e Regulamento da entidade acima mencionada.
-
-3. Estou ciente de que a presente desfiliação terá efeitos a partir 
-da data de protocolo deste pedido junto à entidade de origem.
-
-4. Declaro que desejo migrar minha filiação para a SBACEM 
-(Sociedade Brasileira de Administração e Comunicação Musical).
-
-Data: ${data}
-
-____________________________________
-Assinatura do declarante
-
-____________________________________
-Nome por extenso
-
-Observações:
-- Esta declaração deve ser assinada de próprio punho
-- Anexar cópia do documento de identidade
-- O prazo de processamento é de até 30 dias úteis
-`;
-
-  const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+const downloadDesfilicaoTemplate = () => {
   const link = document.createElement('a');
-  link.href = url;
-  link.download = `declaracao-desfilicao-${nome.toLowerCase().replace(/\s+/g, '-')}.txt`;
+  link.href = '/templates/declaracao-desfilicao.pdf';
+  link.download = 'declaracao-desfilicao.pdf';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 };
 
 const UploadCard = ({
