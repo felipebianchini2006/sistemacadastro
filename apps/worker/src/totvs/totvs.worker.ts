@@ -65,7 +65,18 @@ export class TotvsWorker {
           },
         },
         address: true,
-        documents: true,
+        documents: {
+          where: {
+            type: {
+              in: [
+                DocumentType.RG_FRENTE,
+                DocumentType.RG_VERSO,
+                DocumentType.CNH,
+                DocumentType.COMPROVANTE_RESIDENCIA,
+              ],
+            },
+          },
+        },
         totvsSync: true,
       },
     });
@@ -110,6 +121,7 @@ export class TotvsWorker {
       email,
       phone,
       birthDate: proposal.person.birthDate ?? undefined,
+      address: proposal.address ?? undefined,
       documents: proposal.documents,
       bankAccount,
       socialProfiles,
@@ -301,7 +313,16 @@ const buildTotvsPayload = (input: {
   email: string;
   phone: string;
   birthDate?: Date | null;
-  documents: Array<{ type: DocumentType; storageKey: string }>;
+  address?: {
+    cep?: string | null;
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    district?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
+  documents: Array<{ type: DocumentType; storageKey: string; fileName?: string | null }>;
   bankAccount?: {
     bankCode?: string | null;
     bankName?: string | null;
@@ -324,41 +345,69 @@ const buildTotvsPayload = (input: {
   const birth = input.birthDate ? formatDate(input.birthDate) : undefined;
 
   const rgDoc = input.documents.find((doc) => doc.type === DocumentType.RG_FRENTE);
+  const rgVersoDoc = input.documents.find((doc) => doc.type === DocumentType.RG_VERSO);
   const cnhDoc = input.documents.find((doc) => doc.type === DocumentType.CNH);
   const comprovante = input.documents.find(
     (doc) => doc.type === DocumentType.COMPROVANTE_RESIDENCIA,
   );
 
-  return {
-    nome: input.fullName,
-    cpf: cpfDigits,
-    data_nascimento: birth,
-    email: input.email,
-    telefone: phoneFormatted,
-    perfil_artistico: input.profileRoles,
-    documentos: {
-      rg: rgDoc?.storageKey ?? cnhDoc?.storageKey ?? null,
-      comprovante: comprovante?.storageKey ?? null,
-    },
-    dados_bancarios: input.bankAccount
-      ? {
-          banco: input.bankAccount.bankCode ?? input.bankAccount.bankName ?? null,
-          agencia: input.bankAccount.agency ?? null,
-          conta: input.bankAccount.account ?? null,
-          tipo: input.bankAccount.accountType ?? null,
-          titular: input.bankAccount.holderName ?? null,
-          documento_titular: input.bankAccount.holderDocument ?? null,
-          pix_chave: input.bankAccount.pixKey ?? null,
-          pix_tipo: input.bankAccount.pixKeyType ?? null,
-        }
-      : null,
-    redes_sociais: input.socialProfiles ?? [],
-    metadata: {
-      proposalId: input.proposalId,
-      proposalType: input.proposalType,
-      requestId: input.requestId,
-    },
+  // Mapeamento conforme spec Totvs: A1_NOME, A1_CGC, A1_DTNASC, A1_EMAIL, A1_TEL, etc
+  const payload: Record<string, unknown> = {
+    // Campos obrigatorios
+    nome: input.fullName, // A1_NOME
+    cpf: cpfDigits, // A1_CGC
+    email: input.email, // A1_EMAIL
+    telefone: phoneFormatted, // A1_TEL
   };
+
+  // Campos opcionais
+  if (birth) {
+    payload.data_nascimento = birth; // A1_DTNASC
+  }
+
+  if (input.address) {
+    payload.endereco = formatAddress(input.address); // A1_END
+    payload.municipio = input.address.city ?? null; // A1_MUN
+    payload.estado = input.address.state ?? null; // A1_EST
+    payload.cep = input.address.cep ? input.address.cep.replace(/\D+/g, '') : null; // A1_CEP
+    payload.bairro = input.address.district ?? null;
+    payload.numero = input.address.number ?? null;
+    payload.complemento = input.address.complement ?? null;
+  }
+
+  payload.perfil_artistico = input.profileRoles;
+
+  // Documentos - envia storageKey (URLs S3) que o Totvs pode baixar
+  payload.documentos = {
+    rg_frente: rgDoc?.storageKey ?? null,
+    rg_verso: rgVersoDoc?.storageKey ?? null,
+    cnh: cnhDoc?.storageKey ?? null,
+    comprovante_residencia: comprovante?.storageKey ?? null,
+  };
+
+  // Dados bancarios conforme spec: A1_BANCO, A1_AGENCIA, A1_CONTA
+  if (input.bankAccount) {
+    payload.dados_bancarios = {
+      banco: input.bankAccount.bankCode ?? input.bankAccount.bankName ?? null, // A1_BANCO
+      agencia: input.bankAccount.agency ?? null, // A1_AGENCIA
+      conta: input.bankAccount.account ?? null, // A1_CONTA
+      tipo_conta: input.bankAccount.accountType ?? null,
+      titular: input.bankAccount.holderName ?? null,
+      documento_titular: input.bankAccount.holderDocument ?? null,
+      pix_chave: input.bankAccount.pixKey ?? null,
+      pix_tipo: input.bankAccount.pixKeyType ?? null,
+    };
+  }
+
+  payload.redes_sociais = input.socialProfiles ?? [];
+
+  payload.metadata = {
+    proposalId: input.proposalId,
+    proposalType: input.proposalType,
+    requestId: input.requestId,
+  };
+
+  return payload;
 };
 
 const extractExternalId = (payload: any) => {
@@ -390,6 +439,19 @@ const formatPhone = (value: string) => {
     }
   }
   return value;
+};
+
+const formatAddress = (address: {
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  district?: string | null;
+}) => {
+  const parts: string[] = [];
+  if (address.street) parts.push(address.street);
+  if (address.number) parts.push(address.number);
+  if (address.complement) parts.push(address.complement);
+  return parts.join(', ') || null;
 };
 
 const hashValue = (value: string) => createHash('sha256').update(value).digest('hex');

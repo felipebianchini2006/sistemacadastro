@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "allow": ["Bash(cd /c/projetos/cliente freelas/sistemacadastro)"]
+    "allow": ["Bash(cd /c/projetos/cliente freelas/sistemacadastro)", "Bash(wc:*)"]
   }
 }

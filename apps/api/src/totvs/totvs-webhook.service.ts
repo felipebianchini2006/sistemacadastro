@@ -17,10 +17,19 @@ export class TotvsWebhookService {
       return { ok: true };
     }
 
-    if (externalId) {
-      await this.prisma.totvsSync.updateMany({
-        where: { externalId },
-        data: {
+    // Atualiza TotvsSync com externalId (conciliacao bidirecional)
+    if (externalId && proposalId) {
+      await this.prisma.totvsSync.upsert({
+        where: { proposalId },
+        create: {
+          proposalId,
+          externalId,
+          status: 'SYNCED' as any,
+          lastSyncAt: new Date(),
+          map: payload as any,
+        },
+        update: {
+          externalId,
           lastSyncAt: new Date(),
           map: payload as any,
         },
