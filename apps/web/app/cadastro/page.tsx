@@ -711,6 +711,25 @@ export default function CadastroPage() {
       const meta = await ensureDraft(payload);
       const isImage = file.type.startsWith('image/');
       const dimensions = isImage ? await loadImageSize(file) : null;
+
+      // Validacao de legibilidade minima da imagem
+      if (isImage && dimensions) {
+        const minWidth = 600;
+        const minHeight = 600;
+        const minSize = 20000; // 20KB
+
+        if (dimensions.width < minWidth || dimensions.height < minHeight) {
+          throw new Error(
+            `Imagem muito pequena (${dimensions.width}x${dimensions.height}px). Mínimo: ${minWidth}x${minHeight}px.`,
+          );
+        }
+
+        if (file.size < minSize) {
+          throw new Error(
+            `Arquivo muito pequeno (${Math.round(file.size / 1024)}KB). Mínimo: ${Math.round(minSize / 1024)}KB. Tente uma foto de melhor qualidade.`,
+          );
+        }
+      }
       const presign = await apiFetch<{
         uploadUrl: string;
         headers: Record<string, string>;
@@ -2414,45 +2433,65 @@ const UploadCard = ({
   state: UploadState;
   onSelect: (file: File) => void;
 }) => {
+  const [showGuidelines, setShowGuidelines] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTakePhoto = () => {
+    setShowGuidelines(true);
+  };
+
+  const handleProceedToCamera = () => {
+    setShowGuidelines(false);
+    fileInputRef.current?.click();
+  };
+
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="text-sm font-semibold text-zinc-700">{title}</h4>
-          <p className="text-xs text-zinc-500">
+    <>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-semibold text-zinc-700">{title}</h4>
+            <p className="text-xs text-zinc-500">
+              {state.status === 'uploaded'
+                ? `Enviado: ${state.fileName ?? 'ok'}`
+                : 'JPEG, PNG ou PDF'}
+            </p>
+          </div>
+          <span
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-semibold',
+              state.status === 'uploaded'
+                ? 'bg-emerald-100 text-emerald-700'
+                : state.status === 'uploading'
+                  ? 'bg-amber-100 text-amber-700'
+                  : state.status === 'error'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-zinc-100 text-zinc-600',
+            )}
+          >
             {state.status === 'uploaded'
-              ? `Enviado: ${state.fileName ?? 'ok'}`
-              : 'JPEG, PNG ou PDF'}
-          </p>
-        </div>
-        <span
-          className={cn(
-            'rounded-full px-3 py-1 text-xs font-semibold',
-            state.status === 'uploaded'
-              ? 'bg-emerald-100 text-emerald-700'
+              ? 'ok'
               : state.status === 'uploading'
-                ? 'bg-amber-100 text-amber-700'
+                ? 'enviando'
                 : state.status === 'error'
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-zinc-100 text-zinc-600',
-          )}
-        >
-          {state.status === 'uploaded'
-            ? 'ok'
-            : state.status === 'uploading'
-              ? 'enviando'
-              : state.status === 'error'
-                ? 'erro'
-                : 'pendente'}
-        </span>
-      </div>
-      <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-          Como enviar
-        </span>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-orange-200 hover:bg-orange-50">
+                  ? 'erro'
+                  : 'pendente'}
+          </span>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            Como enviar
+          </span>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={handleTakePhoto}
+              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50"
+            >
+              Tirar foto
+            </button>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               capture="environment"
@@ -2462,23 +2501,88 @@ const UploadCard = ({
                 if (file) onSelect(file);
               }}
             />
-            Tirar foto
-          </label>
-          <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-orange-200 hover:bg-orange-50">
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) onSelect(file);
-              }}
-            />
-            Enviar arquivo
-          </label>
+            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50">
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onSelect(file);
+                }}
+              />
+              Enviar arquivo
+            </label>
+          </div>
         </div>
+        {state.error ? <p className="mt-2 text-xs text-red-600">{state.error}</p> : null}
       </div>
-      {state.error ? <p className="mt-2 text-xs text-red-600">{state.error}</p> : null}
-    </div>
+
+      {showGuidelines && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-zinc-900">Prepare-se para capturar</h3>
+              <p className="mt-1 text-sm text-zinc-600">
+                Siga essas dicas para garantir uma foto de qualidade
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                  <span className="text-sm font-bold text-[#ff6b35]">1</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-zinc-900">Use boa iluminação</h4>
+                  <p className="text-sm text-zinc-600">
+                    Fotografe em local bem iluminado, preferencialmente com luz natural
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                  <span className="text-sm font-bold text-[#ff6b35]">2</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-zinc-900">Evite reflexos e sombras</h4>
+                  <p className="text-sm text-zinc-600">
+                    Não use flash e evite superfícies que reflitam luz
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                  <span className="text-sm font-bold text-[#ff6b35]">3</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-zinc-900">Mantenha o documento legível</h4>
+                  <p className="text-sm text-zinc-600">
+                    Certifique-se de que todos os textos estão nítidos e centralizados
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={() => setShowGuidelines(false)}
+                className="min-h-[44px] rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleProceedToCamera}
+                className="min-h-[44px] rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722]"
+              >
+                Entendi, tirar foto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

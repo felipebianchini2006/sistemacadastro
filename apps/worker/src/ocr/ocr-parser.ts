@@ -286,9 +286,43 @@ export const parseAddressText = (rawText: string) => {
   const cep = extractCep(lines, normalized);
   const endereco = extractAddressLine(lines, cep);
 
+  // Extrai cidade e estado (geralmente aparecem juntos)
+  let cidade: string | undefined;
+  let estado: string | undefined;
+  for (const line of lines) {
+    const upper = normalizeUpper(line);
+    // Procura por padrões: CIDADE - UF, CIDADE/UF, CIDADE UF
+    const match = upper.match(
+      /([A-Z\s]+?)[\s\-\/]+(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/,
+    );
+    if (match) {
+      cidade = match[1].trim();
+      estado = match[2];
+      break;
+    }
+  }
+
+  // Extrai bairro (geralmente aparece antes ou depois do CEP)
+  let bairro: string | undefined;
+  const cepIndex = lines.findIndex((line) => CEP_REGEX.test(line));
+  if (cepIndex >= 0) {
+    // Tenta linha anterior ao CEP
+    const beforeCep = lines[cepIndex - 2]?.trim();
+    if (beforeCep && beforeCep.length > 3 && beforeCep.length < 50) {
+      const upper = normalizeUpper(beforeCep);
+      // Ignora linhas que parecem endereço ou CEP
+      if (!upper.match(/^(RUA|AV|AVENIDA|TRAVESSA|ALAMEDA|PRACA|RODOVIA|CEP)/)) {
+        bairro = beforeCep;
+      }
+    }
+  }
+
   return {
     cep,
     endereco,
+    cidade,
+    estado,
+    bairro,
   };
 };
 
