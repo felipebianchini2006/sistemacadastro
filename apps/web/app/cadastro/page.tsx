@@ -30,6 +30,14 @@ type DocumentChoice = 'RG' | 'CNH';
 type DocumentType = 'RG_FRENTE' | 'RG_VERSO' | 'CNH' | 'DESFILIACAO' | 'COMPROVANTE_RESIDENCIA';
 type BankAccountType = 'CC' | 'CP';
 type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'TELEFONE' | 'ALEATORIA' | 'OUTRO';
+type SocialProvider = 'SPOTIFY' | 'YOUTUBE' | 'INSTAGRAM' | 'FACEBOOK';
+
+type SocialConnection = {
+  provider: SocialProvider;
+  connected: boolean;
+  connectedAt?: string;
+  profile?: Record<string, unknown>;
+};
 
 type DraftMeta = {
   draftId: string;
@@ -88,6 +96,7 @@ type DraftFormState = {
     desfiliacao: UploadState;
     residence: UploadState;
   };
+  socialConnections: SocialConnection[];
 };
 
 type SubmissionState = {
@@ -140,6 +149,7 @@ const baseSteps = [
   { id: 'perfil', title: 'Perfil', subtitle: 'Quem esta solicitando' },
   { id: 'dados', title: 'Dados', subtitle: 'Informacoes pessoais' },
   { id: 'documentos', title: 'Docs', subtitle: 'Upload e OCR' },
+  { id: 'redes', title: 'Redes', subtitle: 'Conecte suas redes' },
   { id: 'revisao', title: 'Revisao', subtitle: 'Confirme tudo' },
 ];
 
@@ -148,6 +158,7 @@ const migrationSteps = [
   { id: 'dados', title: 'Dados', subtitle: 'Informacoes pessoais' },
   { id: 'migracao', title: 'Migracao', subtitle: 'Entidade anterior' },
   { id: 'documentos', title: 'Docs', subtitle: 'Upload e OCR' },
+  { id: 'redes', title: 'Redes', subtitle: 'Conecte suas redes' },
   { id: 'revisao', title: 'Revisao', subtitle: 'Confirme tudo' },
 ];
 
@@ -194,6 +205,7 @@ const defaultForm: DraftFormState = {
     desfiliacao: { status: 'idle' },
     residence: { status: 'idle' },
   },
+  socialConnections: [],
 };
 
 const safeTrim = (value: string) => value.trim();
@@ -264,6 +276,17 @@ const buildDraftPayload = (form: DraftFormState) => {
   };
   const hasBank = Object.values(bank).some((value) => value);
   if (hasBank) payload.bank = bank;
+
+  // Redes sociais conectadas
+  if (form.socialConnections.length > 0) {
+    payload.socialConnections = form.socialConnections
+      .filter((conn) => conn.connected)
+      .map((conn) => ({
+        provider: conn.provider,
+        connectedAt: conn.connectedAt,
+        profile: conn.profile,
+      }));
+  }
 
   return payload;
 };
@@ -468,6 +491,7 @@ export default function CadastroPage() {
           ...defaultForm.bank,
           ...(parsedForm.bank ?? {}),
         },
+        socialConnections: parsedForm.socialConnections ?? [],
         documents: {
           ...defaultForm.documents,
           ...parsedDocs,
@@ -1621,6 +1645,30 @@ export default function CadastroPage() {
                 </label>
               </div>
 
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-semibold text-blue-800">
+                  Modelo de declaracao de desfiliação
+                </p>
+                <p className="mt-1 text-xs text-blue-600">
+                  Nao tem a declaracao? Baixe nosso modelo, preencha e assine.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => downloadDesfilicaoTemplate(form.fullName || 'Candidato')}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Baixar modelo (PDF)
+                </button>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <UploadCard
                   title="Declaracao de desfiliação"
@@ -1873,6 +1921,18 @@ export default function CadastroPage() {
             </StepLayout>
           ) : null}
 
+          {currentStep === 'redes' ? (
+            <SocialConnectionsStep
+              form={form}
+              updateForm={updateForm}
+              draftMeta={draftMeta}
+              onNext={handleNext}
+              onBack={handleBack}
+              ensureDraft={ensureDraft}
+              buildPayload={buildPayload}
+            />
+          ) : null}
+
           {currentStep === 'revisao' ? (
             <StepLayout
               title="Revisao final"
@@ -1909,6 +1969,17 @@ export default function CadastroPage() {
                   <span>
                     {form.bank.account ? 'Dados bancarios informados' : 'Dados bancarios opcionais'}
                   </span>
+                  {form.socialConnections.filter((c) => c.connected).length > 0 ? (
+                    <span>
+                      Redes conectadas:{' '}
+                      {form.socialConnections
+                        .filter((c) => c.connected)
+                        .map((c) => c.provider)
+                        .join(', ')}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400">Nenhuma rede social conectada</span>
+                  )}
                 </div>
               </div>
 
@@ -2045,6 +2116,330 @@ export default function CadastroPage() {
     </div>
   );
 }
+
+// Componente para etapa de Redes Sociais
+type SocialConnectionsStepProps = {
+  form: DraftFormState;
+  updateForm: (patch: Partial<DraftFormState>) => void;
+  draftMeta: DraftMeta | null;
+  onNext: () => void;
+  onBack: () => void;
+  ensureDraft: (payload: Record<string, unknown>) => Promise<DraftMeta>;
+  buildPayload: () => Record<string, unknown>;
+};
+
+const SocialConnectionsStep = ({
+  form,
+  updateForm,
+  draftMeta,
+  onNext,
+  onBack,
+  ensureDraft,
+  buildPayload,
+}: SocialConnectionsStepProps) => {
+  const [connecting, setConnecting] = useState<SocialProvider | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const socialProviders: Array<{
+    id: SocialProvider;
+    name: string;
+    description: string;
+    icon: string;
+    color: string;
+  }> = [
+    {
+      id: 'SPOTIFY',
+      name: 'Spotify',
+      description: 'Compartilhe seu perfil e top tracks',
+      icon: '🎵',
+      color: 'bg-green-500',
+    },
+    {
+      id: 'YOUTUBE',
+      name: 'YouTube',
+      description: 'Conecte seu canal e estatísticas',
+      icon: '📺',
+      color: 'bg-red-500',
+    },
+    {
+      id: 'INSTAGRAM',
+      name: 'Instagram',
+      description: 'Vincule seu perfil profissional',
+      icon: '📷',
+      color: 'bg-pink-500',
+    },
+    {
+      id: 'FACEBOOK',
+      name: 'Facebook',
+      description: 'Conecte sua página de artista',
+      icon: '👥',
+      color: 'bg-blue-500',
+    },
+  ];
+
+  const isConnected = (provider: SocialProvider) => {
+    return form.socialConnections.some((conn) => conn.provider === provider && conn.connected);
+  };
+
+  const getConnection = (provider: SocialProvider) => {
+    return form.socialConnections.find((conn) => conn.provider === provider);
+  };
+
+  const handleConnect = async (provider: SocialProvider) => {
+    if (!draftMeta) {
+      // Precisa garantir que temos um draft primeiro
+      setConnecting(provider);
+      setError(null);
+      try {
+        const payload = buildPayload();
+        const meta = await ensureDraft(payload);
+
+        // Abrir popup de OAuth
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+
+        const authUrl = `/api/public/social/authorize?provider=${provider.toLowerCase()}&proposalId=${meta.draftId}&token=${meta.draftToken}`;
+
+        const popup = window.open(
+          authUrl,
+          `oauth-${provider}`,
+          `width=${width},height=${height},left=${left},top=${top},popup=1`,
+        );
+
+        if (!popup) {
+          setError('Popup bloqueado. Permita popups para este site.');
+          setConnecting(null);
+          return;
+        }
+
+        // Monitorar se o popup foi fechado
+        const checkClosed = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            setConnecting(null);
+            // Adicionar como conectado (simulado - em produção, verificar no backend)
+            addConnection(provider);
+          }
+        }, 1000);
+      } catch (err) {
+        setError('Erro ao iniciar conexão. Tente novamente.');
+        setConnecting(null);
+      }
+    } else {
+      // Já tem draft, conectar diretamente
+      setConnecting(provider);
+      setError(null);
+
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const authUrl = `/api/public/social/authorize?provider=${provider.toLowerCase()}&proposalId=${draftMeta.draftId}&token=${draftMeta.draftToken}`;
+
+      const popup = window.open(
+        authUrl,
+        `oauth-${provider}`,
+        `width=${width},height=${height},left=${left},top=${top},popup=1`,
+      );
+
+      if (!popup) {
+        setError('Popup bloqueado. Permita popups para este site.');
+        setConnecting(null);
+        return;
+      }
+
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          setConnecting(null);
+          addConnection(provider);
+        }
+      }, 1000);
+    }
+  };
+
+  const addConnection = (provider: SocialProvider) => {
+    const existing = form.socialConnections.find((c) => c.provider === provider);
+    if (!existing) {
+      updateForm({
+        socialConnections: [
+          ...form.socialConnections,
+          {
+            provider,
+            connected: true,
+            connectedAt: new Date().toISOString(),
+          },
+        ],
+      });
+    }
+  };
+
+  const handleDisconnect = (provider: SocialProvider) => {
+    updateForm({
+      socialConnections: form.socialConnections.filter((conn) => conn.provider !== provider),
+    });
+  };
+
+  const connectedCount = form.socialConnections.filter((c) => c.connected).length;
+
+  return (
+    <StepLayout
+      title="Conecte suas redes sociais"
+      description="Opcional: conecte seus perfis profissionais para enriquecer seu cadastro."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onBack}>
+            Voltar
+          </Button>
+          <Button onClick={onNext}>Continuar</Button>
+        </>
+      }
+    >
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+          Perfis conectados
+        </p>
+        <p className="mt-1 text-sm text-zinc-600">
+          {connectedCount === 0
+            ? 'Nenhuma rede conectada ainda.'
+            : `${connectedCount} ${connectedCount === 1 ? 'rede conectada' : 'redes conectadas'}`}
+        </p>
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4">
+        {socialProviders.map((provider) => {
+          const connected = isConnected(provider.id);
+          const connection = getConnection(provider.id);
+
+          return (
+            <div
+              key={provider.id}
+              className={cn(
+                'rounded-2xl border p-4 transition-all',
+                connected
+                  ? 'border-emerald-200 bg-emerald-50/50'
+                  : 'border-zinc-200 bg-white hover:border-orange-200',
+              )}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      'flex h-10 w-10 items-center justify-center rounded-full text-lg',
+                      provider.color,
+                      'text-white',
+                    )}
+                  >
+                    {provider.icon}
+                  </span>
+                  <div>
+                    <h4 className="font-semibold text-zinc-900">{provider.name}</h4>
+                    <p className="text-xs text-zinc-500">{provider.description}</p>
+                    {connected && connection?.connectedAt ? (
+                      <p className="mt-1 text-xs text-emerald-600">
+                        Conectado em {new Date(connection.connectedAt).toLocaleDateString('pt-BR')}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div>
+                  {connected ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDisconnect(provider.id)}
+                      className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                    >
+                      Desconectar
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnect(provider.id)}
+                      disabled={connecting === provider.id}
+                      className={cn(
+                        'rounded-full px-4 py-1.5 text-xs font-semibold transition-all',
+                        connecting === provider.id
+                          ? 'bg-zinc-100 text-zinc-400 cursor-wait'
+                          : 'bg-[#ff6b35] text-white hover:bg-[#e55a2b]',
+                      )}
+                    >
+                      {connecting === provider.id ? 'Conectando...' : 'Conectar'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-500">
+        <p className="font-semibold text-zinc-700">Por que conectar?</p>
+        <ul className="mt-2 grid gap-1">
+          <li>• Enriquece seu perfil artístico na SBACEM</li>
+          <li>• Ajuda na validação da sua atuação profissional</li>
+          <li>• Pode agilizar a análise da sua proposta</li>
+          <li>• Seus dados são protegidos e você pode desconectar a qualquer momento</li>
+        </ul>
+      </div>
+    </StepLayout>
+  );
+};
+
+// Função para gerar e baixar template de desfiliação
+const downloadDesfilicaoTemplate = (nome: string) => {
+  const data = new Date().toLocaleDateString('pt-BR');
+  const conteudo = `
+DECLARAÇÃO DE DESFILIAÇÃO
+
+Eu, ${nome}, portador(a) do CPF ________________________________,
+declaro para os devidos fins que:
+
+1. Sou filiado(a) à entidade de gestão coletiva: ________________________________
+
+2. Solicito formalmente o cancelamento da minha filiação referente à 
+execução pública do meu repertório musical, conforme previsto no 
+Estatuto Social e Regulamento da entidade acima mencionada.
+
+3. Estou ciente de que a presente desfiliação terá efeitos a partir 
+da data de protocolo deste pedido junto à entidade de origem.
+
+4. Declaro que desejo migrar minha filiação para a SBACEM 
+(Sociedade Brasileira de Administração e Comunicação Musical).
+
+Data: ${data}
+
+____________________________________
+Assinatura do declarante
+
+____________________________________
+Nome por extenso
+
+Observações:
+- Esta declaração deve ser assinada de próprio punho
+- Anexar cópia do documento de identidade
+- O prazo de processamento é de até 30 dias úteis
+`;
+
+  const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `declaracao-desfilicao-${nome.toLowerCase().replace(/\s+/g, '-')}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
 const UploadCard = ({
   title,
