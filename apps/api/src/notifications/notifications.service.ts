@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { NotificationChannel, NotificationStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { AdminPushService } from '../admin/admin.push.service';
 import {
   NotificationTemplateKey,
   NotificationTemplateData,
@@ -14,6 +15,8 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: JobsService,
+    @Inject(forwardRef(() => AdminPushService))
+    private readonly push: AdminPushService,
   ) {}
 
   async queueEmail(input: {
@@ -255,6 +258,13 @@ export class NotificationsService {
     });
 
     if (input.phone) {
+      await this.queueSms({
+        proposalId: input.proposalId,
+        to: input.phone,
+        template: payload.template,
+        data: payload,
+      });
+
       await this.queueWhatsapp({
         proposalId: input.proposalId,
         to: input.phone,
@@ -289,6 +299,14 @@ export class NotificationsService {
         }),
       ),
     );
+
+    // Send push notification to admin team
+    await this.push.sendPushToTeam({
+      proposalId: input.proposalId,
+      title: 'Nova proposta recebida',
+      body: `${input.name} (${input.protocol})`,
+      url: `/admin/propostas/${input.proposalId}`,
+    });
   }
 
   async notifyInternalDocsReceived(input: {

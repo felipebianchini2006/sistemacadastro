@@ -7,6 +7,7 @@ import { TwilioWebhookService } from './twilio-webhook.service';
 import { SendgridWebhookController } from './sendgrid-webhook.controller';
 import { TwilioWebhookController } from './twilio-webhook.controller';
 import { OtpService } from './otp.service';
+import { AdminPushService } from '../admin/admin.push.service';
 
 @Module({
   imports: [PrismaModule, JobsModule],
@@ -15,8 +16,9 @@ import { OtpService } from './otp.service';
     SendgridWebhookService,
     TwilioWebhookService,
     OtpService,
+    AdminPushService,
   ],
   controllers: [SendgridWebhookController, TwilioWebhookController],
-  exports: [NotificationsService, OtpService],
+  exports: [NotificationsService, OtpService, AdminPushService],
 })
 export class NotificationsModule {}

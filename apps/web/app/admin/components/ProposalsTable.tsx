@@ -75,16 +75,41 @@ export const ProposalsTable = ({
   items,
   sort,
   onSort,
+  selectedIds,
+  onSelectAll,
+  onSelectOne,
 }: {
   items: ProposalListItem[];
   sort?: SortState;
   onSort?: (field: SortField) => void;
+  selectedIds?: Set<string>;
+  onSelectAll?: (checked: boolean) => void;
+  onSelectOne?: (id: string, checked: boolean) => void;
 }) => {
+  const hasSelection = selectedIds && selectedIds.size > 0;
+  const allSelected =
+    selectedIds && items.length > 0 && items.every((item) => selectedIds.has(item.id));
+  const someSelected =
+    selectedIds && items.some((item) => selectedIds.has(item.id)) && !allSelected;
   return (
     <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-lg">
       <table className="w-full text-left text-sm">
         <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-600">
           <tr>
+            {onSelectAll && (
+              <th scope="col" className="w-12 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected ?? false;
+                  }}
+                  onChange={(e) => onSelectAll(e.target.checked)}
+                  className="h-4 w-4 cursor-pointer rounded border-zinc-300 text-[#ff6b35] focus:ring-[#ff6b35]"
+                  aria-label="Selecionar todas as propostas"
+                />
+              </th>
+            )}
             {HEADERS.map((header) => {
               const isSortable = 'field' in header;
               if (!isSortable) {
@@ -139,8 +164,23 @@ export const ProposalsTable = ({
             return (
               <tr
                 key={proposal.id}
-                className={cn('border-t border-zinc-100', updated && 'bg-blue-50/50')}
+                className={cn(
+                  'border-t border-zinc-100',
+                  updated && 'bg-blue-50/50',
+                  selectedIds?.has(proposal.id) && 'bg-orange-50/30',
+                )}
               >
+                {onSelectOne && (
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds?.has(proposal.id) ?? false}
+                      onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
+                      className="h-4 w-4 cursor-pointer rounded border-zinc-300 text-[#ff6b35] focus:ring-[#ff6b35]"
+                      aria-label={`Selecionar proposta ${proposal.protocol}`}
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3 font-semibold text-zinc-900">
                   <div className="flex items-center gap-2">
                     <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { PrivacyGate } from './PrivacyGate';
 import {
   normalizeCep,
   normalizeCpf,
@@ -353,6 +354,10 @@ const loadImageSize = (file: File) =>
 export default function CadastroPage() {
   const initialRestore = useMemo(() => readStoredDraft(), []);
   const [hydrated, setHydrated] = useState(!initialRestore);
+  const [privacyAcceptedGate, setPrivacyAcceptedGate] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('privacy_gate_accepted') === 'true';
+  });
   const [stepIndex, setStepIndex] = useState(0);
   const [form, setForm] = useState<DraftFormState>(defaultForm);
   const [draftMeta, setDraftMeta] = useState<DraftMeta | null>(null);
@@ -1316,823 +1321,843 @@ export default function CadastroPage() {
         .join(', ')
     : 'Perfil artistico';
 
+  const handlePrivacyGateAccept = () => {
+    localStorage.setItem('privacy_gate_accepted', 'true');
+    setPrivacyAcceptedGate(true);
+  };
+
   return (
-    <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-sheen" />
-      {showRestorePrompt ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Retomar cadastro</p>
-            <h2 className="mt-2 text-lg font-semibold text-zinc-900">
-              Deseja continuar de onde parou?
-            </h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Encontramos um rascunho salvo neste dispositivo.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={restoreFromStorage}>Continuar</Button>
-              <Button variant="secondary" onClick={discardStoredDraft}>
-                Comecar do zero
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_1.6fr]">
-        <aside className="flex flex-col gap-6">
-          <div className="rounded-3xl border border-zinc-200 bg-white/80 p-6 shadow-lg backdrop-blur">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-              Cadastro digital
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold text-zinc-900">
-              Vamos montar seu dossie com calma.
-            </h1>
-            <p className="mt-3 text-sm text-zinc-500">
-              Tudo fica salvo automaticamente. Voce pode sair e continuar depois no mesmo
-              dispositivo.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 text-xs text-zinc-500">
-              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
-                <span>Autosave local</span>
-                <span className="font-semibold text-emerald-600">Ativo</span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
-                <span>Sincronizacao backend</span>
-                <span className="font-semibold">
-                  {syncStatus === 'saving'
-                    ? 'Salvando...'
-                    : syncStatus === 'saved'
-                      ? 'Salvo agora mesmo'
-                      : syncStatus === 'error'
-                        ? 'Erro'
-                        : 'Aguardando'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
-                <span>Ultimo salvamento</span>
-                <span className="font-semibold">
-                  {lastSavedAt
-                    ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : '—'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-zinc-200 bg-white/90 p-6 shadow-lg">
-            <h3 className="text-sm font-semibold text-zinc-700">Suporte rapido</h3>
-            <p className="mt-2 text-sm text-zinc-500">
-              Precisa de ajuda? Nossa equipe responde em ate 2 horas uteis.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
-                atendimento@sistemacadastro.com
-              </span>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
-                +55 11 99999-9999
-              </span>
-            </div>
-          </div>
-        </aside>
-
-        <main className="flex flex-col gap-6">
-          <ProgressBar steps={steps} current={stepIndex} />
-
-          {currentStep === 'perfil' ? (
-            <StepLayout
-              title="Como voce atua na musica?"
-              description="Selecione todas as opcoes que se aplicam ao seu perfil artistico."
-              footer={
-                <>
-                  <Button onClick={handleNext} disabled={!profileStepValid}>
-                    Continuar
-                  </Button>
-                </>
-              }
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                {roleOptions.map((role) => {
-                  const selected = form.profileRoles.includes(role.value);
-                  return (
-                    <button
-                      key={role.value}
-                      type="button"
-                      className={cn(
-                        'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
-                        'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-200',
-                        selected
-                          ? 'border-[#ff6b35] bg-orange-50 shadow-lg shadow-orange-100/70'
-                          : 'border-zinc-200 bg-white hover:-translate-y-0.5 hover:border-[#ff6b35]/60 hover:shadow',
-                      )}
-                      onClick={() => toggleProfileRole(role.value)}
-                      aria-pressed={selected}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-semibold text-zinc-900">{role.label}</div>
-                        <span
-                          className={cn(
-                            'flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold',
-                            selected
-                              ? 'border-[#ff6b35] bg-[#ff6b35] text-white'
-                              : 'border-zinc-200 bg-white text-zinc-400',
-                          )}
-                          aria-hidden="true"
-                        >
-                          {selected ? '✓' : ''}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-xs text-zinc-500">{role.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {form.profileRoles.length === 0 ? (
-                <p className="text-xs text-red-600">
-                  Selecione pelo menos uma opcao para continuar.
-                </p>
-              ) : null}
-
-              {otherRoleSelected ? (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <label className="flex flex-col gap-2 text-sm text-zinc-700">
-                    <span className="font-medium">Descreva sua atuacao</span>
-                    <input
-                      value={form.profileRoleOther}
-                      onChange={(event) => updateForm({ profileRoleOther: event.target.value })}
-                      onBlur={() => handleFieldBlur('profileRoleOther')}
-                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                      placeholder="Ex: arranjador, tecnico de audio..."
-                    />
-                  </label>
-                  {otherRoleSelected && !form.profileRoleOther.trim() ? (
-                    <p className="mt-2 text-xs text-red-600">
-                      Informe sua atuacao para a opcao &quot;Outro&quot;.
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                  Tipo de proposta
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(['NOVO', 'MIGRACAO'] as ProposalType[]).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      className={cn(
-                        'rounded-full px-4 py-2 text-sm font-semibold transition',
-                        form.proposalType === type
-                          ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                          : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
-                      )}
-                      onClick={() => handleProposalTypeSelect(type)}
-                    >
-                      {type === 'NOVO' ? 'Novo cadastro' : 'Migracao'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </StepLayout>
-          ) : null}
-
-          {currentStep === 'dados' ? (
-            <StepLayout
-              title="Dados pessoais"
-              description="Seus dados aparecem para nossa analise. Mantenha tudo atualizado."
-              footer={
-                <>
-                  <Button variant="secondary" onClick={handleBack}>
-                    Voltar
-                  </Button>
-                  <Button onClick={handleNext} disabled={!dataStepValid}>
-                    Continuar
-                  </Button>
-                </>
-              }
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                {mobileFields.map((field, index) => (
-                  <div
-                    key={field.key}
-                    className={cn('sm:block', mobileFieldIndex === index ? 'block' : 'hidden')}
-                  >
-                    {field.content}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-xs text-zinc-500 sm:hidden">
-                <Button
-                  variant="ghost"
-                  onClick={() => setMobileFieldIndex((prev) => Math.max(prev - 1, 0))}
-                  disabled={mobileFieldIndex === 0}
-                  className="px-3 py-1 text-xs"
-                >
-                  Campo anterior
-                </Button>
-                <span className="text-[11px] uppercase tracking-[0.2em]">
-                  Campo {mobileFieldIndex + 1} de {mobileFields.length}
-                </span>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    setMobileFieldIndex((prev) => Math.min(prev + 1, mobileFields.length - 1))
-                  }
-                  disabled={mobileFieldIndex >= mobileFields.length - 1}
-                  className="px-3 py-1 text-xs"
-                >
-                  Proximo campo
+    <>
+      {!privacyAcceptedGate && <PrivacyGate onAccept={handlePrivacyGateAccept} />}
+      <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-sheen" />
+        {showRestorePrompt ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Retomar cadastro</p>
+              <h2 className="mt-2 text-lg font-semibold text-zinc-900">
+                Deseja continuar de onde parou?
+              </h2>
+              <p className="mt-2 text-sm text-zinc-500">
+                Encontramos um rascunho salvo neste dispositivo.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button onClick={restoreFromStorage}>Continuar</Button>
+                <Button variant="secondary" onClick={discardStoredDraft}>
+                  Comecar do zero
                 </Button>
               </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
-                <details>
-                  <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
-                    Endereco completo
-                  </summary>
-                  <div className="mt-4 grid gap-4">{AddressFields}</div>
-                </details>
-              </div>
-
-              <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-700">Endereco</h3>
-                  <span className="text-xs text-zinc-500">
-                    {viaCep.loading ? 'Consultando CEP...' : 'ViaCEP ativo'}
+            </div>
+          </div>
+        ) : null}
+        <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_1.6fr]">
+          <aside className="flex flex-col gap-6">
+            <div className="rounded-3xl border border-zinc-200 bg-white/80 p-6 shadow-lg backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                Cadastro digital
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold text-zinc-900">
+                Vamos montar seu dossie com calma.
+              </h1>
+              <p className="mt-3 text-sm text-zinc-500">
+                Tudo fica salvo automaticamente. Voce pode sair e continuar depois no mesmo
+                dispositivo.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 text-xs text-zinc-500">
+                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+                  <span>Autosave local</span>
+                  <span className="font-semibold text-emerald-600">Ativo</span>
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+                  <span>Sincronizacao backend</span>
+                  <span className="font-semibold">
+                    {syncStatus === 'saving'
+                      ? 'Salvando...'
+                      : syncStatus === 'saved'
+                        ? 'Salvo agora mesmo'
+                        : syncStatus === 'error'
+                          ? 'Erro'
+                          : 'Aguardando'}
                   </span>
                 </div>
-                {AddressFields}
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
-                <details>
-                  <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
-                    Dados bancarios (opcional)
-                  </summary>
-                  <div className="mt-4 grid gap-4">{BankFields}</div>
-                </details>
-              </div>
-
-              <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-700">
-                    Dados bancarios (opcional)
-                  </h3>
-                  <span className="text-xs text-zinc-500">Preencha apenas se desejar</span>
-                </div>
-                {BankFields}
-              </div>
-            </StepLayout>
-          ) : null}
-
-          {currentStep === 'migracao' ? (
-            <StepLayout
-              title="Migracao"
-              description="Informe a entidade anterior e envie a declaracao."
-              footer={
-                <>
-                  <Button variant="secondary" onClick={handleBack}>
-                    Voltar
-                  </Button>
-                  <Button onClick={handleNext} disabled={!migrationStepValid}>
-                    Continuar
-                  </Button>
-                </>
-              }
-            >
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                  Entidade anterior
-                </p>
-                {(() => {
-                  const preset = ['Abramus', 'UBC'];
-                  const isCustom =
-                    form.migrationEntity.length > 0 && !preset.includes(form.migrationEntity);
-                  return (
-                    <>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                        {['Abramus', 'UBC', 'Outras'].map((entity) => (
-                          <button
-                            key={entity}
-                            type="button"
-                            className={cn(
-                              'rounded-full px-4 py-2 text-sm font-semibold transition',
-                              entity === 'Outras'
-                                ? isCustom
-                                  ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                                  : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60'
-                                : form.migrationEntity === entity
-                                  ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                                  : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
-                            )}
-                            onClick={() =>
-                              updateForm({ migrationEntity: entity === 'Outras' ? '' : entity })
-                            }
-                          >
-                            {entity}
-                          </button>
-                        ))}
-                      </div>
-                      {isCustom || form.migrationEntity === '' ? (
-                        <input
-                          value={form.migrationEntity}
-                          onChange={(event) => updateForm({ migrationEntity: event.target.value })}
-                          onBlur={() => handleFieldBlur('migrationEntity')}
-                          className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                          placeholder="Informe a entidade"
-                        />
-                      ) : null}
-                    </>
-                  );
-                })()}
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
-                <label className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
-                    checked={form.migrationConfirmed}
-                    onChange={(event) => updateForm({ migrationConfirmed: event.target.checked })}
-                  />
-                  <span>Confirmo que desejo migrar para a SBACEM.</span>
-                </label>
-              </div>
-
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-semibold text-blue-800">
-                  Modelo de declaracao de desfiliação
-                </p>
-                <p className="mt-1 text-xs text-blue-600">
-                  Nao tem a declaracao? Baixe nosso modelo em PDF, preencha e assine.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => downloadDesfilicaoTemplate()}
-                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  Baixar modelo (PDF)
-                </button>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <UploadCard
-                  title="Declaracao de desfiliação"
-                  state={form.documents.desfiliacao}
-                  onSelect={(file) => handleUpload('DESFILIACAO', file, 'desfiliacao')}
-                />
-              </div>
-
-              {!form.migrationEntity.trim() ? (
-                <p className="text-xs text-red-600">Informe a entidade anterior.</p>
-              ) : null}
-              {!form.migrationConfirmed ? (
-                <p className="text-xs text-red-600">Confirme que deseja migrar para continuar.</p>
-              ) : null}
-              {form.documents.desfiliacao.status !== 'uploaded' ? (
-                <p className="text-xs text-red-600">Envie a declaracao de desfiliação.</p>
-              ) : null}
-            </StepLayout>
-          ) : null}
-
-          {currentStep === 'documentos' ? (
-            <StepLayout
-              title="Documentos"
-              description="Envie fotos legiveis. O OCR compara com os dados informados."
-              footer={
-                <>
-                  <Button variant="secondary" onClick={handleBack}>
-                    Voltar
-                  </Button>
-                  <Button onClick={handleNext} disabled={!documentsStepValid}>
-                    Continuar
-                  </Button>
-                </>
-              }
-            >
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                  Documento principal
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(['RG', 'CNH'] as DocumentChoice[]).map((choice) => (
-                    <button
-                      key={choice}
-                      type="button"
-                      className={cn(
-                        'rounded-full px-4 py-2 text-sm font-semibold transition',
-                        form.documentChoice === choice
-                          ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                          : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
-                      )}
-                      onClick={() => updateForm({ documentChoice: choice })}
-                    >
-                      {toDocTypeLabel(choice)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <p className="text-sm font-semibold text-amber-800">
-                  Antes de enviar seu documento:
-                </p>
-                <ul className="mt-2 grid gap-1.5 text-sm text-amber-700">
-                  <li className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
-                      1
-                    </span>
-                    Use boa iluminacao
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
-                      2
-                    </span>
-                    Evite reflexos e sombras
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
-                      3
-                    </span>
-                    Mantenha o documento legivel e centralizado
-                  </li>
-                </ul>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {form.documentChoice === 'RG' ? (
-                  <>
-                    <UploadCard
-                      title="RG - frente"
-                      state={form.documents.rgFront}
-                      onSelect={(file) => handleUpload('RG_FRENTE', file, 'rgFront')}
-                    />
-                    <UploadCard
-                      title="RG - verso"
-                      state={form.documents.rgBack}
-                      onSelect={(file) => handleUpload('RG_VERSO', file, 'rgBack')}
-                    />
-                  </>
-                ) : (
-                  <UploadCard
-                    title="CNH"
-                    state={form.documents.cnh}
-                    onSelect={(file) => handleUpload('CNH', file, 'cnh')}
-                  />
-                )}
-                <UploadCard
-                  title="Comprovante de residencia (opcional)"
-                  state={form.documents.residence}
-                  onSelect={(file) => handleUpload('COMPROVANTE_RESIDENCIA', file, 'residence')}
-                />
-              </div>
-
-              {!docsMainValid ? (
-                <p className="text-xs text-red-600">Envie o documento principal para continuar.</p>
-              ) : null}
-
-              {documentPreview?.state.previewUrl ? (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Previa OCR</p>
-                      <p className="text-sm font-semibold text-zinc-900">{documentPreview.label}</p>
-                    </div>
-                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
-                      {previewOcrResult ? 'OCR processado' : 'OCR em processamento'}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
-                      <img
-                        src={documentPreview.state.previewUrl}
-                        alt="Previa do documento enviado"
-                        className="h-full w-full object-cover"
-                      />
-                      <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 p-3 text-xs text-zinc-600 shadow">
-                        <div className="grid gap-1">
-                          {ocrPreviewFields.slice(0, 3).map((field) => (
-                            <div key={field.label} className="flex items-center justify-between">
-                              <span className="text-zinc-500">{field.label}</span>
-                              <span className="font-semibold text-zinc-900">{field.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3">
-                      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
-                        <p className="font-semibold text-zinc-700">Dados extraidos</p>
-                        <div className="mt-2 grid gap-2">
-                          {ocrPreviewFields.map((field) => (
-                            <div key={field.label} className="flex items-center justify-between">
-                              <span className="text-zinc-500">{field.label}</span>
-                              <span className="font-semibold text-zinc-900">{field.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      {ocrConfirmed ? (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                          Dados confirmados pelo candidato.
-                        </div>
-                      ) : null}
-                      {legibilityWarning ? (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                          {legibilityWarning}
-                        </div>
-                      ) : null}
-                      {expiredWarning ? (
-                        <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                          {expiredWarning}
-                        </div>
-                      ) : null}
-                      <div className="grid gap-2">
-                        <Button variant="accent" onClick={() => setOcrConfirmed(true)}>
-                          Confirmar dados
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setStepIndex(1);
-                            setMobileFieldIndex(0);
-                          }}
-                        >
-                          Editar manualmente
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() =>
-                            clearDocument(documentPreview.key as keyof DraftFormState['documents'])
-                          }
-                        >
-                          Refazer foto
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {ocrAlert?.divergence && previewOcrResult ? (
-                <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
-                  <p className="font-semibold">
-                    Divergencia detectada entre OCR e dados informados
-                  </p>
-                  <p className="mt-1 text-xs">
-                    Os dados extraidos do documento nao conferem com os dados digitados na etapa
-                    anterior. Verifique e corrija antes de continuar.
-                  </p>
-                  <div className="mt-2 grid gap-1 text-xs">
-                    {ocrAlert.name ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-600">Nome OCR:</span>
-                        <span className="font-semibold">{ocrAlert.name}</span>
-                        <span className="text-red-600">vs</span>
-                        <span className="font-semibold">{form.fullName || '(vazio)'}</span>
-                      </div>
-                    ) : null}
-                    {ocrAlert.cpf ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-600">CPF OCR:</span>
-                        <span className="font-semibold">{ocrAlert.cpf}</span>
-                        <span className="text-red-600">vs</span>
-                        <span className="font-semibold">{form.cpf || '(vazio)'}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                  <Button
-                    variant="secondary"
-                    className="mt-3 text-xs"
-                    onClick={() => {
-                      setStepIndex(steps.findIndex((s) => s.id === 'dados'));
-                      setMobileFieldIndex(0);
-                    }}
-                  >
-                    Corrigir dados pessoais
-                  </Button>
-                </div>
-              ) : null}
-
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
-                OCR status:{' '}
-                {previewOcrResult
-                  ? 'Processado com sucesso.'
-                  : documentPreview
-                    ? 'Imagem enviada. OCR em processamento.'
-                    : 'Aguardando envio do documento.'}
-              </div>
-            </StepLayout>
-          ) : null}
-
-          {currentStep === 'redes' ? (
-            <SocialConnectionsStep
-              form={form}
-              updateForm={updateForm}
-              draftMeta={draftMeta}
-              onNext={handleNext}
-              onBack={handleBack}
-              ensureDraft={ensureDraft}
-              buildPayload={buildPayload}
-            />
-          ) : null}
-
-          {currentStep === 'revisao' ? (
-            <StepLayout
-              title="Revisao final"
-              description="Confira tudo antes de enviar."
-              tone="review"
-              footer={
-                <>
-                  <Button variant="secondary" onClick={handleBack}>
-                    Voltar
-                  </Button>
-                  <Button variant="accent" onClick={submitProposal} disabled={!canSubmit}>
-                    {submitStatus === 'submitting' ? 'Enviando...' : 'Enviar para analise'}
-                  </Button>
-                </>
-              }
-            >
-              <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-500">
-                  <span>Resumo</span>
-                  <span>{form.proposalType}</span>
-                </div>
-                <div className="grid gap-2">
-                  <span className="text-xs text-zinc-500">{profileSummary}</span>
-                  {form.proposalType === 'MIGRACAO' ? (
-                    <span className="text-xs text-zinc-500">
-                      Migracao: {form.migrationEntity || 'Entidade anterior'}
-                    </span>
-                  ) : null}
-                  <span className="font-semibold text-zinc-900">{form.fullName || 'Nome'}</span>
-                  <span>{form.cpf || 'CPF'}</span>
-                  <span>{form.email || 'Email'}</span>
-                  <span>{form.phone || 'Telefone'}</span>
-                  <span>{form.address.cep ? `CEP: ${form.address.cep}` : 'Endereco'}</span>
-                  <span>
-                    {form.bank.account ? 'Dados bancarios informados' : 'Dados bancarios opcionais'}
-                  </span>
-                  {form.socialConnections.filter((c) => c.connected).length > 0 ? (
-                    <span>
-                      Redes conectadas:{' '}
-                      {form.socialConnections
-                        .filter((c) => c.connected)
-                        .map((c) => c.provider)
-                        .join(', ')}
-                    </span>
-                  ) : (
-                    <span className="text-zinc-400">Nenhuma rede social conectada</span>
-                  )}
-                </div>
-              </div>
-
-              {ocrAlert ? (
-                <div
-                  className={cn(
-                    'rounded-2xl border p-5 text-sm',
-                    ocrAlert.divergence
-                      ? 'border-amber-400 bg-amber-50 text-amber-800'
-                      : 'border-emerald-300 bg-emerald-50 text-emerald-800',
-                  )}
-                >
-                  <p className="font-semibold">
-                    {ocrAlert.divergence ? 'Divergencia OCR detectada' : 'OCR sem divergencias'}
-                  </p>
-                  <p className="mt-2 text-xs">
-                    OCR nome: {ocrAlert.name || 'N/A'} | OCR CPF: {ocrAlert.cpf || 'N/A'}
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-500">
-                  OCR ainda nao processado. Assim que concluido, alertas aparecem aqui.
-                </div>
-              )}
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
-                <label className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
-                    checked={form.consentAccepted}
-                    onChange={(event) => handleConsentChange(event.target.checked)}
-                  />
-                  <span>Declaro que as informacoes fornecidas sao verdadeiras.</span>
-                </label>
-                <label className="mt-3 flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
-                    checked={form.privacyAccepted}
-                    onChange={(event) => handlePrivacyChange(event.target.checked)}
-                  />
-                  <span>
-                    Li e aceito a{' '}
-                    <Link
-                      href="/privacidade"
-                      className="font-semibold text-orange-600 underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Politica de Privacidade
-                    </Link>
-                    .
-                  </span>
-                </label>
-                {!form.consentAccepted ? (
-                  <p className="mt-2 text-xs text-amber-600">
-                    Aceite o consentimento para enviar a proposta.
-                  </p>
-                ) : null}
-                {!form.privacyAccepted ? (
-                  <p className="mt-2 text-xs text-amber-600">
-                    Aceite a politica de privacidade para enviar a proposta.
-                  </p>
-                ) : null}
-              </div>
-
-              {submitStatus === 'done' && submission ? (
-                <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-sm text-emerald-800">
-                  <p className="font-semibold">Proposta enviada com sucesso</p>
-                  <p className="mt-2">
-                    Protocolo: <span className="font-semibold">{submission.protocol}</span>
-                  </p>
-                  <p className="mt-1 text-xs text-emerald-700">
-                    Acompanhe pelo backoffice ou pelo link de acompanhamento informado por email.
-                  </p>
-                </div>
-              ) : null}
-
-              {submitStatus === 'error' ? (
-                <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-                  Falha ao enviar. Revise os dados e tente novamente.
-                </div>
-              ) : null}
-            </StepLayout>
-          ) : null}
-        </main>
-      </div>
-
-      {/* Floating autosave indicator - visible on mobile where sidebar is hidden */}
-      {hydrated && !showRestorePrompt ? (
-        <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 lg:hidden">
-          <div
-            className={cn(
-              'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg backdrop-blur transition-all',
-              syncStatus === 'saving'
-                ? 'border-amber-200 bg-amber-50/90 text-amber-700'
-                : syncStatus === 'saved'
-                  ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
-                  : syncStatus === 'error'
-                    ? 'border-red-200 bg-red-50/90 text-red-700'
-                    : 'border-zinc-200 bg-white/90 text-zinc-500',
-            )}
-          >
-            <span
-              className={cn(
-                'h-2 w-2 rounded-full',
-                syncStatus === 'saving'
-                  ? 'animate-pulse bg-amber-500'
-                  : syncStatus === 'saved'
-                    ? 'bg-emerald-500'
-                    : syncStatus === 'error'
-                      ? 'bg-red-500'
-                      : 'bg-zinc-400',
-              )}
-            />
-            {syncStatus === 'saving'
-              ? 'Salvando...'
-              : syncStatus === 'saved'
-                ? `Salvo ${
-                    lastSavedAt
+                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+                  <span>Ultimo salvamento</span>
+                  <span className="font-semibold">
+                    {lastSavedAt
                       ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })
-                      : 'agora'
-                  }`
-                : syncStatus === 'error'
-                  ? 'Erro ao salvar'
-                  : 'Autosave ativo'}
-          </div>
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-zinc-200 bg-white/90 p-6 shadow-lg">
+              <h3 className="text-sm font-semibold text-zinc-700">Suporte rapido</h3>
+              <p className="mt-2 text-sm text-zinc-500">
+                Precisa de ajuda? Nossa equipe responde em ate 2 horas uteis.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+                  atendimento@sistemacadastro.com
+                </span>
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
+                  +55 11 99999-9999
+                </span>
+              </div>
+            </div>
+          </aside>
+
+          <main className="flex flex-col gap-6">
+            <ProgressBar steps={steps} current={stepIndex} />
+
+            {currentStep === 'perfil' ? (
+              <StepLayout
+                title="Como voce atua na musica?"
+                description="Selecione todas as opcoes que se aplicam ao seu perfil artistico."
+                footer={
+                  <>
+                    <Button onClick={handleNext} disabled={!profileStepValid}>
+                      Continuar
+                    </Button>
+                  </>
+                }
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {roleOptions.map((role) => {
+                    const selected = form.profileRoles.includes(role.value);
+                    return (
+                      <button
+                        key={role.value}
+                        type="button"
+                        className={cn(
+                          'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-200',
+                          selected
+                            ? 'border-[#ff6b35] bg-orange-50 shadow-lg shadow-orange-100/70'
+                            : 'border-zinc-200 bg-white hover:-translate-y-0.5 hover:border-[#ff6b35]/60 hover:shadow',
+                        )}
+                        onClick={() => toggleProfileRole(role.value)}
+                        aria-pressed={selected}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold text-zinc-900">{role.label}</div>
+                          <span
+                            className={cn(
+                              'flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold',
+                              selected
+                                ? 'border-[#ff6b35] bg-[#ff6b35] text-white'
+                                : 'border-zinc-200 bg-white text-zinc-400',
+                            )}
+                            aria-hidden="true"
+                          >
+                            {selected ? '✓' : ''}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-zinc-500">{role.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {form.profileRoles.length === 0 ? (
+                  <p className="text-xs text-red-600">
+                    Selecione pelo menos uma opcao para continuar.
+                  </p>
+                ) : null}
+
+                {otherRoleSelected ? (
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                    <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                      <span className="font-medium">Descreva sua atuacao</span>
+                      <input
+                        value={form.profileRoleOther}
+                        onChange={(event) => updateForm({ profileRoleOther: event.target.value })}
+                        onBlur={() => handleFieldBlur('profileRoleOther')}
+                        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        placeholder="Ex: arranjador, tecnico de audio..."
+                      />
+                    </label>
+                    {otherRoleSelected && !form.profileRoleOther.trim() ? (
+                      <p className="mt-2 text-xs text-red-600">
+                        Informe sua atuacao para a opcao &quot;Outro&quot;.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Tipo de proposta
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(['NOVO', 'MIGRACAO'] as ProposalType[]).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        className={cn(
+                          'rounded-full px-4 py-2 text-sm font-semibold transition',
+                          form.proposalType === type
+                            ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                            : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
+                        )}
+                        onClick={() => handleProposalTypeSelect(type)}
+                      >
+                        {type === 'NOVO' ? 'Novo cadastro' : 'Migracao'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </StepLayout>
+            ) : null}
+
+            {currentStep === 'dados' ? (
+              <StepLayout
+                title="Dados pessoais"
+                description="Seus dados aparecem para nossa analise. Mantenha tudo atualizado."
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={handleBack}>
+                      Voltar
+                    </Button>
+                    <Button onClick={handleNext} disabled={!dataStepValid}>
+                      Continuar
+                    </Button>
+                  </>
+                }
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {mobileFields.map((field, index) => (
+                    <div
+                      key={field.key}
+                      className={cn('sm:block', mobileFieldIndex === index ? 'block' : 'hidden')}
+                    >
+                      {field.content}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-xs text-zinc-500 sm:hidden">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setMobileFieldIndex((prev) => Math.max(prev - 1, 0))}
+                    disabled={mobileFieldIndex === 0}
+                    className="px-3 py-1 text-xs"
+                  >
+                    Campo anterior
+                  </Button>
+                  <span className="text-[11px] uppercase tracking-[0.2em]">
+                    Campo {mobileFieldIndex + 1} de {mobileFields.length}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setMobileFieldIndex((prev) => Math.min(prev + 1, mobileFields.length - 1))
+                    }
+                    disabled={mobileFieldIndex >= mobileFields.length - 1}
+                    className="px-3 py-1 text-xs"
+                  >
+                    Proximo campo
+                  </Button>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
+                  <details>
+                    <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
+                      Endereco completo
+                    </summary>
+                    <div className="mt-4 grid gap-4">{AddressFields}</div>
+                  </details>
+                </div>
+
+                <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-zinc-700">Endereco</h3>
+                    <span className="text-xs text-zinc-500">
+                      {viaCep.loading ? 'Consultando CEP...' : 'ViaCEP ativo'}
+                    </span>
+                  </div>
+                  {AddressFields}
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
+                  <details>
+                    <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
+                      Dados bancarios (opcional)
+                    </summary>
+                    <div className="mt-4 grid gap-4">{BankFields}</div>
+                  </details>
+                </div>
+
+                <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-zinc-700">
+                      Dados bancarios (opcional)
+                    </h3>
+                    <span className="text-xs text-zinc-500">Preencha apenas se desejar</span>
+                  </div>
+                  {BankFields}
+                </div>
+              </StepLayout>
+            ) : null}
+
+            {currentStep === 'migracao' ? (
+              <StepLayout
+                title="Migracao"
+                description="Informe a entidade anterior e envie a declaracao."
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={handleBack}>
+                      Voltar
+                    </Button>
+                    <Button onClick={handleNext} disabled={!migrationStepValid}>
+                      Continuar
+                    </Button>
+                  </>
+                }
+              >
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Entidade anterior
+                  </p>
+                  {(() => {
+                    const preset = ['Abramus', 'UBC'];
+                    const isCustom =
+                      form.migrationEntity.length > 0 && !preset.includes(form.migrationEntity);
+                    return (
+                      <>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          {['Abramus', 'UBC', 'Outras'].map((entity) => (
+                            <button
+                              key={entity}
+                              type="button"
+                              className={cn(
+                                'rounded-full px-4 py-2 text-sm font-semibold transition',
+                                entity === 'Outras'
+                                  ? isCustom
+                                    ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                                    : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60'
+                                  : form.migrationEntity === entity
+                                    ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                                    : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
+                              )}
+                              onClick={() =>
+                                updateForm({ migrationEntity: entity === 'Outras' ? '' : entity })
+                              }
+                            >
+                              {entity}
+                            </button>
+                          ))}
+                        </div>
+                        {isCustom || form.migrationEntity === '' ? (
+                          <input
+                            value={form.migrationEntity}
+                            onChange={(event) =>
+                              updateForm({ migrationEntity: event.target.value })
+                            }
+                            onBlur={() => handleFieldBlur('migrationEntity')}
+                            className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                            placeholder="Informe a entidade"
+                          />
+                        ) : null}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                      checked={form.migrationConfirmed}
+                      onChange={(event) => updateForm({ migrationConfirmed: event.target.checked })}
+                    />
+                    <span>Confirmo que desejo migrar para a SBACEM.</span>
+                  </label>
+                </div>
+
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                  <p className="text-sm font-semibold text-blue-800">
+                    Modelo de declaracao de desfiliação
+                  </p>
+                  <p className="mt-1 text-xs text-blue-600">
+                    Nao tem a declaracao? Baixe nosso modelo em PDF, preencha e assine.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => downloadDesfilicaoTemplate()}
+                    className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Baixar modelo (PDF)
+                  </button>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <UploadCard
+                    title="Declaracao de desfiliação"
+                    state={form.documents.desfiliacao}
+                    onSelect={(file) => handleUpload('DESFILIACAO', file, 'desfiliacao')}
+                  />
+                </div>
+
+                {!form.migrationEntity.trim() ? (
+                  <p className="text-xs text-red-600">Informe a entidade anterior.</p>
+                ) : null}
+                {!form.migrationConfirmed ? (
+                  <p className="text-xs text-red-600">Confirme que deseja migrar para continuar.</p>
+                ) : null}
+                {form.documents.desfiliacao.status !== 'uploaded' ? (
+                  <p className="text-xs text-red-600">Envie a declaracao de desfiliação.</p>
+                ) : null}
+              </StepLayout>
+            ) : null}
+
+            {currentStep === 'documentos' ? (
+              <StepLayout
+                title="Documentos"
+                description="Envie fotos legiveis. O OCR compara com os dados informados."
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={handleBack}>
+                      Voltar
+                    </Button>
+                    <Button onClick={handleNext} disabled={!documentsStepValid}>
+                      Continuar
+                    </Button>
+                  </>
+                }
+              >
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Documento principal
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(['RG', 'CNH'] as DocumentChoice[]).map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        className={cn(
+                          'rounded-full px-4 py-2 text-sm font-semibold transition',
+                          form.documentChoice === choice
+                            ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
+                            : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
+                        )}
+                        onClick={() => updateForm({ documentChoice: choice })}
+                      >
+                        {toDocTypeLabel(choice)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-semibold text-amber-800">
+                    Antes de enviar seu documento:
+                  </p>
+                  <ul className="mt-2 grid gap-1.5 text-sm text-amber-700">
+                    <li className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
+                        1
+                      </span>
+                      Use boa iluminacao
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
+                        2
+                      </span>
+                      Evite reflexos e sombras
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs">
+                        3
+                      </span>
+                      Mantenha o documento legivel e centralizado
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {form.documentChoice === 'RG' ? (
+                    <>
+                      <UploadCard
+                        title="RG - frente"
+                        state={form.documents.rgFront}
+                        onSelect={(file) => handleUpload('RG_FRENTE', file, 'rgFront')}
+                      />
+                      <UploadCard
+                        title="RG - verso"
+                        state={form.documents.rgBack}
+                        onSelect={(file) => handleUpload('RG_VERSO', file, 'rgBack')}
+                      />
+                    </>
+                  ) : (
+                    <UploadCard
+                      title="CNH"
+                      state={form.documents.cnh}
+                      onSelect={(file) => handleUpload('CNH', file, 'cnh')}
+                    />
+                  )}
+                  <UploadCard
+                    title="Comprovante de residencia (opcional)"
+                    state={form.documents.residence}
+                    onSelect={(file) => handleUpload('COMPROVANTE_RESIDENCIA', file, 'residence')}
+                  />
+                </div>
+
+                {!docsMainValid ? (
+                  <p className="text-xs text-red-600">
+                    Envie o documento principal para continuar.
+                  </p>
+                ) : null}
+
+                {documentPreview?.state.previewUrl ? (
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Previa OCR
+                        </p>
+                        <p className="text-sm font-semibold text-zinc-900">
+                          {documentPreview.label}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
+                        {previewOcrResult ? 'OCR processado' : 'OCR em processamento'}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+                      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
+                        <img
+                          src={documentPreview.state.previewUrl}
+                          alt="Previa do documento enviado"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 p-3 text-xs text-zinc-600 shadow">
+                          <div className="grid gap-1">
+                            {ocrPreviewFields.slice(0, 3).map((field) => (
+                              <div key={field.label} className="flex items-center justify-between">
+                                <span className="text-zinc-500">{field.label}</span>
+                                <span className="font-semibold text-zinc-900">{field.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3">
+                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+                          <p className="font-semibold text-zinc-700">Dados extraidos</p>
+                          <div className="mt-2 grid gap-2">
+                            {ocrPreviewFields.map((field) => (
+                              <div key={field.label} className="flex items-center justify-between">
+                                <span className="text-zinc-500">{field.label}</span>
+                                <span className="font-semibold text-zinc-900">{field.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {ocrConfirmed ? (
+                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                            Dados confirmados pelo candidato.
+                          </div>
+                        ) : null}
+                        {legibilityWarning ? (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            {legibilityWarning}
+                          </div>
+                        ) : null}
+                        {expiredWarning ? (
+                          <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                            {expiredWarning}
+                          </div>
+                        ) : null}
+                        <div className="grid gap-2">
+                          <Button variant="accent" onClick={() => setOcrConfirmed(true)}>
+                            Confirmar dados
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setStepIndex(1);
+                              setMobileFieldIndex(0);
+                            }}
+                          >
+                            Editar manualmente
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              clearDocument(
+                                documentPreview.key as keyof DraftFormState['documents'],
+                              )
+                            }
+                          >
+                            Refazer foto
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {ocrAlert?.divergence && previewOcrResult ? (
+                  <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+                    <p className="font-semibold">
+                      Divergencia detectada entre OCR e dados informados
+                    </p>
+                    <p className="mt-1 text-xs">
+                      Os dados extraidos do documento nao conferem com os dados digitados na etapa
+                      anterior. Verifique e corrija antes de continuar.
+                    </p>
+                    <div className="mt-2 grid gap-1 text-xs">
+                      {ocrAlert.name ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-red-600">Nome OCR:</span>
+                          <span className="font-semibold">{ocrAlert.name}</span>
+                          <span className="text-red-600">vs</span>
+                          <span className="font-semibold">{form.fullName || '(vazio)'}</span>
+                        </div>
+                      ) : null}
+                      {ocrAlert.cpf ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-red-600">CPF OCR:</span>
+                          <span className="font-semibold">{ocrAlert.cpf}</span>
+                          <span className="text-red-600">vs</span>
+                          <span className="font-semibold">{form.cpf || '(vazio)'}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="mt-3 text-xs"
+                      onClick={() => {
+                        setStepIndex(steps.findIndex((s) => s.id === 'dados'));
+                        setMobileFieldIndex(0);
+                      }}
+                    >
+                      Corrigir dados pessoais
+                    </Button>
+                  </div>
+                ) : null}
+
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
+                  OCR status:{' '}
+                  {previewOcrResult
+                    ? 'Processado com sucesso.'
+                    : documentPreview
+                      ? 'Imagem enviada. OCR em processamento.'
+                      : 'Aguardando envio do documento.'}
+                </div>
+              </StepLayout>
+            ) : null}
+
+            {currentStep === 'redes' ? (
+              <SocialConnectionsStep
+                form={form}
+                updateForm={updateForm}
+                draftMeta={draftMeta}
+                onNext={handleNext}
+                onBack={handleBack}
+                ensureDraft={ensureDraft}
+                buildPayload={buildPayload}
+              />
+            ) : null}
+
+            {currentStep === 'revisao' ? (
+              <StepLayout
+                title="Revisao final"
+                description="Confira tudo antes de enviar."
+                tone="review"
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={handleBack}>
+                      Voltar
+                    </Button>
+                    <Button variant="accent" onClick={submitProposal} disabled={!canSubmit}>
+                      {submitStatus === 'submitting' ? 'Enviando...' : 'Enviar para analise'}
+                    </Button>
+                  </>
+                }
+              >
+                <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-500">
+                    <span>Resumo</span>
+                    <span>{form.proposalType}</span>
+                  </div>
+                  <div className="grid gap-2">
+                    <span className="text-xs text-zinc-500">{profileSummary}</span>
+                    {form.proposalType === 'MIGRACAO' ? (
+                      <span className="text-xs text-zinc-500">
+                        Migracao: {form.migrationEntity || 'Entidade anterior'}
+                      </span>
+                    ) : null}
+                    <span className="font-semibold text-zinc-900">{form.fullName || 'Nome'}</span>
+                    <span>{form.cpf || 'CPF'}</span>
+                    <span>{form.email || 'Email'}</span>
+                    <span>{form.phone || 'Telefone'}</span>
+                    <span>{form.address.cep ? `CEP: ${form.address.cep}` : 'Endereco'}</span>
+                    <span>
+                      {form.bank.account
+                        ? 'Dados bancarios informados'
+                        : 'Dados bancarios opcionais'}
+                    </span>
+                    {form.socialConnections.filter((c) => c.connected).length > 0 ? (
+                      <span>
+                        Redes conectadas:{' '}
+                        {form.socialConnections
+                          .filter((c) => c.connected)
+                          .map((c) => c.provider)
+                          .join(', ')}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400">Nenhuma rede social conectada</span>
+                    )}
+                  </div>
+                </div>
+
+                {ocrAlert ? (
+                  <div
+                    className={cn(
+                      'rounded-2xl border p-5 text-sm',
+                      ocrAlert.divergence
+                        ? 'border-amber-400 bg-amber-50 text-amber-800'
+                        : 'border-emerald-300 bg-emerald-50 text-emerald-800',
+                    )}
+                  >
+                    <p className="font-semibold">
+                      {ocrAlert.divergence ? 'Divergencia OCR detectada' : 'OCR sem divergencias'}
+                    </p>
+                    <p className="mt-2 text-xs">
+                      OCR nome: {ocrAlert.name || 'N/A'} | OCR CPF: {ocrAlert.cpf || 'N/A'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-500">
+                    OCR ainda nao processado. Assim que concluido, alertas aparecem aqui.
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                      checked={form.consentAccepted}
+                      onChange={(event) => handleConsentChange(event.target.checked)}
+                    />
+                    <span>Declaro que as informacoes fornecidas sao verdadeiras.</span>
+                  </label>
+                  <label className="mt-3 flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                      checked={form.privacyAccepted}
+                      onChange={(event) => handlePrivacyChange(event.target.checked)}
+                    />
+                    <span>
+                      Li e aceito a{' '}
+                      <Link
+                        href="/privacidade"
+                        className="font-semibold text-orange-600 underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Politica de Privacidade
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  {!form.consentAccepted ? (
+                    <p className="mt-2 text-xs text-amber-600">
+                      Aceite o consentimento para enviar a proposta.
+                    </p>
+                  ) : null}
+                  {!form.privacyAccepted ? (
+                    <p className="mt-2 text-xs text-amber-600">
+                      Aceite a politica de privacidade para enviar a proposta.
+                    </p>
+                  ) : null}
+                </div>
+
+                {submitStatus === 'done' && submission ? (
+                  <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-sm text-emerald-800">
+                    <p className="font-semibold">Proposta enviada com sucesso</p>
+                    <p className="mt-2">
+                      Protocolo: <span className="font-semibold">{submission.protocol}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-700">
+                      Acompanhe pelo backoffice ou pelo link de acompanhamento informado por email.
+                    </p>
+                  </div>
+                ) : null}
+
+                {submitStatus === 'error' ? (
+                  <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                    Falha ao enviar. Revise os dados e tente novamente.
+                  </div>
+                ) : null}
+              </StepLayout>
+            ) : null}
+          </main>
         </div>
-      ) : null}
-    </div>
+
+        {/* Floating autosave indicator - visible on mobile where sidebar is hidden */}
+        {hydrated && !showRestorePrompt ? (
+          <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 lg:hidden">
+            <div
+              className={cn(
+                'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg backdrop-blur transition-all',
+                syncStatus === 'saving'
+                  ? 'border-amber-200 bg-amber-50/90 text-amber-700'
+                  : syncStatus === 'saved'
+                    ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
+                    : syncStatus === 'error'
+                      ? 'border-red-200 bg-red-50/90 text-red-700'
+                      : 'border-zinc-200 bg-white/90 text-zinc-500',
+              )}
+            >
+              <span
+                className={cn(
+                  'h-2 w-2 rounded-full',
+                  syncStatus === 'saving'
+                    ? 'animate-pulse bg-amber-500'
+                    : syncStatus === 'saved'
+                      ? 'bg-emerald-500'
+                      : syncStatus === 'error'
+                        ? 'bg-red-500'
+                        : 'bg-zinc-400',
+                )}
+              />
+              {syncStatus === 'saving'
+                ? 'Salvando...'
+                : syncStatus === 'saved'
+                  ? `Salvo ${
+                      lastSavedAt
+                        ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : 'agora'
+                    }`
+                  : syncStatus === 'error'
+                    ? 'Erro ao salvar'
+                    : 'Autosave ativo'}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }
 

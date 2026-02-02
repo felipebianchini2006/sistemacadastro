@@ -1,0 +1,150 @@
+'use client';
+
+import { useState } from 'react';
+
+export type BulkAction = 'assign' | 'status' | 'export';
+
+interface BulkActionsProps {
+  selectedCount: number;
+  onAssign: () => void;
+  onChangeStatus: () => void;
+  onExport: () => void;
+  onClearSelection: () => void;
+}
+
+export function BulkActions({
+  selectedCount,
+  onAssign,
+  onChangeStatus,
+  onExport,
+  onClearSelection,
+}: BulkActionsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (selectedCount === 0) return null;
+
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ff6b35] text-sm font-bold text-white">
+          {selectedCount}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-zinc-900">
+            {selectedCount}{' '}
+            {selectedCount === 1 ? 'proposta selecionada' : 'propostas selecionadas'}
+          </p>
+          <button
+            onClick={onClearSelection}
+            className="text-xs text-zinc-600 hover:text-zinc-900 hover:underline"
+          >
+            Limpar seleção
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            Ações em lote
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {isOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setIsOpen(false)}
+                aria-hidden="true"
+              />
+              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      onAssign();
+                      setIsOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <svg
+                      className="h-5 w-5 text-zinc-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Atribuir analista
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onChangeStatus();
+                      setIsOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <svg
+                      className="h-5 w-5 text-zinc-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Alterar status
+                  </button>
+
+                  <div className="my-1 border-t border-zinc-100" />
+
+                  <button
+                    onClick={() => {
+                      onExport();
+                      setIsOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <svg
+                      className="h-5 w-5 text-zinc-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Exportar selecionadas
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

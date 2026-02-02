@@ -519,25 +519,45 @@ export class PublicService {
 
     const proposal = await this.prisma.proposal.findUnique({
       where: { protocol: data.protocol },
-      include: { documents: true },
+      include: {
+        documents: true,
+        signatures: true,
+      },
     });
 
     if (!proposal || proposal.publicToken !== data.token) {
       throw new NotFoundException('Proposta nao encontrada');
     }
 
+    // Delete all files from S3: documents + signed files + certificates
     const storageErrors: string[] = [];
+    const filesToDelete: string[] = [];
+
+    // Add document files
+    proposal.documents.forEach((doc) => {
+      filesToDelete.push(doc.storageKey);
+    });
+
+    // Add signed files and certificates from signature envelopes
+    proposal.signatures.forEach((sig) => {
+      if (sig.signedFileKey) filesToDelete.push(sig.signedFileKey);
+      if (sig.certificateFileKey) filesToDelete.push(sig.certificateFileKey);
+    });
+
+    // Delete all files from S3
     await Promise.all(
-      proposal.documents.map(async (doc) => {
+      filesToDelete.map(async (key) => {
         try {
-          await this.storage.deleteObject(doc.storageKey);
+          await this.storage.deleteObject(key);
         } catch (error) {
-          storageErrors.push(doc.storageKey);
+          storageErrors.push(key);
         }
       }),
     );
 
+    // Delete proposal from database (cascade will handle relations)
     await this.prisma.$transaction(async (tx) => {
+      // Create audit log for LGPD compliance
       await tx.auditLog.create({
         data: {
           proposalId: proposal.id,
@@ -549,17 +569,33 @@ export class PublicService {
           metadata: {
             protocol: proposal.protocol,
             deletedDocuments: proposal.documents.length,
+            deletedSignatures: proposal.signatures.length,
+            deletedFiles: filesToDelete.length,
             storageErrors,
           },
         },
       });
 
+      // Anonymize notification payloads (LGPD compliance)
+      await tx.notification.updateMany({
+        where: { proposalId: proposal.id },
+        data: {
+          payloadRedacted: {
+            anonymized: true,
+            erasedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      // Delete proposal (cascade will delete Person, Address, Documents, etc.)
       await tx.proposal.delete({ where: { id: proposal.id } });
     });
 
     return {
       ok: true,
       deletedDocuments: proposal.documents.length,
+      deletedSignatures: proposal.signatures.length,
+      deletedFiles: filesToDelete.length,
       storageErrors,
     };
   }
