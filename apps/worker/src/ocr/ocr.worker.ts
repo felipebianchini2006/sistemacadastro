@@ -135,7 +135,37 @@ export class OcrWorker {
       preprocessInfo = {
         resized: processed.resized,
         rotated: processed.rotated,
+        originalWidth: processed.originalWidth,
+        originalHeight: processed.originalHeight,
       };
+
+      const minWidth = parseNumber(process.env.OCR_MIN_WIDTH, 600);
+      const minHeight = parseNumber(process.env.OCR_MIN_HEIGHT, 600);
+      const minBytes = parseNumber(process.env.OCR_MIN_BYTES, 20000);
+      const width = processed.originalWidth ?? 0;
+      const height = processed.originalHeight ?? 0;
+      const size = originalBuffer.length;
+      const tooSmall =
+        (width && width < minWidth) || (height && height < minHeight) || size < minBytes;
+
+      if (tooSmall) {
+        await this.recordLegibilityFailure({
+          proposalId: job.data.proposalId ?? null,
+          draftId: job.data.draftId ?? null,
+          documentFileId: documentFile.id,
+          documentFileType: documentFile.type,
+          requestId,
+          preprocessInfo,
+          minWidth,
+          minHeight,
+          minBytes,
+          width,
+          height,
+          size,
+        });
+        console.info({ requestId, documentFileId: documentFile.id }, 'ocr.skipped.legibility');
+        return;
+      }
     }
 
     const visionResult = await this.vision.documentTextDetection(buffer);
@@ -277,6 +307,57 @@ export class OcrWorker {
             fromStatus: currentStatus,
             toStatus: ProposalStatus.PENDING_DOCS,
             reason: `Divergencia OCR (${reasons.join(', ')})`,
+          },
+        },
+      },
+    });
+  }
+
+  private async recordLegibilityFailure(input: {
+    proposalId: string | null;
+    draftId: string | null;
+    documentFileId: string;
+    documentFileType: DocumentType;
+    requestId: string;
+    preprocessInfo?: {
+      resized: boolean;
+      rotated: boolean;
+      originalWidth?: number;
+      originalHeight?: number;
+    };
+    minWidth: number;
+    minHeight: number;
+    minBytes: number;
+    width: number;
+    height: number;
+    size: number;
+  }) {
+    await prisma.ocrResult.create({
+      data: {
+        proposalId: input.proposalId,
+        draftId: input.draftId,
+        documentFileId: input.documentFileId,
+        rawText: '',
+        structuredData: {
+          document_type:
+            input.documentFileType === DocumentType.COMPROVANTE_RESIDENCIA
+              ? 'COMPROVANTE_RESIDENCIA'
+              : (resolveUploadedDocType(input.documentFileType) ?? 'UNKNOWN'),
+          fields: {},
+        },
+        score: 0,
+        heuristics: {
+          preprocess: input.preprocessInfo,
+          requestId: input.requestId,
+          legibility: {
+            ok: false,
+            reason: 'resolution_or_size',
+            minWidth: input.minWidth,
+            minHeight: input.minHeight,
+            minBytes: input.minBytes,
+            width: input.width,
+            height: input.height,
+            size: input.size,
           },
         },
       },
