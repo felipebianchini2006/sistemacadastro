@@ -64,4 +64,9 @@
   .toast-progress {
     animation: toastProgress 5s linear;
   }
+
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 72px;
+  }
 }

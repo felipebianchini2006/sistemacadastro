@@ -3,9 +3,10 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Camera, Upload } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { CaptureGuidelines } from './CaptureGuidelines';
 import { ImageQualityAlert } from './ImageQualityAlert';
-import { OcrPreview, OcrPreviewData } from './OcrPreview';
+import type { OcrPreviewData } from './OcrPreview';
 import {
   validateImageBasics,
   validateImageComplete,
@@ -13,6 +14,15 @@ import {
   type ImageValidationResult,
 } from '../lib/imageValidation';
 import { apiFetch } from '../lib/api';
+
+const OcrPreview = dynamic(() => import('./OcrPreview').then((mod) => mod.OcrPreview), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[color:var(--gray-500)]">
+      Carregando preview do OCR...
+    </div>
+  ),
+});
 
 type UploadFlow =
   | 'idle'

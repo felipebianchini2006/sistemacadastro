@@ -161,7 +161,7 @@ export const ProposalsTable = ({
               <tr
                 key={proposal.id}
                 className={cn(
-                  'border-t border-[var(--border)]',
+                  'border-t border-[var(--border)] content-visibility-auto',
                   updated && 'bg-blue-50/50',
                   selectedIds?.has(proposal.id) && 'bg-orange-50/30',
                 )}

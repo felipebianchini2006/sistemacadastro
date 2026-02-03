@@ -1,7 +1,8 @@
 ﻿'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/ui/button';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 export type ProposalFilters = {
   status?: string[];
@@ -45,6 +46,8 @@ export const ProposalsFilters = ({
   onClear: () => void;
 }) => {
   const memoFilters = useMemo(() => ({ ...filters }), [filters]);
+  const [searchText, setSearchText] = useState(memoFilters.text ?? '');
+  const debouncedSearch = useDebouncedValue(searchText, 500);
   const selectedStatuses = memoFilters.status ?? [];
   const toggleStatus = (value: string) => {
     const next = new Set(selectedStatuses);
@@ -56,6 +59,16 @@ export const ProposalsFilters = ({
     const list = Array.from(next);
     onChange({ ...memoFilters, status: list.length ? list : undefined });
   };
+
+  useEffect(() => {
+    setSearchText(memoFilters.text ?? '');
+  }, [memoFilters.text]);
+
+  useEffect(() => {
+    const current = memoFilters.text ?? '';
+    if (debouncedSearch === current) return;
+    onChange({ ...memoFilters, text: debouncedSearch || undefined });
+  }, [debouncedSearch, memoFilters, onChange]);
 
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-lg">
@@ -140,10 +153,8 @@ export const ProposalsFilters = ({
         <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           Busca
           <input
-            value={memoFilters.text ?? ''}
-            onChange={(event) =>
-              onChange({ ...memoFilters, text: event.target.value || undefined })
-            }
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
             placeholder="Nome ou CPF"
             className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
           />

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { MessageCircle } from 'lucide-react';
 import { PrivacyGate } from './PrivacyGate';
 import {
@@ -2217,7 +2217,7 @@ export default function CadastroPage() {
 
                     <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
                       <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--muted)] aspect-[4/3]">
-                        <Image
+                        <NextImage
                           src={documentPreview.state.previewUrl}
                           alt="Previa do documento enviado"
                           fill

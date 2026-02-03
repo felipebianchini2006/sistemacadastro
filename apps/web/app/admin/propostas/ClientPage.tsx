@@ -12,6 +12,7 @@ import {
   type SortField,
   type SortState,
 } from '../components/ProposalsTable';
+import { ProposalsTableSkeleton } from '../components/ProposalsTableSkeleton';
 import { Pagination } from '../components/Pagination';
 import { Button } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
@@ -433,41 +434,45 @@ export default function ClientPage() {
           </div>
         ) : null}
 
-        {loading ? (
+        {loading && items.length > 0 ? (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
-            Carregando propostas...
+            Atualizando propostas...
           </div>
         ) : null}
       </div>
 
-      <ProposalsTable
-        items={tableItems}
-        sort={sort}
-        onSort={handleSort}
-        selectedIds={selectedIds}
-        onSelectAll={(checked) => {
-          setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (checked) {
-              tableItems.forEach((item) => next.add(item.id));
-            } else {
-              tableItems.forEach((item) => next.delete(item.id));
-            }
-            return next;
-          });
-        }}
-        onSelectOne={(id, checked) => {
-          setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (checked) {
-              next.add(id);
-            } else {
-              next.delete(id);
-            }
-            return next;
-          });
-        }}
-      />
+      {loading && items.length === 0 ? (
+        <ProposalsTableSkeleton />
+      ) : (
+        <ProposalsTable
+          items={tableItems}
+          sort={sort}
+          onSort={handleSort}
+          selectedIds={selectedIds}
+          onSelectAll={(checked) => {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              if (checked) {
+                tableItems.forEach((item) => next.add(item.id));
+              } else {
+                tableItems.forEach((item) => next.delete(item.id));
+              }
+              return next;
+            });
+          }}
+          onSelectOne={(id, checked) => {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              if (checked) {
+                next.add(id);
+              } else {
+                next.delete(id);
+              }
+              return next;
+            });
+          }}
+        />
+      )}
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
