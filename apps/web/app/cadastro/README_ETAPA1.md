@@ -72,7 +72,7 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
   documentLabel="RG Frente"
   draftId={draftMeta.draftId}
   draftToken={draftMeta.draftToken}
-  onUploadComplete={(documentId, ocrData) => {
+  onUploadComplete={(documentId, previewUrl, ocrData) => {
     console.log('Upload completo:', documentId, ocrData);
     // Atualizar state do formulário
     setForm((prev) => ({
@@ -82,7 +82,7 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
         rgFront: {
           status: 'uploaded',
           documentId,
-          previewUrl: '...',
+          previewUrl,
         },
       },
     }));
@@ -112,7 +112,7 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
       documentLabel="RG (Frente)"
       draftId={draftMeta!.draftId}
       draftToken={draftMeta!.draftToken}
-      onUploadComplete={(docId, ocrData) => {
+      onUploadComplete={(docId, previewUrl, ocrData) => {
         setForm(prev => ({
           ...prev,
           documents: {
@@ -120,7 +120,7 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
             rgFront: {
               status: 'uploaded',
               documentId: docId,
-              previewUrl: URL.createObjectURL(file), // ou buscar do backend
+              previewUrl,
             }
           }
         }));
@@ -203,7 +203,7 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
 [5. Upload para S3 (presigned URL)]
        ↓
 [6. Solicitar OCR ao backend]
-   - POST /api/public/drafts/:id/ocr
+   - POST /public/drafts/:id/ocr
        ↓
 [7. Preview Interativo (Modal)]
    - Imagem capturada
@@ -275,8 +275,8 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
 ### No SmartDocumentUpload.tsx:
 
 - **Endpoints de API:** Os endpoints assumidos podem precisar ajuste:
-  - `POST /api/public/drafts/${draftId}/uploads/presigned-url`
-  - `POST /api/public/drafts/${draftId}/ocr`
+  - `POST /public/uploads/presign`
+  - `POST /public/drafts/${draftId}/ocr`
 
 - **Formato de resposta OCR:** A função `buildOcrPreviewData` assume uma estrutura. Pode precisar adaptar conforme resposta real do backend.
 
@@ -285,7 +285,7 @@ import { SmartDocumentUpload } from './SmartDocumentUpload';
 - **Edição de campos:** Callback `onConfirm` recebe campos editados mas não envia ao backend. Implementar se necessário:
   ```ts
   if (editedFields) {
-    await fetch(`/api/public/drafts/${draftId}/ocr/${ocrResultId}`, {
+    await fetch(`/public/drafts/${draftId}/ocr/${ocrResultId}`, {
       method: 'PATCH',
       body: JSON.stringify({ updates: editedFields }),
     });

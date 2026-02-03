@@ -119,6 +119,12 @@ export class NotificationsService {
       data: payload,
     });
     if (input.phone) {
+      await this.queueSms({
+        proposalId: input.proposalId,
+        to: input.phone,
+        template: payload.template,
+        data: payload,
+      });
       await this.queueWhatsapp({
         proposalId: input.proposalId,
         to: input.phone,
@@ -148,6 +154,12 @@ export class NotificationsService {
       data: payload,
     });
     if (input.phone) {
+      await this.queueSms({
+        proposalId: input.proposalId,
+        to: input.phone,
+        template: payload.template,
+        data: payload,
+      });
       await this.queueWhatsapp({
         proposalId: input.proposalId,
         to: input.phone,

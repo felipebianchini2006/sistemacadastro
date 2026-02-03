@@ -137,7 +137,7 @@ Implementadas validações client-side:
                v
 ┌─────────────────────────────────────┐
 │ 6. Solicitar OCR ao backend         │
-│    - POST /api/public/drafts/:id/ocr│
+│    - POST /public/drafts/:id/ocr    │
 └──────────────┬──────────────────────┘
                │
                v
@@ -233,10 +233,10 @@ Os endpoints assumidos no `SmartDocumentUpload.tsx`:
 
 ```typescript
 // Presigned URL
-POST /api/public/drafts/${draftId}/uploads/presigned-url
+POST /public/uploads/presign
 
 // Solicitar OCR
-POST /api/public/drafts/${draftId}/ocr
+POST /public/drafts/${draftId}/ocr
 ```
 
 **Verificar se os endpoints existem e retornam no formato esperado:**
@@ -294,7 +294,7 @@ Para persistir edições no backend, implementar:
 ```typescript
 // SmartDocumentUpload.tsx, linha 256
 if (editedFields && ocrPreviewData) {
-  await fetch(`/api/public/drafts/${draftId}/ocr/${ocrResultId}`, {
+  await fetch(`/public/drafts/${draftId}/ocr/${ocrResultId}`, {
     method: 'PATCH',
     body: JSON.stringify({ updates: editedFields }),
   });

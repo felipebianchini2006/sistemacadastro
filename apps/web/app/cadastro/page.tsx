@@ -24,6 +24,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { StepLayout } from '../components/StepLayout';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
+import { maskCpf } from '../lib/masks';
 import { SmartDocumentUpload } from './SmartDocumentUpload';
 
 type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
@@ -247,6 +248,17 @@ const formatDate = (value: string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString('pt-BR');
+};
+const normalizeDateInput = (value: string) => {
+  const trimmed = value.trim();
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return trimmed;
+  const brMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) {
+    const [, day, month, year] = brMatch;
+    return `${year}-${month}-${day}`;
+  }
+  return trimmed;
 };
 
 const buildDraftPayload = (form: DraftFormState) => {
@@ -477,6 +489,26 @@ export default function CadastroPage() {
       dirtyRef.current = true;
     },
     [setForm],
+  );
+
+  const applyOcrToForm = useCallback(
+    (ocrData?: Record<string, string>) => {
+      if (!ocrData) return;
+      const patch: Partial<DraftFormState> = {};
+      if (ocrData.nome) {
+        patch.fullName = ocrData.nome;
+      }
+      if (ocrData.cpf) {
+        patch.cpf = maskCpf(ocrData.cpf);
+      }
+      if (ocrData.dataNascimento) {
+        patch.birthDate = normalizeDateInput(ocrData.dataNascimento);
+      }
+      if (Object.keys(patch).length > 0) {
+        updateForm(patch);
+      }
+    },
+    [updateForm],
   );
 
   const toggleProfileRole = useCallback((role: ProfileRole) => {
@@ -1897,12 +1929,18 @@ export default function CadastroPage() {
                         documentLabel="RG - Frente"
                         draftId={draftMeta?.draftId || ''}
                         draftToken={draftMeta?.draftToken || ''}
-                        onUploadComplete={(documentId, ocrData) => {
+                        onUploadComplete={(documentId, previewUrl, ocrData) => {
                           updateDocument('rgFront', {
                             status: 'uploaded',
                             documentId,
                             fileName: 'RG Frente',
+                            previewUrl,
                           });
+                          if (previewUrl) previewUrlsRef.current.add(previewUrl);
+                          applyOcrToForm(ocrData);
+                          if (draftMeta) {
+                            void fetchDraftOcr(draftMeta);
+                          }
                           if (ocrData) {
                             console.log('OCR data received for RG_FRENTE:', ocrData);
                           }
@@ -1921,12 +1959,17 @@ export default function CadastroPage() {
                         documentLabel="RG - Verso"
                         draftId={draftMeta?.draftId || ''}
                         draftToken={draftMeta?.draftToken || ''}
-                        onUploadComplete={(documentId, ocrData) => {
+                        onUploadComplete={(documentId, previewUrl, ocrData) => {
                           updateDocument('rgBack', {
                             status: 'uploaded',
                             documentId,
                             fileName: 'RG Verso',
+                            previewUrl,
                           });
+                          if (previewUrl) previewUrlsRef.current.add(previewUrl);
+                          if (draftMeta) {
+                            void fetchDraftOcr(draftMeta);
+                          }
                           if (ocrData) {
                             console.log('OCR data received for RG_VERSO:', ocrData);
                           }
@@ -1947,12 +1990,18 @@ export default function CadastroPage() {
                       documentLabel="CNH"
                       draftId={draftMeta?.draftId || ''}
                       draftToken={draftMeta?.draftToken || ''}
-                      onUploadComplete={(documentId, ocrData) => {
+                      onUploadComplete={(documentId, previewUrl, ocrData) => {
                         updateDocument('cnh', {
                           status: 'uploaded',
                           documentId,
                           fileName: 'CNH',
+                          previewUrl,
                         });
+                        if (previewUrl) previewUrlsRef.current.add(previewUrl);
+                        applyOcrToForm(ocrData);
+                        if (draftMeta) {
+                          void fetchDraftOcr(draftMeta);
+                        }
                         if (ocrData) {
                           console.log('OCR data received for CNH:', ocrData);
                         }
@@ -1972,12 +2021,17 @@ export default function CadastroPage() {
                     documentLabel="Comprovante de Residência"
                     draftId={draftMeta?.draftId || ''}
                     draftToken={draftMeta?.draftToken || ''}
-                    onUploadComplete={(documentId, ocrData) => {
+                    onUploadComplete={(documentId, previewUrl, ocrData) => {
                       updateDocument('residence', {
                         status: 'uploaded',
                         documentId,
                         fileName: 'Comprovante',
+                        previewUrl,
                       });
+                      if (previewUrl) previewUrlsRef.current.add(previewUrl);
+                      if (draftMeta) {
+                        void fetchDraftOcr(draftMeta);
+                      }
                       if (ocrData) {
                         console.log('OCR data received for COMPROVANTE_RESIDENCIA:', ocrData);
                       }

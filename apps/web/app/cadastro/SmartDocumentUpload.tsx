@@ -5,7 +5,13 @@ import { Camera, Upload } from 'lucide-react';
 import { CaptureGuidelines } from './CaptureGuidelines';
 import { ImageQualityAlert } from './ImageQualityAlert';
 import { OcrPreview, OcrPreviewData } from './OcrPreview';
-import { validateImageComplete, shouldWarnUser } from '../lib/imageValidation';
+import {
+  validateImageBasics,
+  validateImageComplete,
+  shouldWarnUser,
+  type ImageValidationResult,
+} from '../lib/imageValidation';
+import { apiFetch } from '../lib/api';
 
 type UploadFlow =
   | 'idle'
@@ -20,11 +26,32 @@ interface SmartDocumentUploadProps {
   documentLabel: string;
   draftId: string;
   draftToken: string;
-  onUploadComplete: (documentId: string, ocrData?: Record<string, unknown>) => void;
+  onUploadComplete: (
+    documentId: string,
+    previewUrl: string,
+    ocrData?: Record<string, string>,
+  ) => void;
   onError: (error: string) => void;
   existingDocumentId?: string;
   existingPreviewUrl?: string;
 }
+
+type DraftOcrResult = {
+  id: string;
+  documentFileId?: string | null;
+  structuredData: Record<string, unknown>;
+  score?: number | null;
+  heuristics?: Record<string, unknown> | null;
+};
+
+type UploadPresignResponse = {
+  documentId: string;
+  storageKey: string;
+  uploadUrl: string;
+  expiresIn: number;
+  method: 'PUT';
+  headers: Record<string, string>;
+};
 
 export function SmartDocumentUpload({
   documentType,
@@ -42,6 +69,11 @@ export function SmartDocumentUpload({
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [ocrPreviewData, setOcrPreviewData] = useState<OcrPreviewData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
+  const [validationMeta, setValidationMeta] = useState<ImageValidationResult['metadata'] | null>(
+    null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCaptureClick = () => {
@@ -71,6 +103,7 @@ export function SmartDocumentUpload({
     // Validar qualidade da imagem
     try {
       const validation = await validateImageComplete(file, { checkQuality: true });
+      setValidationMeta(validation.metadata);
 
       if (shouldWarnUser(validation)) {
         setValidationWarnings(validation.warnings);
@@ -78,7 +111,7 @@ export function SmartDocumentUpload({
         setFlow('quality-alert');
       } else {
         // Qualidade OK, processar diretamente
-        await processUpload(file);
+        await processUpload(file, validation.metadata);
       }
     } catch (error) {
       console.error('Erro ao validar imagem:', error);
@@ -93,7 +126,7 @@ export function SmartDocumentUpload({
   const handleQualityAlertProceed = async () => {
     if (!selectedFile) return;
     setFlow('processing-ocr');
-    await processUpload(selectedFile);
+    await processUpload(selectedFile, validationMeta ?? undefined);
   };
 
   const handleQualityAlertCancel = () => {
@@ -103,36 +136,42 @@ export function SmartDocumentUpload({
     setFlow('idle');
   };
 
-  const processUpload = async (file: File) => {
+  const processUpload = async (file: File, metadata?: ImageValidationResult['metadata']) => {
     setIsProcessing(true);
     setFlow('processing-ocr');
 
     try {
-      // 1. Solicitar presigned URL
-      const presignResponse = await fetch(`/api/public/drafts/${draftId}/uploads/presigned-url`, {
+      if (!draftId || !draftToken) {
+        throw new Error('Draft nao inicializado');
+      }
+
+      let resolvedMeta = metadata ?? null;
+      if (file.type.startsWith('image/') && (!resolvedMeta?.width || !resolvedMeta?.height)) {
+        const basic = await validateImageBasics(file);
+        resolvedMeta = basic.metadata;
+      }
+
+      const presign = await apiFetch<UploadPresignResponse>('/public/uploads/presign', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${draftToken}`,
+          'x-draft-token': draftToken,
         },
-        body: JSON.stringify({
+        body: {
+          draftId,
           docType: documentType,
           fileName: file.name,
           contentType: file.type,
           size: file.size,
-        }),
+          imageWidth: resolvedMeta?.width,
+          imageHeight: resolvedMeta?.height,
+        },
       });
 
-      if (!presignResponse.ok) {
-        throw new Error('Falha ao obter URL de upload');
-      }
+      setCurrentDocumentId(presign.documentId);
 
-      const { uploadUrl, key, documentId } = await presignResponse.json();
-
-      // 2. Upload direto para S3
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
+      const uploadResponse = await fetch(presign.uploadUrl, {
+        method: presign.method ?? 'PUT',
+        headers: presign.headers,
         body: file,
       });
 
@@ -140,28 +179,20 @@ export function SmartDocumentUpload({
         throw new Error('Falha no upload do arquivo');
       }
 
-      // 3. Criar preview local
       const previewUrl = URL.createObjectURL(file);
+      setLocalPreviewUrl(previewUrl);
 
-      // 4. Solicitar OCR (se aplicável)
+      await apiFetch(`/public/drafts/${draftId}/ocr`, {
+        method: 'POST',
+        headers: {
+          'x-draft-token': draftToken,
+        },
+      });
+
       if (documentType !== 'COMPROVANTE_RESIDENCIA') {
-        const ocrResponse = await fetch(`/api/public/drafts/${draftId}/ocr`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${draftToken}`,
-          },
-          body: JSON.stringify({
-            documentFileId: documentId,
-            documentType: documentType,
-          }),
-        });
-
-        if (ocrResponse.ok) {
-          const ocrData = await ocrResponse.json();
-
-          // Montar dados para preview
-          const previewData = buildOcrPreviewData(documentType, previewUrl, ocrData);
+        const ocrResult = await pollDraftOcr(draftId, draftToken, presign.documentId);
+        if (ocrResult) {
+          const previewData = buildOcrPreviewData(documentType, previewUrl, ocrResult);
           setOcrPreviewData(previewData);
           setIsProcessing(false);
           setFlow('show-preview');
@@ -169,9 +200,8 @@ export function SmartDocumentUpload({
         }
       }
 
-      // Se não tem OCR ou falhou, completar direto
       setIsProcessing(false);
-      onUploadComplete(documentId);
+      onUploadComplete(presign.documentId, previewUrl);
       setFlow('idle');
     } catch (error) {
       console.error('Erro no upload:', error);
@@ -181,64 +211,45 @@ export function SmartDocumentUpload({
     }
   };
 
-  const buildOcrPreviewData = (docType: string, imageUrl: string, ocrData: any): OcrPreviewData => {
-    const structured = ocrData.structuredData || {};
+  const buildOcrPreviewData = (
+    docType: string,
+    imageUrl: string,
+    ocrResult: DraftOcrResult,
+  ): OcrPreviewData => {
+    const structured = (ocrResult.structuredData ?? {}) as Record<string, unknown>;
+    const fields =
+      structured.fields && typeof structured.fields === 'object'
+        ? (structured.fields as Record<string, unknown>)
+        : structured;
+
+    const resolve = (key: string) => {
+      const value = fields[key];
+      return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+    };
 
     if (docType === 'RG_FRENTE' || docType === 'RG_VERSO') {
       return {
         imageUrl,
         documentType: 'RG',
         fields: {
-          nome: structured.nome
-            ? {
-                label: 'Nome Completo',
-                value: structured.nome,
-                editable: true,
-                confidence: structured.nomeConfidence,
-              }
+          nome: resolve('nome')
+            ? { label: 'Nome Completo', value: resolve('nome')!, editable: true }
             : undefined,
-          cpf: structured.cpf
-            ? {
-                label: 'CPF',
-                value: structured.cpf,
-                editable: true,
-                confidence: structured.cpfConfidence,
-              }
+          cpf: resolve('cpf')
+            ? { label: 'CPF', value: resolve('cpf')!, editable: true }
             : undefined,
-          rg: structured.rg
-            ? {
-                label: 'RG',
-                value: structured.rg,
-                editable: true,
-                confidence: structured.rgConfidence,
-              }
+          rg: resolve('rg_cnh')
+            ? { label: 'RG', value: resolve('rg_cnh')!, editable: true }
             : undefined,
-          dataNascimento: structured.dataNascimento
-            ? {
-                label: 'Data de Nascimento',
-                value: structured.dataNascimento,
-                editable: true,
-                confidence: structured.dataNascimentoConfidence,
-              }
+          dataEmissao: resolve('data_emissao')
+            ? { label: 'Data de Emissão', value: resolve('data_emissao')!, editable: true }
             : undefined,
-          orgaoEmissor: structured.orgaoEmissor
-            ? {
-                label: 'Órgão Emissor',
-                value: structured.orgaoEmissor,
-                editable: true,
-                confidence: structured.orgaoEmissorConfidence,
-              }
+          orgaoEmissor: resolve('orgao_emissor')
+            ? { label: 'Órgão Emissor', value: resolve('orgao_emissor')!, editable: true }
             : undefined,
-          uf: structured.uf
-            ? {
-                label: 'UF',
-                value: structured.uf,
-                editable: true,
-                confidence: structured.ufConfidence,
-              }
-            : undefined,
+          uf: resolve('uf') ? { label: 'UF', value: resolve('uf')!, editable: true } : undefined,
         },
-        overallConfidence: structured.overallConfidence,
+        overallConfidence: typeof ocrResult.score === 'number' ? ocrResult.score : undefined,
       };
     }
 
@@ -247,75 +258,97 @@ export function SmartDocumentUpload({
         imageUrl,
         documentType: 'CNH',
         fields: {
-          nome: structured.nome
-            ? {
-                label: 'Nome Completo',
-                value: structured.nome,
-                editable: true,
-                confidence: structured.nomeConfidence,
-              }
+          nome: resolve('nome')
+            ? { label: 'Nome Completo', value: resolve('nome')!, editable: true }
             : undefined,
-          cpf: structured.cpf
-            ? {
-                label: 'CPF',
-                value: structured.cpf,
-                editable: true,
-                confidence: structured.cpfConfidence,
-              }
+          cpf: resolve('cpf')
+            ? { label: 'CPF', value: resolve('cpf')!, editable: true }
             : undefined,
-          cnh: structured.cnh
-            ? {
-                label: 'Número da CNH',
-                value: structured.cnh,
-                editable: true,
-                confidence: structured.cnhConfidence,
-              }
+          cnh: resolve('rg_cnh')
+            ? { label: 'Número da CNH', value: resolve('rg_cnh')!, editable: true }
             : undefined,
-          dataNascimento: structured.dataNascimento
-            ? {
-                label: 'Data de Nascimento',
-                value: structured.dataNascimento,
-                editable: true,
-                confidence: structured.dataNascimentoConfidence,
-              }
+          dataEmissao: resolve('data_emissao')
+            ? { label: 'Data de Emissão', value: resolve('data_emissao')!, editable: true }
             : undefined,
-          dataEmissao: structured.dataEmissao
-            ? {
-                label: 'Data de Emissão',
-                value: structured.dataEmissao,
-                editable: false,
-                confidence: structured.dataEmissaoConfidence,
-              }
+          orgaoEmissor: resolve('orgao_emissor')
+            ? { label: 'Órgão Emissor', value: resolve('orgao_emissor')!, editable: true }
             : undefined,
         },
-        overallConfidence: structured.overallConfidence,
+        overallConfidence: typeof ocrResult.score === 'number' ? ocrResult.score : undefined,
       };
     }
 
-    // Fallback genérico
     return {
       imageUrl,
       documentType: 'COMPROVANTE_RESIDENCIA',
-      fields: {},
+      fields: {
+        endereco: resolve('endereco')
+          ? { label: 'Endereço', value: resolve('endereco')!, editable: true }
+          : undefined,
+        cep: resolve('cep') ? { label: 'CEP', value: resolve('cep')!, editable: true } : undefined,
+      },
+      overallConfidence: typeof ocrResult.score === 'number' ? ocrResult.score : undefined,
     };
   };
 
-  const handleOcrConfirm = async (editedFields?: Record<string, string>) => {
-    // TODO: Se houver campos editados, enviar atualização para o backend
-    if (editedFields && ocrPreviewData) {
-      console.log('Campos editados pelo usuário:', editedFields);
-      // Aqui você pode fazer um PATCH para atualizar o OCR no backend
+  const pollDraftOcr = async (
+    draftIdValue: string,
+    draftTokenValue: string,
+    documentId: string,
+  ) => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const response = await apiFetch<{ results: DraftOcrResult[] }>(
+        `/public/drafts/${draftIdValue}/ocr`,
+        {
+          headers: {
+            'x-draft-token': draftTokenValue,
+          },
+        },
+      );
+      const match = response.results?.find((entry) => entry.documentFileId === documentId);
+      if (match) return match;
+      await new Promise((resolve) => setTimeout(resolve, 4000));
     }
+    return null;
+  };
 
-    // Finalizar upload
-    if (ocrPreviewData) {
-      onUploadComplete(existingDocumentId || '', ocrPreviewData.fields as any);
-    }
+  const buildOcrPayload = (preview: OcrPreviewData, edits?: Record<string, string>) => {
+    const payload: Record<string, string> = {};
+    const pick = (key: keyof OcrPreviewData['fields']) => {
+      const original = preview.fields[key]?.value ?? null;
+      const value = edits?.[key] ?? original;
+      if (typeof value === 'string' && value.trim().length > 0) {
+        payload[key] = value.trim();
+      }
+    };
+    pick('nome');
+    pick('cpf');
+    pick('rg');
+    pick('cnh');
+    pick('dataNascimento');
+    pick('dataEmissao');
+    pick('orgaoEmissor');
+    pick('uf');
+    pick('endereco');
+    pick('cep');
+    return payload;
+  };
+
+  const handleOcrConfirm = async (editedFields?: Record<string, string>) => {
+    const previewUrl = existingPreviewUrl ?? localPreviewUrl ?? '';
+    const documentId = currentDocumentId ?? existingDocumentId ?? '';
+    const payload = ocrPreviewData ? buildOcrPayload(ocrPreviewData, editedFields) : editedFields;
+    onUploadComplete(documentId, previewUrl, payload);
     setFlow('idle');
     setOcrPreviewData(null);
   };
 
   const handleOcrRetake = () => {
+    if (localPreviewUrl && !existingPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+    }
+    setLocalPreviewUrl(null);
+    setCurrentDocumentId(null);
     setOcrPreviewData(null);
     setFlow('idle');
   };
@@ -335,7 +368,7 @@ export function SmartDocumentUpload({
       {/* Upload buttons */}
       {flow === 'idle' && (
         <div className="space-y-3">
-          {existingPreviewUrl ? (
+          {(existingPreviewUrl ?? localPreviewUrl) ? (
             <div className="rounded-xl border-2 border-green-200 bg-green-50 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600">
@@ -356,7 +389,7 @@ export function SmartDocumentUpload({
                 <span className="text-sm font-semibold text-green-900">Documento enviado</span>
               </div>
               <img
-                src={existingPreviewUrl}
+                src={existingPreviewUrl ?? localPreviewUrl ?? ''}
                 alt={documentLabel}
                 className="h-32 w-auto rounded-lg object-contain"
               />

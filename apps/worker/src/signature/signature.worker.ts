@@ -293,6 +293,13 @@ export class SignatureWorker {
     if (candidate.phone) {
       await this.queueNotification({
         proposalId,
+        channel: NotificationChannel.SMS,
+        to: candidate.phone,
+        template: 'proposal_approved',
+        data: { signatureLink: signerLink },
+      });
+      await this.queueNotification({
+        proposalId,
         channel: NotificationChannel.WHATSAPP,
         to: candidate.phone,
         template: 'proposal_approved',
