@@ -25,6 +25,18 @@ export type AssignProposalDto = {
   analystId: string;
 };
 
+export type BulkAssignProposalDto = {
+  proposalIds: string[];
+  analystId: string;
+};
+
+export type BulkStatusProposalDto = {
+  proposalIds: string[];
+  status: ProposalStatus;
+  reason?: string;
+  missingItems?: string[];
+};
+
 export type RequestChangesDto = {
   missingItems: string[];
   message?: string;
@@ -96,6 +108,40 @@ export const listProposalsQuerySchema = z.object({
 export const assignProposalSchema = z.object({
   analystId: z.string().uuid(),
 });
+
+const proposalIdsSchema = z.array(z.string().uuid()).min(1);
+
+export const bulkAssignProposalSchema = z.object({
+  proposalIds: proposalIdsSchema,
+  analystId: z.string().uuid(),
+});
+
+export const bulkStatusProposalSchema = z
+  .object({
+    proposalIds: proposalIdsSchema,
+    status: z.nativeEnum(ProposalStatus),
+    reason: z.string().min(3).optional(),
+    missingItems: z.array(z.string().min(1)).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.status === ProposalStatus.REJECTED && !value.reason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Motivo obrigatorio para reprovar',
+        path: ['reason'],
+      });
+    }
+    if (
+      value.status === ProposalStatus.PENDING_DOCS &&
+      (!value.missingItems || value.missingItems.length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe os documentos pendentes',
+        path: ['missingItems'],
+      });
+    }
+  });
 
 export const requestChangesSchema = z.object({
   missingItems: z.array(z.string().min(1)).min(1),

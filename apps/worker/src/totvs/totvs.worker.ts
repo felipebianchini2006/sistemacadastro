@@ -191,6 +191,13 @@ export class TotvsWorker {
       if (phone) {
         await this.queueNotification({
           proposalId: proposal.id,
+          channel: NotificationChannel.SMS,
+          to: phone,
+          template: 'proposal_concluded',
+          data: { memberNumber },
+        });
+        await this.queueNotification({
+          proposalId: proposal.id,
           channel: NotificationChannel.WHATSAPP,
           to: phone,
           template: 'proposal_concluded',

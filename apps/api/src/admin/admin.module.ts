@@ -6,6 +6,7 @@ import { AdminTotvsController } from './admin.totvs.controller';
 import { AdminTotvsService } from './admin.totvs.service';
 import { AdminPushController } from './admin.push.controller';
 import { AdminPushService } from './admin.push.service';
+import { AdminQueuesService } from './admin.queues.service';
 import { ProposalTriageService } from './proposal-triage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -39,6 +40,7 @@ import { PublicModule } from '../public/public.module';
     AdminProposalsService,
     AdminTotvsService,
     AdminPushService,
+    AdminQueuesService,
     ProposalTriageService,
   ],
 })

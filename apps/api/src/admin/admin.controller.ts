@@ -4,11 +4,15 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminQueuesService } from './admin.queues.service';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queues: AdminQueuesService,
+  ) {}
 
   @Get('ping')
   @Roles(RoleName.ADMIN)
@@ -43,5 +47,11 @@ export class AdminController {
     });
 
     return { analysts };
+  }
+
+  @Get('queues')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST, RoleName.VIEWER)
+  listQueues() {
+    return this.queues.getOverview();
   }
 }

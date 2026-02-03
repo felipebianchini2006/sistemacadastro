@@ -135,6 +135,11 @@ const CONSENT_VERSION = process.env.NEXT_PUBLIC_CONSENT_VERSION ?? 'v1';
 const PRIVACY_VERSION = process.env.NEXT_PUBLIC_PRIVACY_VERSION ?? 'v1';
 const buildTrackingUrl = (protocol: string, token: string) =>
   `/acompanhar?protocolo=${encodeURIComponent(protocol)}&token=${encodeURIComponent(token)}`;
+const buildApiUrl = (path: string) => {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  if (!base) return path;
+  return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+};
 
 const readStoredDraft = () => {
   if (typeof window === 'undefined') return null;
@@ -2204,11 +2209,10 @@ export default function CadastroPage() {
               <SocialConnectionsStep
                 form={form}
                 updateForm={updateForm}
-                draftMeta={draftMeta}
+                proposalId={submission?.proposalId}
+                proposalToken={submission?.trackingToken}
                 onNext={handleNext}
                 onBack={handleBack}
-                ensureDraft={ensureDraft}
-                buildPayload={buildPayload}
               />
             ) : null}
 
@@ -2427,21 +2431,19 @@ export default function CadastroPage() {
 type SocialConnectionsStepProps = {
   form: DraftFormState;
   updateForm: (patch: Partial<DraftFormState>) => void;
-  draftMeta: DraftMeta | null;
+  proposalId?: string;
+  proposalToken?: string;
   onNext: () => void;
   onBack: () => void;
-  ensureDraft: (payload: Record<string, unknown>) => Promise<DraftMeta>;
-  buildPayload: () => Record<string, unknown>;
 };
 
 const SocialConnectionsStep = ({
   form,
   updateForm,
-  draftMeta,
+  proposalId,
+  proposalToken,
   onNext,
   onBack,
-  ensureDraft,
-  buildPayload,
 }: SocialConnectionsStepProps) => {
   const [connecting, setConnecting] = useState<SocialProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2491,80 +2493,25 @@ const SocialConnectionsStep = ({
     return form.socialConnections.find((conn) => conn.provider === provider);
   };
 
+  const canConnect = Boolean(proposalId && proposalToken);
+
   const handleConnect = async (provider: SocialProvider) => {
-    if (!draftMeta) {
-      // Precisa garantir que temos um draft primeiro
-      setConnecting(provider);
-      setError(null);
-      try {
-        const payload = buildPayload();
-        const meta = await ensureDraft(payload);
-
-        // Abrir popup de OAuth
-        const width = 600;
-        const height = 700;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-
-        const authUrl = `/api/public/social/authorize?provider=${provider.toLowerCase()}&proposalId=${meta.draftId}&token=${meta.draftToken}`;
-
-        const popup = window.open(
-          authUrl,
-          `oauth-${provider}`,
-          `width=${width},height=${height},left=${left},top=${top},popup=1`,
-        );
-
-        if (!popup) {
-          setError('Popup bloqueado. Permita popups para este site.');
-          setConnecting(null);
-          return;
-        }
-
-        // Monitorar se o popup foi fechado
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            setConnecting(null);
-            // Adicionar como conectado (simulado - em produção, verificar no backend)
-            addConnection(provider);
-          }
-        }, 1000);
-      } catch (err) {
-        setError('Erro ao iniciar conexão. Tente novamente.');
-        setConnecting(null);
-      }
-    } else {
-      // Já tem draft, conectar diretamente
-      setConnecting(provider);
-      setError(null);
-
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-
-      const authUrl = `/api/public/social/authorize?provider=${provider.toLowerCase()}&proposalId=${draftMeta.draftId}&token=${draftMeta.draftToken}`;
-
-      const popup = window.open(
-        authUrl,
-        `oauth-${provider}`,
-        `width=${width},height=${height},left=${left},top=${top},popup=1`,
-      );
-
-      if (!popup) {
-        setError('Popup bloqueado. Permita popups para este site.');
-        setConnecting(null);
-        return;
-      }
-
-      const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkClosed);
-          setConnecting(null);
-          addConnection(provider);
-        }
-      }, 1000);
+    if (!canConnect) {
+      setError('Envie a proposta primeiro para conectar as redes sociais.');
+      return;
     }
+
+    setConnecting(provider);
+    setError(null);
+
+    const url = new URL(
+      buildApiUrl('/public/social/authorize'),
+      typeof window !== 'undefined' ? window.location.origin : undefined,
+    );
+    url.searchParams.set('provider', provider.toLowerCase());
+    url.searchParams.set('proposalId', proposalId!);
+    url.searchParams.set('token', proposalToken!);
+    window.location.href = url.toString();
   };
 
   const addConnection = (provider: SocialProvider) => {
@@ -2594,7 +2541,11 @@ const SocialConnectionsStep = ({
   return (
     <StepLayout
       title="Conecte suas redes sociais"
-      description="Opcional: conecte seus perfis profissionais para enriquecer seu cadastro."
+      description={
+        canConnect
+          ? 'Opcional: conecte seus perfis profissionais para enriquecer seu cadastro.'
+          : 'Opcional: voce podera conectar suas redes apos enviar a proposta.'
+      }
       footer={
         <>
           <Button variant="secondary" onClick={onBack}>
@@ -2613,6 +2564,11 @@ const SocialConnectionsStep = ({
             ? 'Nenhuma rede conectada ainda.'
             : `${connectedCount} ${connectedCount === 1 ? 'rede conectada' : 'redes conectadas'}`}
         </p>
+        {!canConnect ? (
+          <p className="mt-2 text-xs text-amber-700">
+            Conexoes ficam disponiveis apos o envio. Use o link de acompanhamento para conectar.
+          </p>
+        ) : null}
       </div>
 
       {error ? (

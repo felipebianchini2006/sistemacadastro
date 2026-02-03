@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { adminFetchWithRefresh } from '../lib/api';
 import { ProposalsFilters, type ProposalFilters } from '../components/ProposalsFilters';
+import { BulkActions } from '../components/BulkActions';
+import { AnalystSelector, type Analyst } from '../components/AnalystSelector';
 import {
   ProposalsTable,
   type ProposalListItem,
@@ -182,6 +184,8 @@ const downloadExcel = (items: ProposalListItem[]) => {
   URL.revokeObjectURL(url);
 };
 
+type BulkStatus = 'UNDER_REVIEW' | 'PENDING_DOCS' | 'REJECTED' | 'CANCELED';
+
 export default function ClientPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -205,6 +209,16 @@ export default function ClientPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const [sort, setSort] = useState<SortState>({ field: 'createdAt', dir: 'desc' });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [analysts, setAnalysts] = useState<Analyst[]>([]);
+  const [assignAnalystId, setAssignAnalystId] = useState<string | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<BulkStatus>('UNDER_REVIEW');
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkMissingItems, setBulkMissingItems] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const apiQuery = useMemo(() => buildApiQuery(filters, sort), [filters, sort]);
   const urlQuery = useMemo(() => buildUrlQuery(filters), [filters]);
@@ -229,6 +243,15 @@ export default function ClientPage() {
   }, [apiQuery]);
 
   useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const available = new Set(items.map((item) => item.id));
+      const next = new Set(Array.from(prev).filter((id) => available.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
+
+  useEffect(() => {
     const params = new URLSearchParams(urlQuery);
     if (page > 1) params.set('page', String(page));
     const qs = params.toString();
@@ -251,6 +274,97 @@ export default function ClientPage() {
     }));
     setPage(1);
   }, []);
+
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedIds.has(item.id)),
+    [items, selectedIds],
+  );
+
+  const openAssignModal = async () => {
+    setBulkError(null);
+    setAssignAnalystId(null);
+    setShowAssignModal(true);
+    try {
+      const response = await adminFetchWithRefresh<{ analysts: Analyst[] }>('/admin/analysts');
+      setAnalysts(response.analysts ?? []);
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : 'Falha ao carregar analistas');
+    }
+  };
+
+  const openStatusModal = () => {
+    setBulkError(null);
+    setBulkStatus('UNDER_REVIEW');
+    setBulkReason('');
+    setBulkMissingItems('');
+    setShowStatusModal(true);
+  };
+
+  const handleBulkAssign = async () => {
+    if (!assignAnalystId) {
+      setBulkError('Selecione um analista');
+      return;
+    }
+    setBulkLoading(true);
+    setBulkError(null);
+    try {
+      await adminFetchWithRefresh('/admin/proposals/bulk/assign', {
+        method: 'POST',
+        body: {
+          proposalIds: Array.from(selectedIds),
+          analystId: assignAnalystId,
+        },
+      });
+      setShowAssignModal(false);
+      setSelectedIds(new Set());
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : 'Falha ao atribuir propostas');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkStatus = async () => {
+    setBulkLoading(true);
+    setBulkError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        proposalIds: Array.from(selectedIds),
+        status: bulkStatus,
+      };
+      if (bulkStatus === 'REJECTED') {
+        const reason = bulkReason.trim();
+        if (!reason) {
+          setBulkError('Informe o motivo da reprovacao');
+          setBulkLoading(false);
+          return;
+        }
+        payload.reason = reason;
+      }
+      if (bulkStatus === 'PENDING_DOCS') {
+        const missingItems = bulkMissingItems
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        if (missingItems.length === 0) {
+          setBulkError('Informe os documentos pendentes');
+          setBulkLoading(false);
+          return;
+        }
+        payload.missingItems = missingItems;
+      }
+      await adminFetchWithRefresh('/admin/proposals/bulk/status', {
+        method: 'POST',
+        body: payload,
+      });
+      setShowStatusModal(false);
+      setSelectedIds(new Set());
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : 'Falha ao atualizar status');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   return (
     <div className="grid gap-6">
@@ -281,6 +395,14 @@ export default function ClientPage() {
         }}
       />
 
+      <BulkActions
+        selectedCount={selectedIds.size}
+        onAssign={openAssignModal}
+        onChangeStatus={openStatusModal}
+        onExport={() => downloadCsv(selectedItems)}
+        onClearSelection={() => setSelectedIds(new Set())}
+      />
+
       <div aria-live="polite" role="status">
         {error ? (
           <div
@@ -298,8 +420,131 @@ export default function ClientPage() {
         ) : null}
       </div>
 
-      <ProposalsTable items={pageItems} sort={sort} onSort={handleSort} />
+      <ProposalsTable
+        items={pageItems}
+        sort={sort}
+        onSort={handleSort}
+        selectedIds={selectedIds}
+        onSelectAll={(checked) => {
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (checked) {
+              pageItems.forEach((item) => next.add(item.id));
+            } else {
+              pageItems.forEach((item) => next.delete(item.id));
+            }
+            return next;
+          });
+        }}
+        onSelectOne={(id, checked) => {
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (checked) {
+              next.add(id);
+            } else {
+              next.delete(id);
+            }
+            return next;
+          });
+        }}
+      />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      {showAssignModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-zinc-900">Atribuir analista</h3>
+            <p className="mt-1 text-sm text-zinc-500">
+              Selecione um analista para {selectedIds.size}{' '}
+              {selectedIds.size === 1 ? 'proposta' : 'propostas'}.
+            </p>
+            <div className="mt-4">
+              <AnalystSelector
+                value={assignAnalystId ?? undefined}
+                analysts={analysts}
+                onChange={(value) => setAssignAnalystId(value)}
+              />
+            </div>
+            {bulkError ? (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {bulkError}
+              </div>
+            ) : null}
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowAssignModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleBulkAssign} disabled={bulkLoading}>
+                {bulkLoading ? 'Salvando...' : 'Atribuir'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showStatusModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-zinc-900">Alterar status</h3>
+            <p className="mt-1 text-sm text-zinc-500">
+              Atualize o status de {selectedIds.size}{' '}
+              {selectedIds.size === 1 ? 'proposta' : 'propostas'}.
+            </p>
+            <div className="mt-4 grid gap-3">
+              <label className="text-sm text-zinc-600">
+                Status
+                <select
+                  value={bulkStatus}
+                  onChange={(event) => setBulkStatus(event.target.value as BulkStatus)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                >
+                  <option value="UNDER_REVIEW">Em analise</option>
+                  <option value="PENDING_DOCS">Pendente documento</option>
+                  <option value="REJECTED">Reprovada</option>
+                  <option value="CANCELED">Cancelada</option>
+                </select>
+              </label>
+
+              {bulkStatus === 'PENDING_DOCS' ? (
+                <label className="text-sm text-zinc-600">
+                  Documentos pendentes
+                  <input
+                    value={bulkMissingItems}
+                    onChange={(event) => setBulkMissingItems(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    placeholder="RG frente, comprovante de residencia"
+                  />
+                </label>
+              ) : null}
+
+              {bulkStatus === 'REJECTED' ? (
+                <label className="text-sm text-zinc-600">
+                  Motivo
+                  <textarea
+                    value={bulkReason}
+                    onChange={(event) => setBulkReason(event.target.value)}
+                    className="mt-2 min-h-[96px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    placeholder="Explique o motivo da reprovação"
+                  />
+                </label>
+              ) : null}
+            </div>
+            {bulkError ? (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {bulkError}
+              </div>
+            ) : null}
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleBulkStatus} disabled={bulkLoading}>
+                {bulkLoading ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -415,6 +415,15 @@ export class PublicService {
       },
     });
 
+    const latestPending = await this.prisma.auditLog.findFirst({
+      where: {
+        proposalId: proposal.id,
+        action: 'REQUEST_CHANGES',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+
     return {
       proposalId: proposal.id,
       protocol: proposal.protocol,
@@ -425,7 +434,7 @@ export class PublicService {
         at: entry.createdAt,
         reason: entry.reason,
       })),
-      pending: this.getPendingItems(proposal.status),
+      pending: this.getPendingItems(proposal.status, latestPending?.metadata),
       socialAccounts:
         proposal.person?.socialAccounts?.map((account) => ({
           provider: account.provider,
@@ -635,8 +644,17 @@ export class PublicService {
     });
   }
 
-  private getPendingItems(status: ProposalStatus) {
+  private getPendingItems(status: ProposalStatus, metadata?: unknown) {
     if (status === ProposalStatus.PENDING_DOCS) {
+      const raw = metadata as { missingItems?: unknown } | null;
+      const missingItems = Array.isArray(raw?.missingItems)
+        ? raw?.missingItems
+            .filter((item) => typeof item === 'string')
+            .map(String)
+        : [];
+      if (missingItems.length > 0) {
+        return missingItems.map((item) => `Documento: ${item}`);
+      }
       return ['Documentos pendentes'];
     }
     if (status === ProposalStatus.PENDING_SIGNATURE) {

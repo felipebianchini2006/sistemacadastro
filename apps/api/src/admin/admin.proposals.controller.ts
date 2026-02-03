@@ -17,6 +17,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { AdminProposalsService } from './admin.proposals.service';
 import type {
   AssignProposalDto,
+  BulkAssignProposalDto,
+  BulkStatusProposalDto,
   ListProposalsQuery,
   UpdateProposalDto,
   AddNoteDto,
@@ -27,6 +29,8 @@ import type {
 } from './admin.proposals.dto';
 import {
   assignProposalSchema,
+  bulkAssignProposalSchema,
+  bulkStatusProposalSchema,
   listProposalsQuerySchema,
   updateProposalSchema,
   addNoteSchema,
@@ -80,6 +84,26 @@ export class AdminProposalsController {
   ) {
     const parsed = assignProposalSchema.parse(body);
     return this.service.assign(proposalId, parsed, req.user?.id ?? 'system');
+  }
+
+  @Post('bulk/assign')
+  @Roles(RoleName.ADMIN)
+  bulkAssign(
+    @Body() body: BulkAssignProposalDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    const parsed = bulkAssignProposalSchema.parse(body);
+    return this.service.bulkAssign(parsed, req.user?.id ?? 'system');
+  }
+
+  @Post('bulk/status')
+  @Roles(RoleName.ADMIN, RoleName.ANALYST)
+  bulkStatus(
+    @Body() body: BulkStatusProposalDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    const parsed = bulkStatusProposalSchema.parse(body);
+    return this.service.bulkStatus(parsed, req.user?.id ?? 'system');
   }
 
   @Post(':proposalId/notes')

@@ -24,6 +24,8 @@ import { StorageService } from '../storage/storage.service';
 import { PublicSocialService } from '../public/public.social.service';
 import {
   AssignProposalDto,
+  BulkAssignProposalDto,
+  BulkStatusProposalDto,
   ListProposalsQuery,
   UpdateProposalDto,
   AddNoteDto,
@@ -311,6 +313,183 @@ export class AdminProposalsService {
     });
 
     return { ok: true };
+  }
+
+  async bulkAssign(dto: BulkAssignProposalDto, adminUserId: string) {
+    const proposals = await this.prisma.proposal.findMany({
+      where: { id: { in: dto.proposalIds } },
+      select: { id: true, status: true },
+    });
+
+    if (proposals.length === 0) {
+      throw new NotFoundException('Propostas nao encontradas');
+    }
+
+    const analyst = await this.prisma.adminUser.findUnique({
+      where: { id: dto.analystId },
+      include: { roles: { include: { role: true } } },
+    });
+
+    if (!analyst) {
+      throw new NotFoundException('Analista nao encontrado');
+    }
+
+    const roles = analyst.roles.map((entry) => entry.role.name);
+    if (!roles.includes(RoleName.ANALYST)) {
+      throw new BadRequestException('Usuario nao e analista');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const proposal of proposals) {
+        await tx.proposal.update({
+          where: { id: proposal.id },
+          data: {
+            assignedAnalystId: analyst.id,
+            statusHistory: {
+              create: {
+                fromStatus: proposal.status,
+                toStatus: proposal.status,
+                reason: `Atribuido ao analista ${analyst.name}`,
+              },
+            },
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            adminUserId,
+            proposalId: proposal.id,
+            action: 'ASSIGN_ANALYST_BULK',
+            entityType: 'Proposal',
+            entityId: proposal.id,
+            metadata: { analystId: analyst.id, bulk: true },
+          },
+        });
+      }
+    });
+
+    return { ok: true, count: proposals.length };
+  }
+
+  async bulkStatus(dto: BulkStatusProposalDto, adminUserId: string) {
+    const allowedStatuses = new Set<ProposalStatus>([
+      ProposalStatus.UNDER_REVIEW,
+      ProposalStatus.PENDING_DOCS,
+      ProposalStatus.REJECTED,
+      ProposalStatus.CANCELED,
+    ]);
+
+    if (!allowedStatuses.has(dto.status)) {
+      throw new BadRequestException('Status nao permitido para acao em lote');
+    }
+
+    const proposals = await this.prisma.proposal.findMany({
+      where: { id: { in: dto.proposalIds } },
+      include: { person: true },
+    });
+
+    if (proposals.length === 0) {
+      throw new NotFoundException('Propostas nao encontradas');
+    }
+
+    const now = new Date();
+    const reason =
+      dto.reason?.trim() ||
+      (dto.status === ProposalStatus.PENDING_DOCS
+        ? 'Pendencias solicitadas pelo analista'
+        : 'Atualizacao em lote');
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const proposal of proposals) {
+        const update: Prisma.ProposalUpdateInput = {
+          status: dto.status,
+          statusHistory: {
+            create: {
+              fromStatus: proposal.status,
+              toStatus: dto.status,
+              reason,
+            },
+          },
+        };
+
+        if (dto.status === ProposalStatus.REJECTED) {
+          update.rejectedAt = now;
+        }
+
+        await tx.proposal.update({
+          where: { id: proposal.id },
+          data: update,
+        });
+
+        await tx.auditLog.create({
+          data: {
+            adminUserId,
+            proposalId: proposal.id,
+            action: 'STATUS_BULK',
+            entityType: 'Proposal',
+            entityId: proposal.id,
+            metadata: {
+              fromStatus: proposal.status,
+              toStatus: dto.status,
+              reason,
+              bulk: true,
+            },
+          },
+        });
+      }
+    });
+
+    if (dto.status === ProposalStatus.PENDING_DOCS) {
+      const missingItems = dto.missingItems ?? [];
+      await Promise.all(
+        proposals
+          .filter((proposal) => proposal.person)
+          .map(async (proposal) => {
+            const email = await this.crypto.decrypt(
+              proposal.person!.emailEncrypted,
+            );
+            const phone = await this.crypto.decrypt(
+              proposal.person!.phoneEncrypted,
+            );
+            const link = this.buildTrackingLink(
+              proposal.protocol,
+              proposal.publicToken,
+            );
+            await this.notifications.notifyPending({
+              proposalId: proposal.id,
+              email,
+              phone: phone || undefined,
+              missingItems,
+              secureLink: link,
+              whatsappOptIn: true,
+            });
+          }),
+      );
+    }
+
+    if (dto.status === ProposalStatus.REJECTED) {
+      const message = dto.reason?.trim() ?? 'Proposta reprovada.';
+      await Promise.all(
+        proposals
+          .filter((proposal) => proposal.person)
+          .map(async (proposal) => {
+            const email = await this.crypto.decrypt(
+              proposal.person!.emailEncrypted,
+            );
+            const phone = await this.crypto.decrypt(
+              proposal.person!.phoneEncrypted,
+            );
+            await this.notifications.notifyRejected({
+              proposalId: proposal.id,
+              email,
+              phone: phone || undefined,
+              message,
+            });
+          }),
+      );
+    }
+
+    return { ok: true, count: proposals.length };
   }
 
   async requestChanges(
@@ -681,9 +860,11 @@ export class AdminProposalsService {
     });
 
     const email = await this.crypto.decrypt(proposal.person.emailEncrypted);
+    const phone = await this.crypto.decrypt(proposal.person.phoneEncrypted);
     await this.notifications.notifyRejected({
       proposalId: proposal.id,
       email,
+      phone: phone || undefined,
       message: dto.reason,
     });
 
