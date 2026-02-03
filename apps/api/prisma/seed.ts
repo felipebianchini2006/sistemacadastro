@@ -55,7 +55,7 @@ async function main() {
     { email: 'analista@email.com', name: 'Analista', roleId: analystRole.id },
   ];
 
-  const seedPasswordHash = await bcrypt.hash('123456', 10);
+  const seedPasswordHash = await bcrypt.hash('12345678', 10);
 
   for (const seedUser of seedUsers) {
     const user = await prisma.adminUser.upsert({
