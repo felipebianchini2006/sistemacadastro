@@ -24,6 +24,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { StepLayout } from '../components/StepLayout';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
+import { SmartDocumentUpload } from './SmartDocumentUpload';
 
 type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
 type ProposalType = 'NOVO' | 'MIGRACAO';
@@ -1891,28 +1892,104 @@ export default function CadastroPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {form.documentChoice === 'RG' ? (
                     <>
-                      <UploadCard
-                        title="RG - frente"
-                        state={form.documents.rgFront}
-                        onSelect={(file) => handleUpload('RG_FRENTE', file, 'rgFront')}
+                      <SmartDocumentUpload
+                        documentType="RG_FRENTE"
+                        documentLabel="RG - Frente"
+                        draftId={draftMeta?.draftId || ''}
+                        draftToken={draftMeta?.draftToken || ''}
+                        onUploadComplete={(documentId, ocrData) => {
+                          updateDocument('rgFront', {
+                            status: 'uploaded',
+                            documentId,
+                            fileName: 'RG Frente',
+                          });
+                          if (ocrData) {
+                            console.log('OCR data received for RG_FRENTE:', ocrData);
+                          }
+                        }}
+                        onError={(error) => {
+                          updateDocument('rgFront', {
+                            status: 'error',
+                            error,
+                          });
+                        }}
+                        existingDocumentId={form.documents.rgFront.documentId}
+                        existingPreviewUrl={form.documents.rgFront.previewUrl}
                       />
-                      <UploadCard
-                        title="RG - verso"
-                        state={form.documents.rgBack}
-                        onSelect={(file) => handleUpload('RG_VERSO', file, 'rgBack')}
+                      <SmartDocumentUpload
+                        documentType="RG_VERSO"
+                        documentLabel="RG - Verso"
+                        draftId={draftMeta?.draftId || ''}
+                        draftToken={draftMeta?.draftToken || ''}
+                        onUploadComplete={(documentId, ocrData) => {
+                          updateDocument('rgBack', {
+                            status: 'uploaded',
+                            documentId,
+                            fileName: 'RG Verso',
+                          });
+                          if (ocrData) {
+                            console.log('OCR data received for RG_VERSO:', ocrData);
+                          }
+                        }}
+                        onError={(error) => {
+                          updateDocument('rgBack', {
+                            status: 'error',
+                            error,
+                          });
+                        }}
+                        existingDocumentId={form.documents.rgBack.documentId}
+                        existingPreviewUrl={form.documents.rgBack.previewUrl}
                       />
                     </>
                   ) : (
-                    <UploadCard
-                      title="CNH"
-                      state={form.documents.cnh}
-                      onSelect={(file) => handleUpload('CNH', file, 'cnh')}
+                    <SmartDocumentUpload
+                      documentType="CNH"
+                      documentLabel="CNH"
+                      draftId={draftMeta?.draftId || ''}
+                      draftToken={draftMeta?.draftToken || ''}
+                      onUploadComplete={(documentId, ocrData) => {
+                        updateDocument('cnh', {
+                          status: 'uploaded',
+                          documentId,
+                          fileName: 'CNH',
+                        });
+                        if (ocrData) {
+                          console.log('OCR data received for CNH:', ocrData);
+                        }
+                      }}
+                      onError={(error) => {
+                        updateDocument('cnh', {
+                          status: 'error',
+                          error,
+                        });
+                      }}
+                      existingDocumentId={form.documents.cnh.documentId}
+                      existingPreviewUrl={form.documents.cnh.previewUrl}
                     />
                   )}
-                  <UploadCard
-                    title="Comprovante de residencia (opcional)"
-                    state={form.documents.residence}
-                    onSelect={(file) => handleUpload('COMPROVANTE_RESIDENCIA', file, 'residence')}
+                  <SmartDocumentUpload
+                    documentType="COMPROVANTE_RESIDENCIA"
+                    documentLabel="Comprovante de Residência"
+                    draftId={draftMeta?.draftId || ''}
+                    draftToken={draftMeta?.draftToken || ''}
+                    onUploadComplete={(documentId, ocrData) => {
+                      updateDocument('residence', {
+                        status: 'uploaded',
+                        documentId,
+                        fileName: 'Comprovante',
+                      });
+                      if (ocrData) {
+                        console.log('OCR data received for COMPROVANTE_RESIDENCIA:', ocrData);
+                      }
+                    }}
+                    onError={(error) => {
+                      updateDocument('residence', {
+                        status: 'error',
+                        error,
+                      });
+                    }}
+                    existingDocumentId={form.documents.residence.documentId}
+                    existingPreviewUrl={form.documents.residence.previewUrl}
                   />
                 </div>
 
