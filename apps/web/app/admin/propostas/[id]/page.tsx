@@ -981,7 +981,7 @@ export default function AdminProposalDetailsPage() {
                           type="checkbox"
                           checked={editForm.profileRoles.includes(role)}
                           onChange={() => toggleRole(role)}
-                          className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                          className="h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
                         />
                         <span>{PROFILE_ROLE_LABELS[role]}</span>
                       </label>

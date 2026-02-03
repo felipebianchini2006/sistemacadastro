@@ -19,7 +19,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         variant === 'primary' &&
           'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-200/60',
         variant === 'secondary' &&
-          'border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300',
+          'border border-zinc-400 bg-white text-zinc-700 hover:border-zinc-500',
         variant === 'ghost' && 'bg-transparent text-zinc-600 hover:bg-zinc-100',
         variant === 'accent' &&
           'bg-[#ff6b35] text-white shadow-md shadow-orange-200/70 hover:bg-[#e85f2f] focus:ring-orange-200',

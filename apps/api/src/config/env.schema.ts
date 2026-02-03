@@ -93,6 +93,7 @@ export const envSchema = z.object({
   SLA_DUE_SOON_HOURS: z.coerce.number().int().positive().default(24),
   AUTO_ASSIGN_ANALYST: z.coerce.boolean().optional().default(false),
   PUBLIC_TRACKING_BASE_URL: z.string().optional(),
+  PUBLIC_CADASTRO_BASE_URL: z.string().optional(),
 
   TOTVS_BASE_URL: z.string().optional(),
   TOTVS_TOKEN: z.string().optional(),
@@ -104,6 +105,8 @@ export const envSchema = z.object({
   SOCIAL_STATE_TTL_MINUTES: z.coerce.number().int().positive().default(20),
   SOCIAL_REDIRECT_SUCCESS_URL: z.string().optional(),
   SOCIAL_REDIRECT_ERROR_URL: z.string().optional(),
+  SOCIAL_REDIRECT_DRAFT_SUCCESS_URL: z.string().optional(),
+  SOCIAL_REDIRECT_DRAFT_ERROR_URL: z.string().optional(),
 
   SPOTIFY_CLIENT_ID: z.string().optional(),
   SPOTIFY_CLIENT_SECRET: z.string().optional(),

@@ -19,19 +19,22 @@ export class PublicSocialController {
   @Get('authorize')
   async authorize(
     @Query('provider') provider: string,
-    @Query('proposalId') proposalId: string,
-    @Query('token') token: string,
+    @Query('proposalId') proposalId: string | undefined,
+    @Query('token') token: string | undefined,
+    @Query('draftId') draftId: string | undefined,
+    @Query('draftToken') draftToken: string | undefined,
     @Res() res: Response,
   ) {
-    if (!provider || !proposalId || !token) {
+    if (!provider || (!proposalId && !draftId)) {
       throw new BadRequestException('Parametros obrigatorios');
     }
 
-    const url = await this.service.buildAuthorizeUrl(
-      provider,
+    const url = await this.service.buildAuthorizeUrl(provider, {
       proposalId,
       token,
-    );
+      draftId,
+      draftToken,
+    });
     return res.redirect(url);
   }
 
@@ -57,10 +60,17 @@ export class PublicSocialController {
     const provider = body.provider;
     const proposalId = body.proposalId;
     const token = body.token;
-    if (!provider || !proposalId || !token) {
+    const draftId = body.draftId;
+    const draftToken = body.draftToken ?? (draftId ? body.token : undefined);
+    if (!provider || (!proposalId && !draftId)) {
       throw new BadRequestException('Parametros obrigatorios');
     }
 
-    return this.service.disconnect(provider, proposalId, token);
+    return this.service.disconnect(provider, {
+      proposalId,
+      token,
+      draftId,
+      draftToken,
+    });
   }
 }

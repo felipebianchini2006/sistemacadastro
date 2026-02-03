@@ -115,7 +115,7 @@ export const ProposalsTable = ({
                     if (el) el.indeterminate = someSelected ?? false;
                   }}
                   onChange={(e) => onSelectAll(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-zinc-300 text-[#ff6b35] focus:ring-[#ff6b35]"
+                  className="h-4 w-4 cursor-pointer rounded border-zinc-400 text-[#ff6b35] focus:ring-[#ff6b35]"
                   aria-label="Selecionar todas as propostas"
                 />
               </th>
@@ -172,7 +172,7 @@ export const ProposalsTable = ({
                       type="checkbox"
                       checked={selectedIds?.has(proposal.id) ?? false}
                       onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
-                      className="h-4 w-4 cursor-pointer rounded border-zinc-300 text-[#ff6b35] focus:ring-[#ff6b35]"
+                      className="h-4 w-4 cursor-pointer rounded border-zinc-400 text-[#ff6b35] focus:ring-[#ff6b35]"
                       aria-label={`Selecionar proposta ${proposal.protocol}`}
                     />
                   </td>

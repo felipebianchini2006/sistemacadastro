@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 export interface Analyst {
   id: string;
@@ -16,6 +16,10 @@ interface AnalystSelectorProps {
   label?: string;
 }
 
+type SelectorOption =
+  | { type: 'clear'; id: 'clear'; label: string }
+  | { type: 'analyst'; id: string; name: string; email: string };
+
 export function AnalystSelector({
   value,
   onChange,
@@ -25,7 +29,14 @@ export function AnalystSelector({
 }: AnalystSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef<'search' | 'list' | 'list-last'>('search');
+  const listboxId = useId();
+  const labelId = useId();
 
   const selected = analysts.find((a) => a.id === value);
 
@@ -36,6 +47,30 @@ export function AnalystSelector({
           a.email.toLowerCase().includes(search.toLowerCase()),
       )
     : analysts;
+
+  const clearOption: SelectorOption = {
+    type: 'clear',
+    id: 'clear',
+    label: 'Remover atribuicao',
+  };
+
+  const options: SelectorOption[] = [
+    ...(value ? [clearOption] : []),
+    ...filteredAnalysts.map((analyst) => ({
+      type: 'analyst' as const,
+      id: analyst.id,
+      name: analyst.name,
+      email: analyst.email,
+    })),
+  ];
+
+  const focusOption = (index: number) => {
+    const items = listRef.current?.querySelectorAll<HTMLElement>('[role="option"]');
+    if (!items?.length) return;
+    const clamped = Math.max(0, Math.min(index, items.length - 1));
+    setActiveIndex(clamped);
+    items[clamped].focus();
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -51,14 +86,136 @@ export function AnalystSelector({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const selectedIndex = options.findIndex(
+      (option) => option.type === 'analyst' && option.id === value,
+    );
+    const nextIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    setActiveIndex(nextIndex);
+    const timer = window.setTimeout(() => {
+      if (pendingFocusRef.current === 'list') {
+        focusOption(nextIndex);
+        return;
+      }
+      if (pendingFocusRef.current === 'list-last') {
+        focusOption(options.length - 1);
+        return;
+      }
+      searchRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, options, value]);
+
+  const openMenu = (focusTarget: 'search' | 'list' | 'list-last' = 'search') => {
+    pendingFocusRef.current = focusTarget;
+    setIsOpen(true);
+  };
+
+  const closeMenu = () => {
+    setIsOpen(false);
+    setSearch('');
+    buttonRef.current?.focus();
+  };
+
+  const selectOption = (option: SelectorOption) => {
+    if (option.type === 'clear') {
+      onChange(null);
+    } else {
+      onChange(option.id);
+    }
+    closeMenu();
+  };
+
+  const handleButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      openMenu(event.key === 'ArrowUp' ? 'list-last' : 'list');
+    }
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+    }
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusOption(activeIndex >= 0 ? activeIndex : 0);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusOption(activeIndex >= 0 ? activeIndex : options.length - 1);
+      return;
+    }
+    if (event.key === 'Enter' && activeIndex >= 0 && options[activeIndex]) {
+      event.preventDefault();
+      selectOption(options[activeIndex]);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu();
+    }
+    if (event.key === 'Tab') {
+      closeMenu();
+    }
+  };
+
+  const handleListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!options.length) return;
+
+    if (event.key === 'Tab') {
+      closeMenu();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu();
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusOption(activeIndex < options.length - 1 ? activeIndex + 1 : 0);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusOption(activeIndex > 0 ? activeIndex - 1 : options.length - 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      focusOption(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      focusOption(options.length - 1);
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (options[activeIndex]) {
+        selectOption(options[activeIndex]);
+      }
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative">
-      {label && <label className="mb-2 block text-sm font-semibold text-zinc-700">{label}</label>}
+      {label && (
+        <label id={labelId} className="mb-2 block text-sm font-semibold text-zinc-700">
+          {label}
+        </label>
+      )}
 
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-2 text-left text-sm hover:border-zinc-300 focus:border-[#ff6b35] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/20"
+        onClick={() => (isOpen ? setIsOpen(false) : openMenu('search'))}
+        onKeyDown={handleButtonKeyDown}
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-label={!label ? placeholder : undefined}
+        aria-labelledby={label ? labelId : undefined}
+        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-zinc-400 bg-white px-4 py-2 text-left text-sm hover:border-zinc-500 focus:border-[#ff6b35] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/20"
       >
         <span className={selected ? 'text-zinc-900' : 'text-zinc-500'}>
           {selected ? selected.name : placeholder}
@@ -68,6 +225,8 @@ export function AnalystSelector({
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
@@ -75,77 +234,99 @@ export function AnalystSelector({
 
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full rounded-xl border border-zinc-200 bg-white shadow-lg">
-          {/* Search */}
           <div className="border-b border-zinc-100 p-2">
             <input
+              ref={searchRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Buscar analista..."
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-[#ff6b35] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/20"
-              autoFocus
+              className="w-full rounded-lg border border-zinc-400 px-3 py-2 text-sm focus:border-[#ff6b35] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/20"
             />
           </div>
 
-          {/* Options */}
-          <div className="max-h-64 overflow-y-auto">
-            {value && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(null);
-                  setIsOpen(false);
-                  setSearch('');
-                }}
-                className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-              >
-                <svg
-                  className="h-5 w-5 text-zinc-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          <div
+            ref={listRef}
+            id={listboxId}
+            role="listbox"
+            className="max-h-64 overflow-y-auto"
+            onKeyDown={handleListKeyDown}
+          >
+            {options.map((option, index) => {
+              if (option.type === 'clear') {
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => selectOption(option)}
+                    onFocus={() => setActiveIndex(index)}
+                    role="option"
+                    aria-selected={false}
+                    tabIndex={-1}
+                    id={`${listboxId}-option-${index}`}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <svg
+                      className="h-5 w-5 text-zinc-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                    <span className="italic text-zinc-500">{option.label}</span>
+                  </button>
+                );
+              }
+
+              const isSelected = value === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => selectOption(option)}
+                  onFocus={() => setActiveIndex(index)}
+                  role="option"
+                  aria-selected={isSelected}
+                  tabIndex={-1}
+                  id={`${listboxId}-option-${index}`}
+                  className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-zinc-50 ${
+                    isSelected ? 'bg-orange-50' : ''
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                <span className="italic text-zinc-500">Remover atribuição</span>
-              </button>
-            )}
+                  <div>
+                    <div className="font-semibold text-zinc-900">{option.name}</div>
+                    <div className="text-xs text-zinc-500">{option.email}</div>
+                  </div>
+                  {isSelected && (
+                    <svg
+                      className="h-5 w-5 text-[#ff6b35]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
 
-            {filteredAnalysts.map((analyst) => (
-              <button
-                key={analyst.id}
-                type="button"
-                onClick={() => {
-                  onChange(analyst.id);
-                  setIsOpen(false);
-                  setSearch('');
-                }}
-                className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-zinc-50 ${
-                  value === analyst.id ? 'bg-orange-50' : ''
-                }`}
-              >
-                <div>
-                  <div className="font-semibold text-zinc-900">{analyst.name}</div>
-                  <div className="text-xs text-zinc-500">{analyst.email}</div>
-                </div>
-                {value === analyst.id && (
-                  <svg className="h-5 w-5 text-[#ff6b35]" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
-              </button>
-            ))}
-
-            {filteredAnalysts.length === 0 && (
+            {options.length === 0 && (
               <div className="px-4 py-8 text-center text-sm text-zinc-500">
                 Nenhum analista encontrado
               </div>

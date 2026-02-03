@@ -75,7 +75,7 @@ export const ProposalsFilters = ({
                   type="checkbox"
                   checked={selectedStatuses.includes(option.value)}
                   onChange={() => toggleStatus(option.value)}
-                  className="h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                  className="h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
                 />
                 <span>{option.label}</span>
               </label>

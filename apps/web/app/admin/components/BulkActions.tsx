@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 export type BulkAction = 'assign' | 'status' | 'export';
 
@@ -20,6 +20,77 @@ export function BulkActions({
   onClearSelection,
 }: BulkActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const pendingFocusRef = useRef<'first' | 'last' | 'none'>('first');
+  const menuId = useId();
+
+  const focusMenuItem = (index: number) => {
+    const items = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+    if (!items?.length) return;
+    const clamped = Math.max(0, Math.min(index, items.length - 1));
+    items[clamped].focus();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => {
+      if (pendingFocusRef.current === 'last') {
+        const items = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+        if (items?.length) {
+          focusMenuItem(items.length - 1);
+        }
+        return;
+      }
+      if (pendingFocusRef.current === 'first') {
+        focusMenuItem(0);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen]);
+
+  const handleButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      pendingFocusRef.current = event.key === 'ArrowUp' ? 'last' : 'first';
+      setIsOpen(true);
+    }
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+    }
+  };
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+    if (!items?.length) return;
+    const currentIndex = Array.from(items).indexOf(document.activeElement as HTMLElement);
+
+    if (event.key === 'Tab') {
+      setIsOpen(false);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setIsOpen(false);
+      buttonRef.current?.focus();
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusMenuItem(currentIndex < items.length - 1 ? currentIndex + 1 : 0);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusMenuItem(currentIndex > 0 ? currentIndex - 1 : items.length - 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      focusMenuItem(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      focusMenuItem(items.length - 1);
+    }
+  };
 
   if (selectedCount === 0) return null;
 
@@ -35,10 +106,11 @@ export function BulkActions({
             {selectedCount === 1 ? 'proposta selecionada' : 'propostas selecionadas'}
           </p>
           <button
+            type="button"
             onClick={onClearSelection}
             className="text-xs text-zinc-600 hover:text-zinc-900 hover:underline"
           >
-            Limpar seleção
+            Limpar selecao
           </button>
         </div>
       </div>
@@ -46,11 +118,27 @@ export function BulkActions({
       <div className="flex items-center gap-2">
         <div className="relative">
           <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            type="button"
+            onClick={() => {
+              pendingFocusRef.current = 'first';
+              setIsOpen(!isOpen);
+            }}
+            onKeyDown={handleButtonKeyDown}
+            ref={buttonRef}
+            aria-haspopup="menu"
+            aria-expanded={isOpen}
+            aria-controls={menuId}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
           >
-            Ações em lote
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            Acoes em lote
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -67,13 +155,22 @@ export function BulkActions({
                 onClick={() => setIsOpen(false)}
                 aria-hidden="true"
               />
-              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg">
+              <div
+                ref={menuRef}
+                id={menuId}
+                role="menu"
+                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg"
+                onKeyDown={handleMenuKeyDown}
+              >
                 <div className="py-1">
                   <button
+                    type="button"
                     onClick={() => {
                       onAssign();
                       setIsOpen(false);
                     }}
+                    role="menuitem"
+                    tabIndex={-1}
                     className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
                   >
                     <svg
@@ -81,6 +178,8 @@ export function BulkActions({
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
                     >
                       <path
                         strokeLinecap="round"
@@ -93,10 +192,13 @@ export function BulkActions({
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => {
                       onChangeStatus();
                       setIsOpen(false);
                     }}
+                    role="menuitem"
+                    tabIndex={-1}
                     className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
                   >
                     <svg
@@ -104,6 +206,8 @@ export function BulkActions({
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
                     >
                       <path
                         strokeLinecap="round"
@@ -118,10 +222,13 @@ export function BulkActions({
                   <div className="my-1 border-t border-zinc-100" />
 
                   <button
+                    type="button"
                     onClick={() => {
                       onExport();
                       setIsOpen(false);
                     }}
+                    role="menuitem"
+                    tabIndex={-1}
                     className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
                   >
                     <svg
@@ -129,6 +236,8 @@ export function BulkActions({
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
                     >
                       <path
                         strokeLinecap="round"

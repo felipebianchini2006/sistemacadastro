@@ -58,7 +58,14 @@ export class AdminProposalsService {
     const where: Prisma.ProposalWhereInput = {};
 
     if (query.status) {
-      where.status = query.status;
+      const statuses = Array.isArray(query.status)
+        ? query.status
+        : [query.status];
+      if (statuses.length === 1) {
+        where.status = statuses[0];
+      } else if (statuses.length > 1) {
+        where.status = { in: statuses };
+      }
     }
 
     if (query.type) {
@@ -99,7 +106,12 @@ export class AdminProposalsService {
     else if (query.sortBy === 'fullName')
       orderBy = { person: { fullName: dir } };
 
-    const proposals = await this.prisma.proposal.findMany({
+    const usePagination =
+      query.page !== undefined || query.pageSize !== undefined;
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 200);
+
+    const baseQuery = {
       where,
       orderBy,
       include: {
@@ -110,10 +122,26 @@ export class AdminProposalsService {
           orderBy: { createdAt: 'asc' },
         },
       },
-      take: 100,
-    });
+    } satisfies Prisma.ProposalFindManyArgs;
 
-    return Promise.all(
+    const [total, proposals] = usePagination
+      ? await this.prisma.$transaction([
+          this.prisma.proposal.count({ where }),
+          this.prisma.proposal.findMany({
+            ...baseQuery,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+          }),
+        ])
+      : [
+          undefined,
+          await this.prisma.proposal.findMany({
+            ...baseQuery,
+            take: 100,
+          }),
+        ];
+
+    const items = await Promise.all(
       proposals.map(async (proposal) => {
         const cpfMasked = proposal.person?.cpfEncrypted
           ? maskCpf(await this.crypto.decrypt(proposal.person.cpfEncrypted))
@@ -141,6 +169,17 @@ export class AdminProposalsService {
         };
       }),
     );
+
+    if (usePagination) {
+      return {
+        items,
+        total: total ?? items.length,
+        page,
+        pageSize,
+      };
+    }
+
+    return items;
   }
 
   async getDocumentViewUrl(proposalId: string, documentId: string) {

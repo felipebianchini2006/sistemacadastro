@@ -320,17 +320,6 @@ const buildDraftPayload = (form: DraftFormState) => {
   const hasBank = Object.values(bank).some((value) => value);
   if (hasBank) payload.bank = bank;
 
-  // Redes sociais conectadas
-  if (form.socialConnections.length > 0) {
-    payload.socialConnections = form.socialConnections
-      .filter((conn) => conn.connected)
-      .map((conn) => ({
-        provider: conn.provider,
-        connectedAt: conn.connectedAt,
-        profile: conn.profile,
-      }));
-  }
-
   return payload;
 };
 
@@ -421,6 +410,8 @@ export default function CadastroPage() {
   const [mobileFieldIndex, setMobileFieldIndex] = useState(0);
   const [migrationEntitySelection, setMigrationEntitySelection] = useState('');
   const [ocrConfirmed, setOcrConfirmed] = useState(false);
+  const [socialCallbackError, setSocialCallbackError] = useState<string | null>(null);
+  const [pendingSocialRefresh, setPendingSocialRefresh] = useState(false);
 
   const dirtyRef = useRef(false);
   const lastPayloadRef = useRef('');
@@ -681,6 +672,43 @@ export default function CadastroPage() {
     [draftMeta],
   );
 
+  const ensureDraftForSocial = useCallback(
+    () => ensureDraft(buildPayload()),
+    [ensureDraft, buildPayload],
+  );
+
+  const refreshDraftSocial = useCallback(
+    async (meta?: DraftMeta | null) => {
+      const current = meta ?? draftMeta;
+      if (!current) return;
+      try {
+        const response = await apiFetch<{ data?: Record<string, unknown> }>(
+          `/public/drafts/${current.draftId}`,
+          {
+            headers: { 'x-draft-token': current.draftToken },
+          },
+        );
+        const connections = Array.isArray(response.data?.socialConnections)
+          ? response.data?.socialConnections
+          : null;
+        if (connections) {
+          const normalized = connections.map((conn) => ({
+            ...conn,
+            connected: conn.connected ?? true,
+          }));
+          updateForm({ socialConnections: normalized as SocialConnection[] });
+        }
+      } catch (err) {
+        setSocialCallbackError(
+          err instanceof Error
+            ? err.message
+            : 'Nao foi possivel sincronizar as redes. Atualize a pagina.',
+        );
+      }
+    },
+    [draftMeta, updateForm],
+  );
+
   const fetchDraftOcr = useCallback(
     async (meta: DraftMeta) => {
       try {
@@ -744,6 +772,38 @@ export default function CadastroPage() {
     },
     [buildPayload, draftMeta, ensureDraft],
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const socialStatus = params.get('social');
+    const socialError = params.get('erro');
+    if (!socialStatus && !socialError) return;
+
+    if (socialError) {
+      setSocialCallbackError(
+        `Nao foi possivel conectar a rede social (${socialError}). Tente novamente.`,
+      );
+      setPendingSocialRefresh(false);
+    } else {
+      setSocialCallbackError(null);
+      setPendingSocialRefresh(true);
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('social');
+    url.searchParams.delete('provider');
+    url.searchParams.delete('erro');
+    url.searchParams.delete('draftId');
+    window.history.replaceState({}, '', url.toString());
+  }, []);
+
+  useEffect(() => {
+    if (!pendingSocialRefresh || !draftMeta) return;
+    void refreshDraftSocial(draftMeta).finally(() => {
+      setPendingSocialRefresh(false);
+    });
+  }, [pendingSocialRefresh, draftMeta, refreshDraftSocial]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -1082,6 +1142,8 @@ export default function CadastroPage() {
   }, [tracking?.ocr?.data, previewOcrResult, form.fullName, form.cpf, form.birthDate]);
 
   const otherRoleSelected = form.profileRoles.includes('OUTRO');
+  const profileRoleOtherInvalid = otherRoleSelected && !form.profileRoleOther.trim();
+  const profileRoleOtherErrorId = 'profile-role-other-error';
   const migrationEntityValue = form.migrationEntity.trim();
   const migrationEntityPreset =
     MIGRATION_ENTITIES.find(
@@ -1166,6 +1228,8 @@ export default function CadastroPage() {
         showStatus={Boolean(touched['address.cep'])}
         hint={viaCep.error ?? undefined}
         placeholder="00000-000"
+        autoComplete="postal-code"
+        aria-required="true"
       />
       <InputMasked
         label="Rua"
@@ -1175,6 +1239,8 @@ export default function CadastroPage() {
         status={requiredFieldStatus(resolvedAddress.street, 'address.street', 2)}
         showStatus={Boolean(touched['address.street'])}
         placeholder="Rua ou avenida"
+        autoComplete="address-line1"
+        aria-required="true"
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <InputMasked
@@ -1184,6 +1250,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('address.number')}
           showStatus={false}
           placeholder="123"
+          autoComplete="address-line2"
         />
         <InputMasked
           label="Complemento"
@@ -1192,6 +1259,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('address.complement')}
           showStatus={false}
           placeholder="Apto, bloco"
+          autoComplete="address-line2"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1202,6 +1270,8 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('address.district')}
           status={requiredFieldStatus(resolvedAddress.district, 'address.district', 2)}
           showStatus={Boolean(touched['address.district'])}
+          autoComplete="address-level3"
+          aria-required="true"
         />
         <InputMasked
           label="Cidade"
@@ -1210,6 +1280,8 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('address.city')}
           status={requiredFieldStatus(resolvedAddress.city, 'address.city', 2)}
           showStatus={Boolean(touched['address.city'])}
+          autoComplete="address-level2"
+          aria-required="true"
         />
       </div>
       <InputMasked
@@ -1220,6 +1292,8 @@ export default function CadastroPage() {
         status={requiredFieldStatus(resolvedAddress.state, 'address.state', 2)}
         showStatus={Boolean(touched['address.state'])}
         placeholder="SP"
+        autoComplete="address-level1"
+        aria-required="true"
       />
     </>
   );
@@ -1234,6 +1308,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.bankCode')}
           showStatus={false}
           placeholder="341"
+          autoComplete="off"
         />
         <InputMasked
           label="Banco (nome)"
@@ -1242,6 +1317,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.bankName')}
           showStatus={false}
           placeholder="Itau"
+          autoComplete="organization"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1252,6 +1328,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.agency')}
           showStatus={false}
           placeholder="1234"
+          autoComplete="off"
         />
         <InputMasked
           label="Conta"
@@ -1260,6 +1337,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.account')}
           showStatus={false}
           placeholder="12345-6"
+          autoComplete="off"
         />
       </div>
       <label className="flex flex-col gap-2 text-sm text-zinc-700">
@@ -1272,7 +1350,8 @@ export default function CadastroPage() {
             })
           }
           onBlur={() => handleFieldBlur('bank.accountType')}
-          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm"
+          className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+          autoComplete="off"
         >
           <option value="">Selecione</option>
           <option value="CC">Conta corrente</option>
@@ -1287,6 +1366,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.holderName')}
           showStatus={false}
           placeholder="Nome do titular"
+          autoComplete="name"
         />
         <InputMasked
           label="CPF/CNPJ titular"
@@ -1295,6 +1375,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.holderDocument')}
           showStatus={false}
           placeholder="000.000.000-00"
+          autoComplete="off"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1305,6 +1386,7 @@ export default function CadastroPage() {
           onBlur={() => handleFieldBlur('bank.pixKey')}
           showStatus={false}
           placeholder="email, CPF ou aleatoria"
+          autoComplete="off"
         />
         <label className="flex flex-col gap-2 text-sm text-zinc-700">
           <span className="font-medium">Tipo de chave</span>
@@ -1316,7 +1398,8 @@ export default function CadastroPage() {
               })
             }
             onBlur={() => handleFieldBlur('bank.pixKeyType')}
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm"
+            className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+            autoComplete="off"
           >
             <option value="">Selecione</option>
             <option value="CPF">CPF</option>
@@ -1344,6 +1427,8 @@ export default function CadastroPage() {
           showStatus={Boolean(touched.fullName)}
           hint={touched.fullName && !fullNameValid ? 'Informe nome e sobrenome.' : undefined}
           placeholder="Maria Silva Santos"
+          autoComplete="name"
+          aria-required="true"
         />
       ),
     },
@@ -1360,6 +1445,8 @@ export default function CadastroPage() {
           showStatus={Boolean(touched.cpf)}
           hint={touched.cpf && cpfStatus === 'invalid' ? 'CPF invalido' : undefined}
           placeholder="000.000.000-00"
+          autoComplete="off"
+          aria-required="true"
         />
       ),
     },
@@ -1377,6 +1464,8 @@ export default function CadastroPage() {
           hint={
             touched.birthDate && !birthDateValid ? 'Voce precisa ter 18 anos ou mais.' : undefined
           }
+          autoComplete="bday"
+          aria-required="true"
         />
       ),
     },
@@ -1395,6 +1484,8 @@ export default function CadastroPage() {
           placeholder="(11) 91234-5678"
           leadingIcon={<MessageCircle className="h-4 w-4" />}
           leadingIconLabel="WhatsApp"
+          autoComplete="tel"
+          aria-required="true"
         />
       ),
     },
@@ -1410,6 +1501,8 @@ export default function CadastroPage() {
           showStatus={Boolean(touched.email)}
           hint={touched.email && emailStatus === 'invalid' ? 'E-mail invalido' : undefined}
           placeholder="usuario@exemplo.com.br"
+          autoComplete="email"
+          aria-required="true"
         />
       ),
     },
@@ -1493,7 +1586,7 @@ export default function CadastroPage() {
                 </div>
                 <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
                   <span>Sincronizacao backend</span>
-                  <span className="font-semibold">
+                  <span className="font-semibold" role="status" aria-live="polite">
                     {syncStatus === 'saving'
                       ? 'Salvando...'
                       : syncStatus === 'saved'
@@ -1585,7 +1678,7 @@ export default function CadastroPage() {
                 </div>
 
                 {form.profileRoles.length === 0 ? (
-                  <p className="text-xs text-red-600">
+                  <p className="text-xs text-red-600" role="alert" aria-live="assertive">
                     Selecione pelo menos uma opcao para continuar.
                   </p>
                 ) : null}
@@ -1598,12 +1691,22 @@ export default function CadastroPage() {
                         value={form.profileRoleOther}
                         onChange={(event) => updateForm({ profileRoleOther: event.target.value })}
                         onBlur={() => handleFieldBlur('profileRoleOther')}
-                        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                         placeholder="Ex: arranjador, tecnico de audio..."
+                        aria-required={otherRoleSelected}
+                        aria-invalid={profileRoleOtherInvalid}
+                        aria-describedby={
+                          profileRoleOtherInvalid ? profileRoleOtherErrorId : undefined
+                        }
                       />
                     </label>
-                    {otherRoleSelected && !form.profileRoleOther.trim() ? (
-                      <p className="mt-2 text-xs text-red-600">
+                    {profileRoleOtherInvalid ? (
+                      <p
+                        id={profileRoleOtherErrorId}
+                        className="mt-2 text-xs text-red-600"
+                        role="alert"
+                        aria-live="assertive"
+                      >
                         Informe sua atuacao para a opcao &quot;Outro&quot;.
                       </p>
                     ) : null}
@@ -1690,7 +1793,10 @@ export default function CadastroPage() {
                     <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
                       Endereco completo
                     </summary>
-                    <div className="mt-4 grid gap-4">{AddressFields}</div>
+                    <fieldset className="mt-4 grid gap-4">
+                      <legend className="sr-only">Endereco completo</legend>
+                      {AddressFields}
+                    </fieldset>
                   </details>
                 </div>
 
@@ -1701,7 +1807,10 @@ export default function CadastroPage() {
                       {viaCep.loading ? 'Consultando CEP...' : 'ViaCEP ativo'}
                     </span>
                   </div>
-                  {AddressFields}
+                  <fieldset className="grid gap-4">
+                    <legend className="sr-only">Endereco</legend>
+                    {AddressFields}
+                  </fieldset>
                 </div>
 
                 <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
@@ -1709,7 +1818,10 @@ export default function CadastroPage() {
                     <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
                       Dados bancarios (opcional)
                     </summary>
-                    <div className="mt-4 grid gap-4">{BankFields}</div>
+                    <fieldset className="mt-4 grid gap-4">
+                      <legend className="sr-only">Dados bancarios</legend>
+                      {BankFields}
+                    </fieldset>
                   </details>
                 </div>
 
@@ -1720,7 +1832,10 @@ export default function CadastroPage() {
                     </h3>
                     <span className="text-xs text-zinc-500">Preencha apenas se desejar</span>
                   </div>
-                  {BankFields}
+                  <fieldset className="grid gap-4">
+                    <legend className="sr-only">Dados bancarios</legend>
+                    {BankFields}
+                  </fieldset>
                 </div>
               </StepLayout>
             ) : null}
@@ -1771,7 +1886,7 @@ export default function CadastroPage() {
                           updateForm({ migrationEntity: nextValue });
                         }}
                         onBlur={() => handleFieldBlur('migrationEntity')}
-                        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm"
+                        className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                       >
                         <option value="">Selecione</option>
                         {MIGRATION_ENTITY_OPTIONS.map((entity) => (
@@ -1788,7 +1903,7 @@ export default function CadastroPage() {
                           value={form.migrationEntity}
                           onChange={(event) => updateForm({ migrationEntity: event.target.value })}
                           onBlur={() => handleFieldBlur('migrationEntity')}
-                          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                          className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                           placeholder="Digite a entidade"
                         />
                       </label>
@@ -1800,7 +1915,7 @@ export default function CadastroPage() {
                   <label className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                      className="mt-1 h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
                       checked={form.migrationConfirmed}
                       onChange={(event) => updateForm({ migrationConfirmed: event.target.checked })}
                     />
@@ -2197,7 +2312,11 @@ export default function CadastroPage() {
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
+                <div
+                  className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600"
+                  role="status"
+                  aria-live="polite"
+                >
                   OCR status:{' '}
                   {previewOcrResult
                     ? 'Processado com sucesso.'
@@ -2214,6 +2333,9 @@ export default function CadastroPage() {
                 updateForm={updateForm}
                 proposalId={submission?.proposalId}
                 proposalToken={submission?.trackingToken}
+                draftMeta={draftMeta}
+                ensureDraft={ensureDraftForSocial}
+                callbackError={socialCallbackError}
                 onNext={handleNext}
                 onBack={handleBack}
               />
@@ -2301,7 +2423,7 @@ export default function CadastroPage() {
                   <label className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                      className="mt-1 h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
                       checked={form.consentAccepted}
                       onChange={(event) => handleConsentChange(event.target.checked)}
                     />
@@ -2310,7 +2432,7 @@ export default function CadastroPage() {
                   <label className="mt-3 flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+                      className="mt-1 h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
                       checked={form.privacyAccepted}
                       onChange={(event) => handlePrivacyChange(event.target.checked)}
                     />
@@ -2333,14 +2455,18 @@ export default function CadastroPage() {
                     </p>
                   ) : null}
                   {!form.privacyAccepted ? (
-                    <p className="mt-2 text-xs text-amber-600">
+                    <p className="mt-2 text-xs text-amber-600" role="alert" aria-live="assertive">
                       Aceite a politica de privacidade para enviar a proposta.
                     </p>
                   ) : null}
                 </div>
 
                 {submitStatus === 'done' && submission ? (
-                  <div className="rounded-3xl border border-emerald-300 bg-emerald-50 p-6 text-emerald-900">
+                  <div
+                    className="rounded-3xl border border-emerald-300 bg-emerald-50 p-6 text-emerald-900"
+                    role="status"
+                    aria-live="polite"
+                  >
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                       Proposta enviada com sucesso
                     </p>
@@ -2372,7 +2498,11 @@ export default function CadastroPage() {
                 ) : null}
 
                 {submitStatus === 'error' ? (
-                  <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                  <div
+                    className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700"
+                    role="alert"
+                    aria-live="assertive"
+                  >
                     Falha ao enviar. Revise os dados e tente novamente.
                   </div>
                 ) : null}
@@ -2395,6 +2525,8 @@ export default function CadastroPage() {
                       ? 'border-red-200 bg-red-50/90 text-red-700'
                       : 'border-zinc-200 bg-white/90 text-zinc-500',
               )}
+              role="status"
+              aria-live="polite"
             >
               <span
                 className={cn(
@@ -2436,6 +2568,9 @@ type SocialConnectionsStepProps = {
   updateForm: (patch: Partial<DraftFormState>) => void;
   proposalId?: string;
   proposalToken?: string;
+  draftMeta?: DraftMeta | null;
+  ensureDraft: () => Promise<DraftMeta>;
+  callbackError?: string | null;
   onNext: () => void;
   onBack: () => void;
 };
@@ -2445,6 +2580,9 @@ const SocialConnectionsStep = ({
   updateForm,
   proposalId,
   proposalToken,
+  draftMeta,
+  ensureDraft,
+  callbackError,
   onNext,
   onBack,
 }: SocialConnectionsStepProps) => {
@@ -2496,47 +2634,62 @@ const SocialConnectionsStep = ({
     return form.socialConnections.find((conn) => conn.provider === provider);
   };
 
-  const canConnect = Boolean(proposalId && proposalToken);
-
   const handleConnect = async (provider: SocialProvider) => {
-    if (!canConnect) {
-      setError('Envie a proposta primeiro para conectar as redes sociais.');
-      return;
-    }
-
     setConnecting(provider);
     setError(null);
 
-    const url = new URL(
-      buildApiUrl('/public/social/authorize'),
-      typeof window !== 'undefined' ? window.location.origin : undefined,
-    );
-    url.searchParams.set('provider', provider.toLowerCase());
-    url.searchParams.set('proposalId', proposalId!);
-    url.searchParams.set('token', proposalToken!);
-    window.location.href = url.toString();
-  };
+    try {
+      const url = new URL(
+        buildApiUrl('/public/social/authorize'),
+        typeof window !== 'undefined' ? window.location.origin : undefined,
+      );
+      url.searchParams.set('provider', provider.toLowerCase());
 
-  const addConnection = (provider: SocialProvider) => {
-    const existing = form.socialConnections.find((c) => c.provider === provider);
-    if (!existing) {
-      updateForm({
-        socialConnections: [
-          ...form.socialConnections,
-          {
-            provider,
-            connected: true,
-            connectedAt: new Date().toISOString(),
-          },
-        ],
-      });
+      if (proposalId && proposalToken) {
+        url.searchParams.set('proposalId', proposalId);
+        url.searchParams.set('token', proposalToken);
+      } else {
+        const meta = draftMeta ?? (await ensureDraft());
+        url.searchParams.set('draftId', meta.draftId);
+        url.searchParams.set('draftToken', meta.draftToken);
+      }
+
+      window.location.href = url.toString();
+    } catch (err) {
+      setConnecting(null);
+      setError(err instanceof Error ? err.message : 'Nao foi possivel iniciar a conexao.');
     }
   };
 
-  const handleDisconnect = (provider: SocialProvider) => {
-    updateForm({
-      socialConnections: form.socialConnections.filter((conn) => conn.provider !== provider),
-    });
+  const handleDisconnect = async (provider: SocialProvider) => {
+    setError(null);
+    try {
+      if (proposalId && proposalToken) {
+        await apiFetch('/public/social/disconnect', {
+          method: 'POST',
+          body: {
+            provider: provider.toLowerCase(),
+            proposalId,
+            token: proposalToken,
+          },
+        });
+      } else if (draftMeta) {
+        await apiFetch('/public/social/disconnect', {
+          method: 'POST',
+          body: {
+            provider: provider.toLowerCase(),
+            draftId: draftMeta.draftId,
+            draftToken: draftMeta.draftToken,
+          },
+        });
+      }
+
+      updateForm({
+        socialConnections: form.socialConnections.filter((conn) => conn.provider !== provider),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nao foi possivel desconectar a rede social.');
+    }
   };
 
   const connectedCount = form.socialConnections.filter((c) => c.connected).length;
@@ -2544,11 +2697,7 @@ const SocialConnectionsStep = ({
   return (
     <StepLayout
       title="Conecte suas redes sociais"
-      description={
-        canConnect
-          ? 'Opcional: conecte seus perfis profissionais para enriquecer seu cadastro.'
-          : 'Opcional: voce podera conectar suas redes apos enviar a proposta.'
-      }
+      description="Opcional: conecte seus perfis profissionais agora. Eles ficam vinculados ao seu cadastro quando voce enviar."
       footer={
         <>
           <Button variant="secondary" onClick={onBack}>
@@ -2567,15 +2716,28 @@ const SocialConnectionsStep = ({
             ? 'Nenhuma rede conectada ainda.'
             : `${connectedCount} ${connectedCount === 1 ? 'rede conectada' : 'redes conectadas'}`}
         </p>
-        {!canConnect ? (
-          <p className="mt-2 text-xs text-amber-700">
-            Conexoes ficam disponiveis apos o envio. Use o link de acompanhamento para conectar.
-          </p>
-        ) : null}
+        <p className="mt-2 text-xs text-zinc-500">
+          Pode conectar agora no rascunho ou depois no acompanhamento. Suas credenciais ficam
+          seguras.
+        </p>
       </div>
 
+      {callbackError ? (
+        <div
+          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          role="alert"
+          aria-live="assertive"
+        >
+          {callbackError}
+        </div>
+      ) : null}
+
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          role="alert"
+          aria-live="assertive"
+        >
           {error}
         </div>
       ) : null}
@@ -2727,7 +2889,7 @@ const UploadCard = ({
                   : 'pendente'}
           </span>
         </div>
-        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
+        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-zinc-400 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
             Como enviar
           </span>
@@ -2735,7 +2897,7 @@ const UploadCard = ({
             <button
               type="button"
               onClick={handleTakePhoto}
-              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50"
+              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50"
             >
               Tirar foto
             </button>
@@ -2750,7 +2912,7 @@ const UploadCard = ({
                 if (file) onSelect(file);
               }}
             />
-            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50">
+            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50">
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -2818,7 +2980,7 @@ const UploadCard = ({
             <div className="mt-6 grid gap-2 sm:grid-cols-2">
               <button
                 onClick={() => setShowGuidelines(false)}
-                className="min-h-[44px] rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                className="min-h-[44px] rounded-xl border border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
               >
                 Cancelar
               </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface CaptureGuidelinesProps {
   documentType: string;
@@ -9,14 +9,71 @@ interface CaptureGuidelinesProps {
 }
 
 export function CaptureGuidelines({ documentType, onProceed, onCancel }: CaptureGuidelinesProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const timer = window.setTimeout(() => {
+      cancelButtonRef.current?.focus();
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  const getFocusableElements = () => {
+    if (!dialogRef.current) return [];
+    return Array.from(
+      dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusable = getFocusableElements();
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onKeyDown={handleKeyDown}
+    >
+      <div
+        ref={dialogRef}
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="capture-guidelines-title"
+        aria-describedby="capture-guidelines-description"
+        tabIndex={-1}
+      >
         <div className="mb-4">
-          <h3 className="text-lg font-bold text-zinc-900">
+          <h3 id="capture-guidelines-title" className="text-lg font-bold text-zinc-900">
             Prepare-se para capturar {documentType}
           </h3>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p id="capture-guidelines-description" className="mt-1 text-sm text-zinc-600">
             Siga essas dicas para garantir uma foto de qualidade
           </p>
         </div>
@@ -29,6 +86,8 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
               >
                 <path
                   strokeLinecap="round"
@@ -53,6 +112,8 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
               >
                 <path
                   strokeLinecap="round"
@@ -77,6 +138,8 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
               >
                 <path
                   strokeLinecap="round"
@@ -101,6 +164,8 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
               >
                 <path
                   strokeLinecap="round"
@@ -120,7 +185,8 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
         <div className="mt-6 grid gap-2 sm:grid-cols-2">
           <button
             onClick={onCancel}
-            className="min-h-[44px] rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            ref={cancelButtonRef}
+            className="min-h-[44px] rounded-xl border border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
           >
             Cancelar
           </button>

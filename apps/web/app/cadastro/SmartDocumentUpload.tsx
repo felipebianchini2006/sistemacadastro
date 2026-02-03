@@ -377,6 +377,8 @@ export function SmartDocumentUpload({
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
                   >
                     <path
                       strokeLinecap="round"
@@ -395,7 +397,7 @@ export function SmartDocumentUpload({
               />
             </div>
           ) : (
-            <div className="rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 p-6 text-center">
+            <div className="rounded-xl border-2 border-dashed border-zinc-400 bg-zinc-50 p-6 text-center">
               <p className="text-sm text-zinc-600">Nenhum documento enviado</p>
             </div>
           )}
@@ -406,15 +408,15 @@ export function SmartDocumentUpload({
               onClick={handleCaptureClick}
               className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722]"
             >
-              <Camera className="h-5 w-5" />
+              <Camera className="h-5 w-5" aria-hidden="true" />
               Tirar Foto
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
             >
-              <Upload className="h-5 w-5" />
+              <Upload className="h-5 w-5" aria-hidden="true" />
               Escolher Arquivo
             </button>
           </div>

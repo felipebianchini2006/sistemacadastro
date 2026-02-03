@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface PrivacyGateProps {
   onAccept: () => void;
@@ -9,20 +10,80 @@ interface PrivacyGateProps {
 
 export function PrivacyGate({ onAccept }: PrivacyGateProps) {
   const [accepted, setAccepted] = useState(false);
-
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const router = useRouter();
   const handleAccept = () => {
     if (!accepted) return;
     onAccept();
   };
 
+  const handleClose = () => {
+    router.push('/');
+  };
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const timer = window.setTimeout(() => {
+      closeButtonRef.current?.focus();
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  const getFocusableElements = () => {
+    if (!dialogRef.current) return [];
+    return Array.from(
+      dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      handleClose();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusable = getFocusableElements();
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onKeyDown={handleKeyDown}
+    >
+      <div
+        ref={dialogRef}
+        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl md:p-8"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="privacy-gate-title"
+        aria-describedby="privacy-gate-description"
+        tabIndex={-1}
+      >
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-zinc-900">
+          <h2 id="privacy-gate-title" className="text-2xl font-bold text-zinc-900">
             Bem-vindo ao Sistema de Filiação SBACEM
           </h2>
-          <p className="mt-2 text-sm text-zinc-600">
+          <p id="privacy-gate-description" className="mt-2 text-sm text-zinc-600">
             Antes de iniciar seu cadastro, é necessário que você leia e aceite nossa Política de
             Privacidade.
           </p>
@@ -40,6 +101,8 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -63,6 +126,8 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -86,6 +151,8 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -109,6 +176,8 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -132,6 +201,8 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -155,6 +226,8 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -191,7 +264,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-1 h-5 w-5 cursor-pointer rounded border-zinc-300 text-orange-500 focus:ring-orange-200"
+              className="mt-1 h-5 w-5 cursor-pointer rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
             />
@@ -211,6 +284,14 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={handleClose}
+            ref={closeButtonRef}
+            className="min-h-[44px] rounded-xl border border-zinc-400 bg-white px-6 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+          >
+            Sair
+          </button>
           <button
             onClick={handleAccept}
             disabled={!accepted}

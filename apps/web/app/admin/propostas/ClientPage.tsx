@@ -24,9 +24,14 @@ const SERVER_SORT_FIELDS = new Set<SortField>([
   'fullName',
 ]);
 
-const buildApiQuery = (filters: ProposalFilters, sort?: SortState) => {
+const buildApiQuery = (
+  filters: ProposalFilters,
+  sort?: SortState,
+  page?: number,
+  pageSize?: number,
+) => {
   const params = new URLSearchParams();
-  if (filters.status && filters.status.length === 1) params.set('status', filters.status[0]);
+  if (filters.status?.length) params.set('status', filters.status.join(','));
   if (filters.type) params.set('type', filters.type);
   if (filters.sla) params.set('sla', filters.sla);
   if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
@@ -36,6 +41,8 @@ const buildApiQuery = (filters: ProposalFilters, sort?: SortState) => {
     params.set('sortBy', sort.field);
     params.set('sortDir', sort.dir);
   }
+  if (page) params.set('page', String(page));
+  if (pageSize) params.set('pageSize', String(pageSize));
   return params.toString();
 };
 
@@ -185,6 +192,12 @@ const downloadExcel = (items: ProposalListItem[]) => {
 };
 
 type BulkStatus = 'UNDER_REVIEW' | 'PENDING_DOCS' | 'REJECTED' | 'CANCELED';
+type ProposalListResponse = {
+  items: ProposalListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 export default function ClientPage() {
   const router = useRouter();
@@ -205,6 +218,7 @@ export default function ClientPage() {
     text: searchParams.get('text') ?? undefined,
   });
   const [items, setItems] = useState<ProposalListItem[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
@@ -220,7 +234,10 @@ export default function ClientPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
 
-  const apiQuery = useMemo(() => buildApiQuery(filters, sort), [filters, sort]);
+  const apiQuery = useMemo(
+    () => buildApiQuery(filters, sort, page, PAGE_SIZE),
+    [filters, sort, page],
+  );
   const urlQuery = useMemo(() => buildUrlQuery(filters), [filters]);
 
   useEffect(() => {
@@ -228,10 +245,15 @@ export default function ClientPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await adminFetchWithRefresh<ProposalListItem[]>(
+        const response = await adminFetchWithRefresh<ProposalListResponse>(
           apiQuery ? `/admin/proposals?${apiQuery}` : '/admin/proposals',
         );
-        setItems(response);
+        setItems(response.items ?? []);
+        setTotal(response.total ?? 0);
+        const totalPages = Math.max(1, Math.ceil((response.total ?? 0) / PAGE_SIZE));
+        if (page > totalPages) {
+          setPage(totalPages);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Falha ao carregar propostas');
       } finally {
@@ -258,14 +280,11 @@ export default function ClientPage() {
     router.replace(qs ? `/admin/propostas?${qs}` : '/admin/propostas');
   }, [page, urlQuery, router]);
 
-  const filteredItems = useMemo(() => {
-    if (!filters.status?.length) return items;
-    return items.filter((item) => filters.status?.includes(item.status));
-  }, [items, filters.status]);
-
-  const sortedItems = useMemo(() => sortItems(filteredItems, sort), [filteredItems, sort]);
-  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
-  const pageItems = sortedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const tableItems = useMemo(() => {
+    if (!sort || SERVER_SORT_FIELDS.has(sort.field)) return items;
+    return sortItems(items, sort);
+  }, [items, sort]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleSort = useCallback((field: SortField) => {
     setSort((prev) => ({
@@ -374,10 +393,10 @@ export default function ClientPage() {
           <p className="mt-1 text-sm text-zinc-500">Consulte, filtre e exporte.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => downloadCsv(items)}>
+          <Button variant="secondary" onClick={() => downloadCsv(tableItems)}>
             Exportar CSV
           </Button>
-          <Button variant="secondary" onClick={() => downloadExcel(items)}>
+          <Button variant="secondary" onClick={() => downloadExcel(tableItems)}>
             Exportar Excel
           </Button>
         </div>
@@ -421,7 +440,7 @@ export default function ClientPage() {
       </div>
 
       <ProposalsTable
-        items={pageItems}
+        items={tableItems}
         sort={sort}
         onSort={handleSort}
         selectedIds={selectedIds}
@@ -429,9 +448,9 @@ export default function ClientPage() {
           setSelectedIds((prev) => {
             const next = new Set(prev);
             if (checked) {
-              pageItems.forEach((item) => next.add(item.id));
+              tableItems.forEach((item) => next.add(item.id));
             } else {
-              pageItems.forEach((item) => next.delete(item.id));
+              tableItems.forEach((item) => next.delete(item.id));
             }
             return next;
           });

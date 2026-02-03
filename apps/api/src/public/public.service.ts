@@ -5,7 +5,13 @@
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DocumentType, ProposalStatus, ProposalType } from '@prisma/client';
+import {
+  DocumentType,
+  ProposalStatus,
+  ProposalType,
+  Prisma,
+  SocialProvider,
+} from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -93,7 +99,7 @@ export class PublicService {
 
     return {
       draftId: updated.id,
-      data: updated.data,
+      data: this.sanitizeDraftResponse(updated.data),
       expiresAt: updated.expiresAt.toISOString(),
     };
   }
@@ -103,7 +109,7 @@ export class PublicService {
 
     return {
       draftId: draft.id,
-      data: draft.data,
+      data: this.sanitizeDraftResponse(draft.data),
       expiresAt: draft.expiresAt.toISOString(),
     };
   }
@@ -160,7 +166,10 @@ export class PublicService {
   ) {
     const draft = await this.getDraftOrThrow(dto.draftId, dto.draftToken);
 
-    const data = this.safeValidate(draft.data ?? {}, true);
+    const data = this.safeValidate(
+      this.stripInternalDraftData(draft.data ?? {}),
+      true,
+    );
     await this.ensureEmailMx(data.email);
 
     const protocol = await this.generateProtocol();
@@ -268,6 +277,8 @@ export class PublicService {
       );
     }
 
+    const draftSocialAuth = this.extractDraftSocialAuth(draft.data ?? {});
+
     const proposal = await this.prisma.$transaction(async (tx) => {
       const created = await tx.proposal.create({
         data: {
@@ -296,7 +307,33 @@ export class PublicService {
             },
           },
         },
+        include: { person: true },
       });
+
+      if (created.person && draftSocialAuth.length > 0) {
+        await tx.socialAccount.createMany({
+          data: draftSocialAuth.map((entry) => ({
+            personId: created.person!.id,
+            provider: entry.provider,
+            accessTokenEncrypted: entry.accessTokenEncrypted,
+            refreshTokenEncrypted: entry.refreshTokenEncrypted ?? null,
+            tokenMeta: entry.tokenMeta as Prisma.InputJsonValue,
+          })),
+        });
+
+        await tx.auditLog.createMany({
+          data: draftSocialAuth.map((entry) => ({
+            proposalId: created.id,
+            action: 'SOCIAL_CONNECT',
+            entityType: 'Proposal',
+            entityId: created.id,
+            metadata: {
+              provider: entry.provider,
+              source: 'draft',
+            } as Prisma.InputJsonValue,
+          })),
+        });
+      }
 
       await tx.consentLog.create({
         data: {
@@ -671,6 +708,50 @@ export class PublicService {
         error instanceof Error ? error.message : 'Dados invalidos';
       throw new BadRequestException(message);
     }
+  }
+
+  private stripInternalDraftData(data: unknown) {
+    if (!data || typeof data !== 'object') return data;
+    const clone = { ...(data as Record<string, unknown>) };
+    delete clone.socialAuth;
+    delete clone.socialConnections;
+    return clone;
+  }
+
+  private sanitizeDraftResponse(data: unknown) {
+    if (!data || typeof data !== 'object') return data;
+    const clone = { ...(data as Record<string, unknown>) };
+    delete clone.socialAuth;
+    return clone;
+  }
+
+  private extractDraftSocialAuth(data: unknown) {
+    if (!data || typeof data !== 'object') return [];
+    const raw = (data as Record<string, unknown>).socialAuth;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') return null;
+        const typed = entry as {
+          provider?: SocialProvider | string;
+          accessTokenEncrypted?: string;
+          refreshTokenEncrypted?: string | null;
+          tokenMeta?: Record<string, unknown>;
+        };
+        if (!typed.provider || !typed.accessTokenEncrypted) return null;
+        return {
+          provider: typed.provider as SocialProvider,
+          accessTokenEncrypted: typed.accessTokenEncrypted,
+          refreshTokenEncrypted: typed.refreshTokenEncrypted ?? null,
+          tokenMeta: typed.tokenMeta ?? {},
+        };
+      })
+      .filter(Boolean) as Array<{
+      provider: SocialProvider;
+      accessTokenEncrypted: string;
+      refreshTokenEncrypted: string | null;
+      tokenMeta: Record<string, unknown>;
+    }>;
   }
 
   private safeValidateOtpSend(payload: unknown) {

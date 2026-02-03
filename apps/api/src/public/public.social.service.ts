@@ -1,7 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SocialProvider, Prisma } from '@prisma/client';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, createHash, timingSafeEqual } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
@@ -28,10 +32,29 @@ type ProviderConfig = {
   tokenMethod?: 'POST' | 'GET';
 };
 
-type OAuthStatePayload = {
+type OAuthStatePayloadV1 = {
   v: 1;
   provider: SocialProvider;
   proposalId: string;
+  issuedAt: number;
+};
+
+type OAuthStatePayloadV2 = {
+  v: 2;
+  provider: SocialProvider;
+  target: 'proposal' | 'draft';
+  proposalId?: string;
+  draftId?: string;
+  issuedAt: number;
+};
+
+type OAuthStatePayload = OAuthStatePayloadV1 | OAuthStatePayloadV2;
+
+type OAuthStateNormalized = {
+  provider: SocialProvider;
+  target: 'proposal' | 'draft';
+  proposalId?: string;
+  draftId?: string;
   issuedAt: number;
 };
 
@@ -45,24 +68,23 @@ export class PublicSocialService {
 
   async buildAuthorizeUrl(
     providerRaw: string,
-    proposalId: string,
-    token: string,
+    input: {
+      proposalId?: string;
+      token?: string;
+      draftId?: string;
+      draftToken?: string;
+    },
   ) {
     const provider = this.parseProvider(providerRaw);
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
-      select: { id: true, publicToken: true },
-    });
-
-    if (!proposal || proposal.publicToken !== token) {
-      throw new BadRequestException('Token invalido');
-    }
+    const target = await this.resolveTarget(input);
 
     const config = this.getProviderConfig(provider);
     const state = this.signState({
-      v: 1,
+      v: 2,
       provider,
-      proposalId,
+      target: target.type,
+      proposalId: target.type === 'proposal' ? target.id : undefined,
+      draftId: target.type === 'draft' ? target.id : undefined,
       issuedAt: Date.now(),
     });
 
@@ -100,13 +122,16 @@ export class PublicSocialService {
     const provider = this.parseProvider(providerRaw);
 
     if (error) {
-      return { ok: false, redirectUrl: this.buildErrorRedirect(error) };
+      return {
+        ok: false,
+        redirectUrl: this.resolveErrorRedirect(state, error),
+      };
     }
 
     if (!code || !state) {
       return {
         ok: false,
-        redirectUrl: this.buildErrorRedirect('missing_code'),
+        redirectUrl: this.resolveErrorRedirect(state, 'missing_code'),
       };
     }
 
@@ -114,15 +139,19 @@ export class PublicSocialService {
     if (!payload) {
       return {
         ok: false,
-        redirectUrl: this.buildErrorRedirect('invalid_state'),
+        redirectUrl: this.resolveErrorRedirect(state, 'invalid_state'),
       };
     }
 
     if (payload.provider !== provider) {
       return {
         ok: false,
-        redirectUrl: this.buildErrorRedirect('invalid_provider'),
+        redirectUrl: this.resolveErrorRedirect(state, 'invalid_provider'),
       };
+    }
+
+    if (payload.target === 'draft') {
+      return this.handleDraftCallback(provider, payload, code);
     }
 
     const proposal = await this.prisma.proposal.findUnique({
@@ -133,38 +162,12 @@ export class PublicSocialService {
     if (!proposal || !proposal.person) {
       return {
         ok: false,
-        redirectUrl: this.buildErrorRedirect('proposal_not_found'),
+        redirectUrl: this.resolveErrorRedirect(state, 'proposal_not_found'),
       };
     }
 
     try {
-      const tokenResponse = await this.exchangeCode(provider, code);
-      if (!tokenResponse.accessToken) {
-        throw new Error('missing_access_token');
-      }
-      let profile: Record<string, unknown> | null = null;
-      try {
-        profile = await this.fetchProfile(provider, tokenResponse.accessToken);
-      } catch (error) {
-        profile = null;
-      }
-
-      const meta: Record<string, unknown> = {
-        scope: tokenResponse.scope,
-        tokenType: tokenResponse.tokenType,
-        expiresAt: tokenResponse.expiresIn
-          ? new Date(Date.now() + tokenResponse.expiresIn * 1000).toISOString()
-          : null,
-        fetchedAt: new Date().toISOString(),
-        profile,
-      };
-
-      const accessTokenEncrypted = await this.crypto.encrypt(
-        tokenResponse.accessToken,
-      );
-      const refreshTokenEncrypted = tokenResponse.refreshToken
-        ? await this.crypto.encrypt(tokenResponse.refreshToken)
-        : null;
+      const resolved = await this.resolveOAuthPayload(provider, code);
 
       await this.prisma.$transaction(async (tx) => {
         await tx.socialAccount.deleteMany({
@@ -175,9 +178,9 @@ export class PublicSocialService {
           data: {
             personId: proposal.person!.id,
             provider,
-            accessTokenEncrypted,
-            refreshTokenEncrypted,
-            tokenMeta: meta as Prisma.InputJsonValue,
+            accessTokenEncrypted: resolved.accessTokenEncrypted,
+            refreshTokenEncrypted: resolved.refreshTokenEncrypted,
+            tokenMeta: resolved.meta as Prisma.InputJsonValue,
           },
         });
 
@@ -189,7 +192,7 @@ export class PublicSocialService {
             entityId: proposal.id,
             metadata: {
               provider,
-              profile: sanitizeProfile(profile),
+              profile: sanitizeProfile(resolved.profile),
             } as Prisma.InputJsonValue,
           },
         });
@@ -199,9 +202,162 @@ export class PublicSocialService {
     } catch (error) {
       return {
         ok: false,
-        redirectUrl: this.buildErrorRedirect('oauth_failed'),
+        redirectUrl: this.resolveErrorRedirect(state, 'oauth_failed'),
       };
     }
+  }
+
+  private async handleDraftCallback(
+    provider: SocialProvider,
+    payload: OAuthStateNormalized,
+    code: string,
+  ) {
+    if (!payload.draftId) {
+      return {
+        ok: false,
+        redirectUrl: this.buildDraftErrorRedirect('draft_not_found'),
+      };
+    }
+
+    const draft = await this.prisma.draft.findUnique({
+      where: { id: payload.draftId },
+    });
+
+    if (!draft || draft.expiresAt < new Date()) {
+      return {
+        ok: false,
+        redirectUrl: this.buildDraftErrorRedirect('draft_not_found'),
+      };
+    }
+
+    try {
+      const resolved = await this.resolveOAuthPayload(provider, code);
+      const nextData = this.buildDraftSocialData(
+        (draft.data ?? {}) as Record<string, unknown>,
+        provider,
+        resolved,
+      );
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.draft.update({
+          where: { id: draft.id },
+          data: { data: nextData as Prisma.InputJsonValue },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            action: 'SOCIAL_CONNECT',
+            entityType: 'Draft',
+            entityId: draft.id,
+            metadata: {
+              provider,
+              profile: sanitizeProfile(resolved.profile),
+            } as Prisma.InputJsonValue,
+          },
+        });
+      });
+
+      return {
+        ok: true,
+        redirectUrl: this.buildDraftSuccessRedirect(draft.id, provider),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        redirectUrl: this.buildDraftErrorRedirect('oauth_failed'),
+      };
+    }
+  }
+
+  private async resolveOAuthPayload(provider: SocialProvider, code: string) {
+    const tokenResponse = await this.exchangeCode(provider, code);
+    if (!tokenResponse.accessToken) {
+      throw new Error('missing_access_token');
+    }
+
+    let profile: Record<string, unknown> | null = null;
+    try {
+      profile = await this.fetchProfile(provider, tokenResponse.accessToken);
+    } catch (error) {
+      profile = null;
+    }
+
+    const meta: Record<string, unknown> = {
+      scope: tokenResponse.scope,
+      tokenType: tokenResponse.tokenType,
+      expiresAt: tokenResponse.expiresIn
+        ? new Date(Date.now() + tokenResponse.expiresIn * 1000).toISOString()
+        : null,
+      fetchedAt: new Date().toISOString(),
+      profile,
+    };
+
+    const accessTokenEncrypted = await this.crypto.encrypt(
+      tokenResponse.accessToken,
+    );
+    const refreshTokenEncrypted = tokenResponse.refreshToken
+      ? await this.crypto.encrypt(tokenResponse.refreshToken)
+      : null;
+
+    return {
+      accessTokenEncrypted,
+      refreshTokenEncrypted,
+      meta,
+      profile,
+    };
+  }
+
+  private resolveErrorRedirect(state: string | undefined, reason: string) {
+    if (!state) return this.buildErrorRedirect(reason);
+    const payload = this.verifyState(state);
+    if (payload?.target === 'draft') {
+      return this.buildDraftErrorRedirect(reason, payload.draftId);
+    }
+    return this.buildErrorRedirect(reason);
+  }
+
+  private buildDraftSocialData(
+    data: Record<string, unknown>,
+    provider: SocialProvider,
+    resolved: {
+      accessTokenEncrypted: string;
+      refreshTokenEncrypted: string | null;
+      meta: Record<string, unknown>;
+      profile: Record<string, unknown> | null;
+    },
+  ) {
+    const now = new Date().toISOString();
+    const existingAuth = Array.isArray(data.socialAuth) ? data.socialAuth : [];
+    const nextAuth = [
+      ...existingAuth.filter((entry) => entry && entry.provider !== provider),
+      {
+        provider,
+        accessTokenEncrypted: resolved.accessTokenEncrypted,
+        refreshTokenEncrypted: resolved.refreshTokenEncrypted,
+        tokenMeta: resolved.meta,
+        connectedAt: now,
+      },
+    ];
+
+    const existingConnections = Array.isArray(data.socialConnections)
+      ? data.socialConnections
+      : [];
+    const nextConnections = [
+      ...existingConnections.filter(
+        (entry) => entry && entry.provider !== provider,
+      ),
+      {
+        provider,
+        connected: true,
+        connectedAt: now,
+      },
+    ];
+
+    return {
+      ...data,
+      socialAuth: nextAuth,
+      socialConnections: nextConnections,
+    };
   }
 
   async refreshProfileIfStale(
@@ -256,34 +412,139 @@ export class PublicSocialService {
     }
   }
 
-  async disconnect(providerRaw: string, proposalId: string, token: string) {
+  async disconnect(
+    providerRaw: string,
+    input: {
+      proposalId?: string;
+      token?: string;
+      draftId?: string;
+      draftToken?: string;
+    },
+  ) {
     const provider = this.parseProvider(providerRaw);
 
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
-      include: { person: true },
-    });
+    if (input.proposalId && input.token) {
+      const proposal = await this.prisma.proposal.findUnique({
+        where: { id: input.proposalId },
+        include: { person: true },
+      });
 
-    if (!proposal || !proposal.person || proposal.publicToken !== token) {
-      throw new BadRequestException('Token invalido');
+      if (
+        !proposal ||
+        !proposal.person ||
+        proposal.publicToken !== input.token
+      ) {
+        throw new BadRequestException('Token invalido');
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.socialAccount.deleteMany({
+          where: { personId: proposal.person!.id, provider },
+        });
+        await tx.auditLog.create({
+          data: {
+            proposalId: proposal.id,
+            action: 'SOCIAL_DISCONNECT',
+            entityType: 'Proposal',
+            entityId: proposal.id,
+            metadata: { provider } as Prisma.InputJsonValue,
+          },
+        });
+      });
+
+      return { ok: true };
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.socialAccount.deleteMany({
-        where: { personId: proposal.person!.id, provider },
+    if (input.draftId && input.draftToken) {
+      const draft = await this.getDraftOrThrow(input.draftId, input.draftToken);
+      const current = (draft.data ?? {}) as Record<string, unknown>;
+      const existingAuth = Array.isArray(current.socialAuth)
+        ? current.socialAuth
+        : [];
+      const existingConnections = Array.isArray(current.socialConnections)
+        ? current.socialConnections
+        : [];
+
+      const next = {
+        ...current,
+        socialAuth: existingAuth.filter(
+          (entry) => entry && entry.provider !== provider,
+        ),
+        socialConnections: existingConnections.filter(
+          (entry) => entry && entry.provider !== provider,
+        ),
+      };
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.draft.update({
+          where: { id: draft.id },
+          data: { data: next as Prisma.InputJsonValue },
+        });
+        await tx.auditLog.create({
+          data: {
+            action: 'SOCIAL_DISCONNECT',
+            entityType: 'Draft',
+            entityId: draft.id,
+            metadata: { provider } as Prisma.InputJsonValue,
+          },
+        });
       });
-      await tx.auditLog.create({
-        data: {
-          proposalId: proposal.id,
-          action: 'SOCIAL_DISCONNECT',
-          entityType: 'Proposal',
-          entityId: proposal.id,
-          metadata: { provider } as Prisma.InputJsonValue,
-        },
+
+      return { ok: true };
+    }
+
+    throw new BadRequestException('Parametros obrigatorios');
+  }
+
+  private async resolveTarget(input: {
+    proposalId?: string;
+    token?: string;
+    draftId?: string;
+    draftToken?: string;
+  }) {
+    if (input.proposalId && input.token) {
+      const proposal = await this.prisma.proposal.findUnique({
+        where: { id: input.proposalId },
+        select: { id: true, publicToken: true },
       });
+
+      if (!proposal || proposal.publicToken !== input.token) {
+        throw new BadRequestException('Token invalido');
+      }
+
+      return { type: 'proposal' as const, id: proposal.id };
+    }
+
+    if (input.draftId && input.draftToken) {
+      const draft = await this.getDraftOrThrow(input.draftId, input.draftToken);
+      return { type: 'draft' as const, id: draft.id };
+    }
+
+    throw new BadRequestException('Parametros obrigatorios');
+  }
+
+  private async getDraftOrThrow(draftId: string, token: string) {
+    const draft = await this.prisma.draft.findUnique({
+      where: { id: draftId },
     });
 
-    return { ok: true };
+    if (!draft) {
+      throw new BadRequestException('Draft nao encontrado');
+    }
+
+    if (draft.expiresAt < new Date()) {
+      throw new UnauthorizedException('Draft expirado');
+    }
+
+    if (draft.tokenHash !== this.hashToken(token)) {
+      throw new UnauthorizedException('Token invalido');
+    }
+
+    return draft;
+  }
+
+  private hashToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private parseProvider(value: string) {
@@ -395,7 +656,7 @@ export class PublicSocialService {
     return `${encoded}.${signature}`;
   }
 
-  private verifyState(state: string) {
+  private verifyState(state: string): OAuthStateNormalized | null {
     const secret = this.getStateSecret();
     const [encoded, signature] = state.split('.');
     if (!encoded || !signature) return null;
@@ -411,7 +672,7 @@ export class PublicSocialService {
     } catch (error) {
       return null;
     }
-    if (payload.v !== 1) return null;
+    if (payload.v !== 1 && payload.v !== 2) return null;
 
     const ttlMinutes =
       this.configService.get<number>('SOCIAL_STATE_TTL_MINUTES', {
@@ -420,7 +681,34 @@ export class PublicSocialService {
     const expiresAt = payload.issuedAt + ttlMinutes * 60 * 1000;
     if (Date.now() > expiresAt) return null;
 
-    return payload;
+    if (payload.v === 1) {
+      return {
+        provider: payload.provider,
+        target: 'proposal',
+        proposalId: payload.proposalId,
+        issuedAt: payload.issuedAt,
+      };
+    }
+
+    if (payload.target === 'draft' && payload.draftId) {
+      return {
+        provider: payload.provider,
+        target: 'draft',
+        draftId: payload.draftId,
+        issuedAt: payload.issuedAt,
+      };
+    }
+
+    if (payload.target === 'proposal' && payload.proposalId) {
+      return {
+        provider: payload.provider,
+        target: 'proposal',
+        proposalId: payload.proposalId,
+        issuedAt: payload.issuedAt,
+      };
+    }
+
+    return null;
   }
 
   private getStateSecret() {
@@ -693,6 +981,33 @@ export class PublicSocialService {
     return url.toString();
   }
 
+  private buildDraftSuccessRedirect(draftId: string, provider: SocialProvider) {
+    const explicit = this.configService.get<string>(
+      'SOCIAL_REDIRECT_DRAFT_SUCCESS_URL',
+      {
+        infer: true,
+      },
+    );
+
+    const base =
+      explicit ??
+      this.configService.get<string>('PUBLIC_CADASTRO_BASE_URL', {
+        infer: true,
+      });
+
+    if (!base) {
+      return `/cadastro?social=success&provider=${encodeURIComponent(
+        provider,
+      )}&draftId=${encodeURIComponent(draftId)}`;
+    }
+
+    const url = new URL(base);
+    url.searchParams.set('social', 'success');
+    url.searchParams.set('provider', provider);
+    url.searchParams.set('draftId', draftId);
+    return url.toString();
+  }
+
   private buildErrorRedirect(reason: string) {
     const base = this.configService.get<string>('SOCIAL_REDIRECT_ERROR_URL', {
       infer: true,
@@ -701,6 +1016,26 @@ export class PublicSocialService {
 
     const url = new URL(base);
     url.searchParams.set('erro', reason);
+    return url.toString();
+  }
+
+  private buildDraftErrorRedirect(reason: string, draftId?: string) {
+    const base = this.configService.get<string>(
+      'SOCIAL_REDIRECT_DRAFT_ERROR_URL',
+      {
+        infer: true,
+      },
+    );
+    if (!base) {
+      const params = new URLSearchParams({ social: 'error', erro: reason });
+      if (draftId) params.set('draftId', draftId);
+      return `/cadastro?${params.toString()}`;
+    }
+
+    const url = new URL(base);
+    url.searchParams.set('social', 'error');
+    url.searchParams.set('erro', reason);
+    if (draftId) url.searchParams.set('draftId', draftId);
     return url.toString();
   }
 

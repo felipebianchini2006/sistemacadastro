@@ -28,9 +28,9 @@ export function ImageQualityAlert({
             }`}
           >
             {hasErrors ? (
-              <X className="h-6 w-6 text-red-600" />
+              <X className="h-6 w-6 text-red-600" aria-hidden="true" />
             ) : (
-              <AlertTriangle className="h-6 w-6 text-yellow-600" />
+              <AlertTriangle className="h-6 w-6 text-yellow-600" aria-hidden="true" />
             )}
           </div>
           <div className="flex-1">
@@ -88,7 +88,7 @@ export function ImageQualityAlert({
         <div className="grid gap-2 sm:grid-cols-2">
           <button
             onClick={onCancel}
-            className="min-h-[44px] rounded-xl bg-white border-2 border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            className="min-h-[44px] rounded-xl bg-white border-2 border-zinc-400 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
           >
             Tirar nova foto
           </button>

@@ -59,9 +59,13 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
   };
 
   const getConfidenceIcon = (confidence?: number) => {
-    if (!confidence || confidence < 0.7) return <XCircle className="h-5 w-5 text-red-500" />;
-    if (confidence < 0.9) return <CheckCircle className="h-5 w-5 text-yellow-500" />;
-    return <CheckCircle className="h-5 w-5 text-green-500" />;
+    if (!confidence || confidence < 0.7) {
+      return <XCircle className="h-5 w-5 text-red-500" aria-hidden="true" />;
+    }
+    if (confidence < 0.9) {
+      return <CheckCircle className="h-5 w-5 text-yellow-500" aria-hidden="true" />;
+    }
+    return <CheckCircle className="h-5 w-5 text-green-500" aria-hidden="true" />;
   };
 
   const documentTitle = {
@@ -80,11 +84,19 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl">
+      <div
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ocr-preview-title"
+        aria-describedby="ocr-preview-description"
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-zinc-200 px-6 py-4">
-          <h2 className="text-xl font-bold text-zinc-900">{documentTitle}</h2>
-          <p className="mt-1 text-sm text-zinc-600">
+          <h2 id="ocr-preview-title" className="text-xl font-bold text-zinc-900">
+            {documentTitle}
+          </h2>
+          <p id="ocr-preview-description" className="mt-1 text-sm text-zinc-600">
             Confira os dados extraídos e confirme se estão corretos
           </p>
           {data.overallConfidence && (
@@ -126,7 +138,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
           {/* Processing State */}
           {isProcessing && (
             <div className="mb-6 flex items-center justify-center gap-3 rounded-xl bg-blue-50 px-4 py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" aria-hidden="true" />
               <span className="text-sm font-medium text-blue-900">Processando OCR... aguarde</span>
             </div>
           )}
@@ -140,7 +152,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                   onClick={() => setIsEditing(!isEditing)}
                   className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50"
                 >
-                  <Edit2 className="h-4 w-4" />
+                  <Edit2 className="h-4 w-4" aria-hidden="true" />
                   {isEditing ? 'Cancelar edição' : 'Editar manualmente'}
                 </button>
               </div>
@@ -171,7 +183,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                           type="text"
                           value={currentValue}
                           onChange={(e) => handleFieldEdit(fieldKey, e.target.value)}
-                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          className="w-full rounded-lg border border-zinc-400 px-3 py-2 text-sm font-mono focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
                         />
                       ) : (
                         <p className="text-base font-mono text-zinc-900">
@@ -208,7 +220,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
               disabled={isProcessing}
               className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Camera className="h-5 w-5" />
+              <Camera className="h-5 w-5" aria-hidden="true" />
               Refazer Foto
             </button>
             <button
@@ -216,7 +228,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
               disabled={isProcessing}
               className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle className="h-5 w-5" />
+              <CheckCircle className="h-5 w-5" aria-hidden="true" />
               Confirmar Dados
             </button>
           </div>

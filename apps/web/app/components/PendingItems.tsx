@@ -148,7 +148,7 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
                   ))}
                 </select>
               </label>
-              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-6 text-sm text-zinc-500">
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-zinc-400 bg-white px-4 py-6 text-sm text-zinc-500">
                 <input
                   type="file"
                   className="hidden"

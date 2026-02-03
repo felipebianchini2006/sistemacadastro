@@ -24,12 +24,24 @@ const StatusDot = ({ status }: { status?: FieldStatus }) => {
   const base =
     'inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold';
   if (status === 'valid') {
-    return <span className={cn(base, 'bg-[#22C55E] text-white')}>✓</span>;
+    return (
+      <span className={cn(base, 'bg-[#22C55E] text-white')} aria-hidden="true">
+        ???
+      </span>
+    );
   }
   if (status === 'invalid') {
-    return <span className={cn(base, 'bg-[#EF4444] text-white')}>✕</span>;
+    return (
+      <span className={cn(base, 'bg-[#EF4444] text-white')} aria-hidden="true">
+        ???
+      </span>
+    );
   }
-  return <span className={cn(base, 'bg-zinc-200 text-zinc-500')}>•</span>;
+  return (
+    <span className={cn(base, 'bg-zinc-200 text-zinc-500')} aria-hidden="true">
+      ???
+    </span>
+  );
 };
 
 const applyMask = (value: string, mask?: InputMask) => {
@@ -83,14 +95,15 @@ export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
               value={value}
               onChange={(event) => onChange(applyMask(event.target.value, mask))}
               className={cn(
-                'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm',
-                'focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-200',
+                'w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm',
+                'focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-200',
                 status === 'invalid' && 'border-red-300 focus:ring-red-200',
                 status === 'valid' && 'border-emerald-300 focus:ring-emerald-200',
                 hasIcon && 'pl-10',
                 className,
               )}
               aria-invalid={status === 'invalid'}
+              aria-required={props.required ? true : undefined}
               aria-describedby={hint ? `${inputId}-hint` : undefined}
             />
           </div>

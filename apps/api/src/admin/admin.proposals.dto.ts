@@ -11,7 +11,7 @@ export type ListProposalsSortField =
   | 'fullName';
 
 export type ListProposalsQuery = {
-  status?: ProposalStatus;
+  status?: ProposalStatus | ProposalStatus[];
   type?: ProposalType;
   sla?: ProposalListSlaFilter;
   dateFrom?: string;
@@ -19,6 +19,8 @@ export type ListProposalsQuery = {
   text?: string;
   sortBy?: ListProposalsSortField;
   sortDir?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
 };
 
 export type AssignProposalDto = {
@@ -92,8 +94,29 @@ export type UpdateOcrDto = {
   };
 };
 
+const proposalStatusValues = Object.values(ProposalStatus);
+
+const statusFilterSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (!value) return undefined;
+    const raw = Array.isArray(value) ? value.join(',') : value;
+    const values = raw
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .filter((entry) =>
+        proposalStatusValues.includes(entry as ProposalStatus),
+      );
+    if (values.length === 0) return undefined;
+    return values.length === 1
+      ? (values[0] as ProposalStatus)
+      : (values as ProposalStatus[]);
+  });
+
 export const listProposalsQuerySchema = z.object({
-  status: z.nativeEnum(ProposalStatus).optional(),
+  status: statusFilterSchema,
   type: z.nativeEnum(ProposalType).optional(),
   sla: z.enum(['BREACHED', 'DUE_SOON', 'OK']).optional(),
   dateFrom: z.string().optional(),
@@ -103,6 +126,8 @@ export const listProposalsQuerySchema = z.object({
     .enum(['createdAt', 'protocol', 'status', 'type', 'fullName'])
     .optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(200).optional(),
 });
 
 export const assignProposalSchema = z.object({
