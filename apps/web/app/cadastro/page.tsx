@@ -28,7 +28,13 @@ import { cn } from '../lib/utils';
 type ProfileRole = 'AUTOR' | 'COMPOSITOR' | 'INTERPRETE' | 'EDITORA' | 'PRODUTOR' | 'OUTRO';
 type ProposalType = 'NOVO' | 'MIGRACAO';
 type DocumentChoice = 'RG' | 'CNH';
-type DocumentType = 'RG_FRENTE' | 'RG_VERSO' | 'CNH' | 'DESFILIACAO' | 'COMPROVANTE_RESIDENCIA';
+type DocumentType =
+  | 'RG_FRENTE'
+  | 'RG_VERSO'
+  | 'CNH'
+  | 'DESFILIACAO'
+  | 'COMPROVANTE_RESIDENCIA'
+  | 'OUTROS';
 type BankAccountType = 'CC' | 'CP';
 type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'TELEFONE' | 'ALEATORIA' | 'OUTRO';
 type SocialProvider = 'SPOTIFY' | 'YOUTUBE' | 'INSTAGRAM' | 'FACEBOOK';
@@ -95,6 +101,7 @@ type DraftFormState = {
     rgBack: UploadState;
     cnh: UploadState;
     desfiliacao: UploadState;
+    migrationExtra: UploadState;
     residence: UploadState;
   };
   socialConnections: SocialConnection[];
@@ -165,6 +172,19 @@ const migrationSteps = [
   { id: 'revisao', title: 'Revisao', subtitle: 'Confirme tudo' },
 ];
 
+const MIGRATION_ENTITIES = ['Abramus', 'UBC', 'SICAM', 'SOCINPRO'] as const;
+const MIGRATION_ENTITY_OPTIONS = [...MIGRATION_ENTITIES, 'Outras'] as const;
+const MIGRATION_EXTRA_DOCS: Record<string, { label: string; hint: string }> = {
+  Abramus: {
+    label: 'Documento adicional Abramus',
+    hint: 'Envie o documento exigido pela Abramus para concluir a migracao.',
+  },
+  UBC: {
+    label: 'Documento adicional UBC',
+    hint: 'Envie o documento exigido pela UBC para concluir a migracao.',
+  },
+};
+
 const defaultForm: DraftFormState = {
   profileRoles: [],
   profileRoleOther: '',
@@ -206,6 +226,7 @@ const defaultForm: DraftFormState = {
     rgBack: { status: 'idle' },
     cnh: { status: 'idle' },
     desfiliacao: { status: 'idle' },
+    migrationExtra: { status: 'idle' },
     residence: { status: 'idle' },
   },
   socialConnections: [],
@@ -379,6 +400,7 @@ export default function CadastroPage() {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [mobileFieldIndex, setMobileFieldIndex] = useState(0);
+  const [migrationEntitySelection, setMigrationEntitySelection] = useState('');
   const [ocrConfirmed, setOcrConfirmed] = useState(false);
 
   const dirtyRef = useRef(false);
@@ -516,6 +538,11 @@ export default function CadastroPage() {
           desfiliacao: {
             ...defaultForm.documents.desfiliacao,
             ...parsedDocs.desfiliacao,
+            previewUrl: undefined,
+          },
+          migrationExtra: {
+            ...defaultForm.documents.migrationExtra,
+            ...parsedDocs.migrationExtra,
             previewUrl: undefined,
           },
           residence: {
@@ -1016,6 +1043,31 @@ export default function CadastroPage() {
   }, [tracking?.ocr?.data, previewOcrResult, form.fullName, form.cpf, form.birthDate]);
 
   const otherRoleSelected = form.profileRoles.includes('OUTRO');
+  const migrationEntityValue = form.migrationEntity.trim();
+  const migrationEntityPreset =
+    MIGRATION_ENTITIES.find(
+      (entity) => entity.toLowerCase() === migrationEntityValue.toLowerCase(),
+    ) ?? null;
+  const migrationSelectValue = migrationEntityValue
+    ? (migrationEntityPreset ?? 'Outras')
+    : migrationEntitySelection;
+  const migrationExtraSpec = migrationEntityPreset
+    ? MIGRATION_EXTRA_DOCS[migrationEntityPreset]
+    : undefined;
+  const requiresMigrationExtra = Boolean(migrationExtraSpec);
+
+  useEffect(() => {
+    if (migrationEntityValue) {
+      const nextSelection = migrationEntityPreset ?? 'Outras';
+      if (migrationEntitySelection !== nextSelection) {
+        setMigrationEntitySelection(nextSelection);
+      }
+      return;
+    }
+    if (migrationEntitySelection && migrationEntitySelection !== 'Outras') {
+      setMigrationEntitySelection('');
+    }
+  }, [migrationEntityValue, migrationEntityPreset, migrationEntitySelection]);
   const profileStepValid =
     form.profileRoles.length > 0 &&
     (!otherRoleSelected || Boolean(form.profileRoleOther.trim().length));
@@ -1023,7 +1075,8 @@ export default function CadastroPage() {
     form.proposalType !== 'MIGRACAO' ||
     (Boolean(form.migrationEntity.trim().length) &&
       form.migrationConfirmed &&
-      form.documents.desfiliacao.status === 'uploaded');
+      form.documents.desfiliacao.status === 'uploaded' &&
+      (!requiresMigrationExtra || form.documents.migrationExtra.status === 'uploaded'));
   const docsMainValid =
     form.documentChoice === 'RG'
       ? form.documents.rgFront.status === 'uploaded' && form.documents.rgBack.status === 'uploaded'
@@ -1650,49 +1703,56 @@ export default function CadastroPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
                     Entidade anterior
                   </p>
-                  {(() => {
-                    const preset = ['Abramus', 'UBC'];
-                    const isCustom =
-                      form.migrationEntity.length > 0 && !preset.includes(form.migrationEntity);
-                    return (
-                      <>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                          {['Abramus', 'UBC', 'Outras'].map((entity) => (
-                            <button
-                              key={entity}
-                              type="button"
-                              className={cn(
-                                'rounded-full px-4 py-2 text-sm font-semibold transition',
-                                entity === 'Outras'
-                                  ? isCustom
-                                    ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                                    : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60'
-                                  : form.migrationEntity === entity
-                                    ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                                    : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
-                              )}
-                              onClick={() =>
-                                updateForm({ migrationEntity: entity === 'Outras' ? '' : entity })
-                              }
-                            >
-                              {entity}
-                            </button>
-                          ))}
-                        </div>
-                        {isCustom || form.migrationEntity === '' ? (
-                          <input
-                            value={form.migrationEntity}
-                            onChange={(event) =>
-                              updateForm({ migrationEntity: event.target.value })
+                  <div className="mt-3 grid gap-3">
+                    <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                      <span className="font-medium">Selecione a entidade</span>
+                      <select
+                        value={migrationSelectValue}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          if (
+                            nextValue !== migrationSelectValue &&
+                            form.documents.migrationExtra.status !== 'idle'
+                          ) {
+                            clearDocument('migrationExtra');
+                          }
+                          setMigrationEntitySelection(nextValue);
+                          if (nextValue === '') {
+                            updateForm({ migrationEntity: '' });
+                            return;
+                          }
+                          if (nextValue === 'Outras') {
+                            if (migrationEntityPreset) {
+                              updateForm({ migrationEntity: '' });
                             }
-                            onBlur={() => handleFieldBlur('migrationEntity')}
-                            className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                            placeholder="Informe a entidade"
-                          />
-                        ) : null}
-                      </>
-                    );
-                  })()}
+                            return;
+                          }
+                          updateForm({ migrationEntity: nextValue });
+                        }}
+                        onBlur={() => handleFieldBlur('migrationEntity')}
+                        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm"
+                      >
+                        <option value="">Selecione</option>
+                        {MIGRATION_ENTITY_OPTIONS.map((entity) => (
+                          <option key={entity} value={entity}>
+                            {entity}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {migrationSelectValue === 'Outras' ? (
+                      <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                        <span className="font-medium">Informe a entidade</span>
+                        <input
+                          value={form.migrationEntity}
+                          onChange={(event) => updateForm({ migrationEntity: event.target.value })}
+                          onBlur={() => handleFieldBlur('migrationEntity')}
+                          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                          placeholder="Digite a entidade"
+                        />
+                      </label>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
@@ -1737,6 +1797,14 @@ export default function CadastroPage() {
                     state={form.documents.desfiliacao}
                     onSelect={(file) => handleUpload('DESFILIACAO', file, 'desfiliacao')}
                   />
+                  {migrationExtraSpec ? (
+                    <UploadCard
+                      title={migrationExtraSpec.label}
+                      state={form.documents.migrationExtra}
+                      onSelect={(file) => handleUpload('OUTROS', file, 'migrationExtra')}
+                      description={migrationExtraSpec.hint}
+                    />
+                  ) : null}
                 </div>
 
                 {!form.migrationEntity.trim() ? (
@@ -1747,6 +1815,11 @@ export default function CadastroPage() {
                 ) : null}
                 {form.documents.desfiliacao.status !== 'uploaded' ? (
                   <p className="text-xs text-red-600">Envie a declaracao de desfiliação.</p>
+                ) : null}
+                {requiresMigrationExtra && form.documents.migrationExtra.status !== 'uploaded' ? (
+                  <p className="text-xs text-red-600">
+                    Envie o documento adicional exigido pela entidade anterior.
+                  </p>
                 ) : null}
               </StepLayout>
             ) : null}
@@ -2511,10 +2584,12 @@ const UploadCard = ({
   title,
   state,
   onSelect,
+  description,
 }: {
   title: string;
   state: UploadState;
   onSelect: (file: File) => void;
+  description?: string;
 }) => {
   const [showGuidelines, setShowGuidelines] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2539,6 +2614,7 @@ const UploadCard = ({
                 ? `Enviado: ${state.fileName ?? 'ok'}`
                 : 'JPEG, PNG ou PDF'}
             </p>
+            {description ? <p className="mt-1 text-xs text-zinc-500">{description}</p> : null}
           </div>
           <span
             className={cn(

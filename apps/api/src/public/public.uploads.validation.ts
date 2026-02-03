@@ -8,6 +8,7 @@ export const ALLOWED_PUBLIC_DOC_TYPES = new Set<DocumentType>([
   DocumentType.COMPROVANTE_RESIDENCIA,
   DocumentType.SELFIE,
   DocumentType.DESFILIACAO,
+  DocumentType.OUTROS,
 ]);
 
 export const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png']);
