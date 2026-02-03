@@ -6,7 +6,7 @@ import { DocumentType, ProposalStatus } from '@prisma/client';
 import { prisma } from '../prisma';
 import { VisionOcrService } from '../services/vision-ocr.service';
 import { StorageClient } from '../services/storage-client';
-import { preprocessImage } from '../services/image-preprocessor';
+import { preprocessImage, type ImagePreprocessResult } from '../services/image-preprocessor';
 import { parseAddressText, parseDocumentText } from './ocr-parser';
 import { compareOcrWithProposal } from './ocr-compare';
 import { OcrJobPayload } from './ocr.types';
@@ -127,7 +127,7 @@ export class OcrWorker {
 
     const originalBuffer = await this.storage.download(documentFile.storageKey);
     let buffer = Buffer.from(originalBuffer);
-    let preprocessInfo: { resized: boolean; rotated: boolean } | undefined;
+    let preprocessInfo: Omit<ImagePreprocessResult, 'buffer'> | undefined;
 
     if (documentFile.contentType.startsWith('image/')) {
       const processed = await preprocessImage(originalBuffer);

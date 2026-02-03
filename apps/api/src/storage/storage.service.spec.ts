@@ -1,11 +1,10 @@
 import { ConfigService } from '@nestjs/config';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
-import { StorageService } from './storage.service';
-
 jest.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: jest.fn(),
 }));
+
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { StorageService } = require('./storage.service');
 
 describe('StorageService', () => {
   beforeEach(() => {

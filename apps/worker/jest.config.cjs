@@ -1,7 +1,9 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
-  rootDir: 'src',
-  testRegex: '.*\\.spec\\.ts$',
+  rootDir: '.',
+  testMatch: ['<rootDir>/src/**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
+  transform: {
+    '^.+\\.(t|j)s$': '<rootDir>/jest.transform.cjs',
+  },
 };

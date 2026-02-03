@@ -124,6 +124,8 @@ const STORAGE_KEY = 'cadastro-draft-v1';
 const AUTO_SAVE_INTERVAL = 15000;
 const CONSENT_VERSION = process.env.NEXT_PUBLIC_CONSENT_VERSION ?? 'v1';
 const PRIVACY_VERSION = process.env.NEXT_PUBLIC_PRIVACY_VERSION ?? 'v1';
+const buildTrackingUrl = (protocol: string, token: string) =>
+  `/acompanhar?protocolo=${encodeURIComponent(protocol)}&token=${encodeURIComponent(token)}`;
 
 const readStoredDraft = () => {
   if (typeof window === 'undefined') return null;
@@ -830,13 +832,6 @@ export default function CadastroPage() {
       setSubmitStatus('done');
       setDraftMeta(null);
       window.localStorage.removeItem(STORAGE_KEY);
-      if (typeof window !== 'undefined') {
-        window.location.assign(
-          `/acompanhar?protocolo=${encodeURIComponent(response.protocol)}&token=${encodeURIComponent(
-            response.trackingToken,
-          )}`,
-        );
-      }
     } catch {
       setSubmitStatus('error');
     }
@@ -1031,7 +1026,11 @@ export default function CadastroPage() {
     phoneValidation.isValid &&
     addressRequiredValid;
 
-  const canSubmit = form.consentAccepted && form.privacyAccepted && submitStatus !== 'submitting';
+  const canSubmit =
+    form.consentAccepted &&
+    form.privacyAccepted &&
+    submitStatus !== 'submitting' &&
+    submitStatus !== 'done';
 
   const AddressFields = (
     <>
@@ -1433,9 +1432,9 @@ export default function CadastroPage() {
                         type="button"
                         className={cn(
                           'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
-                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-200',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b35]/30',
                           selected
-                            ? 'border-[#ff6b35] bg-orange-50 shadow-lg shadow-orange-100/70'
+                            ? 'border-[#ff6b35] bg-[#ff6b35]/10 shadow-lg shadow-[#ff6b35]/20'
                             : 'border-zinc-200 bg-white hover:-translate-y-0.5 hover:border-[#ff6b35]/60 hover:shadow',
                         )}
                         onClick={() => toggleProfileRole(role.value)}
@@ -1985,7 +1984,11 @@ export default function CadastroPage() {
                       Voltar
                     </Button>
                     <Button variant="accent" onClick={submitProposal} disabled={!canSubmit}>
-                      {submitStatus === 'submitting' ? 'Enviando...' : 'Enviar para analise'}
+                      {submitStatus === 'done'
+                        ? 'Enviado'
+                        : submitStatus === 'submitting'
+                          ? 'Enviando...'
+                          : 'Enviar para analise'}
                     </Button>
                   </>
                 }
@@ -2091,13 +2094,33 @@ export default function CadastroPage() {
                 </div>
 
                 {submitStatus === 'done' && submission ? (
-                  <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-sm text-emerald-800">
-                    <p className="font-semibold">Proposta enviada com sucesso</p>
-                    <p className="mt-2">
-                      Protocolo: <span className="font-semibold">{submission.protocol}</span>
+                  <div className="rounded-3xl border border-emerald-300 bg-emerald-50 p-6 text-emerald-900">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                      Proposta enviada com sucesso
                     </p>
-                    <p className="mt-1 text-xs text-emerald-700">
-                      Acompanhe pelo backoffice ou pelo link de acompanhamento informado por email.
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">
+                          Protocolo
+                        </p>
+                        <p className="mt-1 text-3xl font-bold text-emerald-900">
+                          {submission.protocol}
+                        </p>
+                      </div>
+                      <Button
+                        variant="accent"
+                        onClick={() => {
+                          if (typeof window === 'undefined') return;
+                          window.location.assign(
+                            buildTrackingUrl(submission.protocol, submission.trackingToken),
+                          );
+                        }}
+                      >
+                        Acompanhar
+                      </Button>
+                    </div>
+                    <p className="mt-3 text-sm text-emerald-800">
+                      Guarde este protocolo. Tambem enviamos o link de acompanhamento por email.
                     </p>
                   </div>
                 ) : null}

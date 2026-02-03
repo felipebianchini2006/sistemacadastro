@@ -14,6 +14,13 @@ import { Pagination } from '../components/Pagination';
 import { Button } from '../../components/ui/button';
 
 const PAGE_SIZE = 20;
+const SERVER_SORT_FIELDS = new Set<SortField>([
+  'createdAt',
+  'protocol',
+  'status',
+  'type',
+  'fullName',
+]);
 
 const buildApiQuery = (filters: ProposalFilters, sort?: SortState) => {
   const params = new URLSearchParams();
@@ -23,7 +30,7 @@ const buildApiQuery = (filters: ProposalFilters, sort?: SortState) => {
   if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
   if (filters.dateTo) params.set('dateTo', filters.dateTo);
   if (filters.text) params.set('text', filters.text);
-  if (sort) {
+  if (sort && SERVER_SORT_FIELDS.has(sort.field)) {
     params.set('sortBy', sort.field);
     params.set('sortDir', sort.dir);
   }
@@ -39,6 +46,59 @@ const buildUrlQuery = (filters: ProposalFilters) => {
   if (filters.dateTo) params.set('dateTo', filters.dateTo);
   if (filters.text) params.set('text', filters.text);
   return params.toString();
+};
+
+const normalizeDigits = (value?: string | null) => (value ? value.replace(/\D/g, '') : '');
+
+const resolveSlaScore = (proposal: ProposalListItem) => {
+  const now = Date.now();
+  const breachedAt = proposal.sla?.breachedAt ? new Date(proposal.sla.breachedAt).getTime() : null;
+  if (breachedAt) return { rank: 2, days: 999 };
+
+  const startedAt = proposal.sla?.startedAt ?? proposal.createdAt;
+  const startedMs = startedAt ? new Date(startedAt).getTime() : now;
+  const days = Math.max(0, Math.floor((now - startedMs) / (1000 * 60 * 60 * 24)));
+
+  if (days >= 8) return { rank: 2, days };
+  if (days >= 4) return { rank: 1, days };
+  return { rank: 0, days };
+};
+
+const resolveSortValue = (item: ProposalListItem, field: SortField) => {
+  if (field === 'protocol') return item.protocol;
+  if (field === 'fullName') return item.person?.fullName ?? '';
+  if (field === 'cpf') return normalizeDigits(item.person?.cpfMasked);
+  if (field === 'status') return item.status;
+  if (field === 'type') return item.type;
+  if (field === 'createdAt') return new Date(item.createdAt).getTime();
+  if (field === 'analyst') return item.assignedAnalyst?.name ?? '';
+  if (field === 'sla') {
+    const score = resolveSlaScore(item);
+    return score.rank * 1000 + score.days;
+  }
+  return '';
+};
+
+const sortItems = (items: ProposalListItem[], sort?: SortState) => {
+  if (!sort) return items;
+  const list = [...items];
+  const direction = sort.dir === 'asc' ? 1 : -1;
+  list.sort((a, b) => {
+    const valueA = resolveSortValue(a, sort.field);
+    const valueB = resolveSortValue(b, sort.field);
+    if (valueA === '' || valueA === null || valueA === undefined) return 1;
+    if (valueB === '' || valueB === null || valueB === undefined) return -1;
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      return (valueA - valueB) * direction;
+    }
+    return (
+      String(valueA).localeCompare(String(valueB), 'pt-BR', {
+        sensitivity: 'base',
+        numeric: true,
+      }) * direction
+    );
+  });
+  return list;
 };
 
 const downloadCsv = (items: ProposalListItem[]) => {
@@ -180,8 +240,9 @@ export default function ClientPage() {
     return items.filter((item) => filters.status?.includes(item.status));
   }, [items, filters.status]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sortedItems = useMemo(() => sortItems(filteredItems, sort), [filteredItems, sort]);
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
+  const pageItems = sortedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleSort = useCallback((field: SortField) => {
     setSort((prev) => ({

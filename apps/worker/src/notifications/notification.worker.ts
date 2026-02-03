@@ -28,7 +28,7 @@ export class NotificationWorker {
     this.whatsapp = new WhatsappService();
     this.push = new PushService();
 
-    this.worker = new Worker<NotificationJobPayload>(
+    this.worker = new Worker<NotificationJobPayload | PushJobPayload>(
       'notification-jobs',
       (job) => this.handleJob(job),
       {

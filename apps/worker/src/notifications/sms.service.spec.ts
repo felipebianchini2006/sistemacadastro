@@ -1,4 +1,4 @@
-import { SmsService } from './sms.service';
+export {};
 
 const createMock = jest.fn(async () => ({ sid: 'sms-123' }));
 
@@ -6,9 +6,11 @@ jest.mock('twilio', () => {
   return jest.fn(() => ({ messages: { create: createMock } }));
 });
 
+const { SmsService } = require('./sms.service');
+
 describe('SmsService', () => {
   beforeEach(() => {
-    process.env.TWILIO_ACCOUNT_SID = 'sid';
+    process.env.TWILIO_ACCOUNT_SID = 'AC1234567890';
     process.env.TWILIO_AUTH_TOKEN = 'token';
     process.env.TWILIO_SMS_FROM = '+5511999999999';
   });

@@ -1,4 +1,4 @@
-import { WhatsappService } from './whatsapp.service';
+export {};
 
 const createMock = jest.fn(async () => ({ sid: 'wa-123' }));
 
@@ -6,9 +6,11 @@ jest.mock('twilio', () => {
   return jest.fn(() => ({ messages: { create: createMock } }));
 });
 
+const { WhatsappService } = require('./whatsapp.service');
+
 describe('WhatsappService', () => {
   beforeEach(() => {
-    process.env.TWILIO_ACCOUNT_SID = 'sid';
+    process.env.TWILIO_ACCOUNT_SID = 'AC1234567890';
     process.env.TWILIO_AUTH_TOKEN = 'token';
     process.env.TWILIO_FROM = '+5511999999999';
     delete process.env.TWILIO_WHATSAPP_CONTENT_SID;

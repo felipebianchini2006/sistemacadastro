@@ -16,7 +16,15 @@ export type ProposalListItem = {
   statusHistory?: Array<{ toStatus: string; createdAt: string }>;
 };
 
-export type SortField = 'protocol' | 'fullName' | 'status' | 'type' | 'createdAt';
+export type SortField =
+  | 'protocol'
+  | 'fullName'
+  | 'cpf'
+  | 'status'
+  | 'type'
+  | 'createdAt'
+  | 'sla'
+  | 'analyst';
 export type SortDir = 'asc' | 'desc';
 export type SortState = { field: SortField; dir: SortDir };
 
@@ -62,13 +70,15 @@ const SortIcon = ({ field, sort }: { field: SortField; sort?: SortState }) => {
 
 type SortableHeader = { field: SortField; label: string };
 
-const HEADERS: (SortableHeader | { label: string })[] = [
-  { field: 'protocol' as SortField, label: 'Protocolo' },
-  { field: 'fullName' as SortField, label: 'Nome' },
-  { label: 'CPF' },
-  { field: 'status' as SortField, label: 'Status' },
-  { field: 'type' as SortField, label: 'Tipo' },
-  { field: 'createdAt' as SortField, label: 'Criada' },
+const HEADERS: SortableHeader[] = [
+  { field: 'protocol', label: 'Protocolo' },
+  { field: 'fullName', label: 'Nome' },
+  { field: 'cpf', label: 'CPF' },
+  { field: 'status', label: 'Status' },
+  { field: 'type', label: 'Tipo' },
+  { field: 'createdAt', label: 'Criada' },
+  { field: 'sla', label: 'SLA' },
+  { field: 'analyst', label: 'Analista' },
 ];
 
 export const ProposalsTable = ({
@@ -111,14 +121,6 @@ export const ProposalsTable = ({
               </th>
             )}
             {HEADERS.map((header) => {
-              const isSortable = 'field' in header;
-              if (!isSortable) {
-                return (
-                  <th key={header.label} scope="col" className="px-4 py-3">
-                    {header.label}
-                  </th>
-                );
-              }
               const ariaSortValue =
                 sort?.field === header.field
                   ? sort.dir === 'asc'
@@ -146,12 +148,6 @@ export const ProposalsTable = ({
                 </th>
               );
             })}
-            <th scope="col" className="px-4 py-3">
-              SLA
-            </th>
-            <th scope="col" className="px-4 py-3">
-              Analista
-            </th>
             <th scope="col" className="px-4 py-3 text-right">
               Acoes
             </th>

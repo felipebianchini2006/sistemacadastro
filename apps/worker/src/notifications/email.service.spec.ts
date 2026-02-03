@@ -1,13 +1,15 @@
-import { EmailService } from './email.service';
+export {};
 
 jest.mock('@sendgrid/mail', () => ({
   setApiKey: jest.fn(),
   send: jest.fn(async () => [{ headers: { 'x-message-id': 'msg-123' } }]),
 }));
 
+const { EmailService } = require('./email.service');
+
 describe('EmailService', () => {
   beforeEach(() => {
-    process.env.SENDGRID_API_KEY = 'test-key';
+    process.env.SENDGRID_API_KEY = 'SG.test-key';
     process.env.SENDGRID_FROM = 'no-reply@test.local';
   });
 
