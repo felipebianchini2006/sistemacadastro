@@ -218,16 +218,29 @@ export class PublicSocialService {
       ? new Date(meta.fetchedAt as string).getTime()
       : 0;
     const age = Date.now() - fetchedAt;
-    if (age < maxAgeMs) return meta?.profile ?? null;
+
+    let accessToken = await this.crypto.decrypt(account.accessTokenEncrypted);
+    let updatedMeta = { ...(meta ?? {}) };
+
+    const refreshed = await this.refreshAccessTokenIfNeeded(
+      account,
+      updatedMeta,
+      accessToken,
+    );
+    if (refreshed) {
+      accessToken = refreshed.accessToken;
+      updatedMeta = refreshed.meta;
+    }
+
+    if (age < maxAgeMs) {
+      return updatedMeta.profile ?? null;
+    }
 
     try {
-      const accessToken = await this.crypto.decrypt(
-        account.accessTokenEncrypted,
-      );
       const profile = await this.fetchProfile(account.provider, accessToken);
 
-      const updatedMeta = {
-        ...(meta ?? {}),
+      updatedMeta = {
+        ...updatedMeta,
         profile,
         fetchedAt: new Date().toISOString(),
       };
@@ -239,7 +252,7 @@ export class PublicSocialService {
 
       return profile;
     } catch {
-      return meta?.profile ?? null;
+      return updatedMeta.profile ?? null;
     }
   }
 
@@ -629,7 +642,10 @@ export class PublicSocialService {
 
     if (provider === SocialProvider.INSTAGRAM) {
       const url = new URL('https://graph.instagram.com/me');
-      url.searchParams.set('fields', 'id,username,account_type,media_count');
+      url.searchParams.set(
+        'fields',
+        'id,username,account_type,media_count,followers_count',
+      );
       url.searchParams.set('access_token', accessToken);
       const profile = await fetchJson(url.toString(), { method: 'GET' });
 
@@ -637,6 +653,8 @@ export class PublicSocialService {
         id: profile.id,
         username: profile.username,
         accountType: profile.account_type,
+        followers: profile.followers_count,
+        posts: profile.media_count,
         mediaCount: profile.media_count,
       };
     }
@@ -685,6 +703,151 @@ export class PublicSocialService {
     url.searchParams.set('erro', reason);
     return url.toString();
   }
+
+  private async refreshAccessTokenIfNeeded(
+    account: {
+      id: string;
+      provider: SocialProvider;
+      refreshTokenEncrypted?: string | null;
+    },
+    meta: Record<string, unknown>,
+    accessToken: string,
+  ) {
+    const expiresAt = meta.expiresAt
+      ? new Date(meta.expiresAt as string).getTime()
+      : 0;
+    if (!expiresAt) return null;
+
+    const thresholdMinutes =
+      this.configService.get<number>('SOCIAL_TOKEN_REFRESH_THRESHOLD_MINUTES', {
+        infer: true,
+      }) ?? 10;
+    const thresholdMs = Math.max(1, thresholdMinutes) * 60 * 1000;
+    if (expiresAt - Date.now() > thresholdMs) return null;
+
+    const refreshed = await this.refreshAccessToken(
+      account.provider,
+      accessToken,
+      account.refreshTokenEncrypted,
+    );
+    if (!refreshed?.accessToken) return null;
+
+    const accessTokenEncrypted = await this.crypto.encrypt(
+      refreshed.accessToken,
+    );
+    const refreshTokenEncrypted = refreshed.refreshToken
+      ? await this.crypto.encrypt(refreshed.refreshToken)
+      : (account.refreshTokenEncrypted ?? null);
+
+    const updatedMeta = {
+      ...meta,
+      tokenType: refreshed.tokenType ?? meta.tokenType,
+      scope: refreshed.scope ?? meta.scope,
+      expiresAt: refreshed.expiresIn
+        ? new Date(Date.now() + refreshed.expiresIn * 1000).toISOString()
+        : meta.expiresAt,
+      refreshedAt: new Date().toISOString(),
+    };
+
+    await this.prisma.socialAccount.update({
+      where: { id: account.id },
+      data: {
+        accessTokenEncrypted,
+        refreshTokenEncrypted,
+        tokenMeta: updatedMeta as any,
+      },
+    });
+
+    return { accessToken: refreshed.accessToken, meta: updatedMeta };
+  }
+
+  private async refreshAccessToken(
+    provider: SocialProvider,
+    accessToken: string,
+    refreshTokenEncrypted?: string | null,
+  ) {
+    if (provider === SocialProvider.SPOTIFY) {
+      if (!refreshTokenEncrypted) return null;
+      const config = this.getProviderConfig(provider);
+      const refreshToken = await this.crypto.decrypt(refreshTokenEncrypted);
+      const body = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      });
+      const basic = Buffer.from(
+        `${config.clientId}:${config.clientSecret}`,
+      ).toString('base64');
+      const payload = await fetchJson(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body.toString(),
+      });
+      return {
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+        expiresIn: payload.expires_in,
+        scope: payload.scope,
+        tokenType: payload.token_type,
+      } as OAuthTokenResponse;
+    }
+
+    if (provider === SocialProvider.YOUTUBE) {
+      if (!refreshTokenEncrypted) return null;
+      const config = this.getProviderConfig(provider);
+      const refreshToken = await this.crypto.decrypt(refreshTokenEncrypted);
+      const body = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+      });
+      const payload = await fetchJson(config.tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+      return {
+        accessToken: payload.access_token,
+        expiresIn: payload.expires_in,
+        scope: payload.scope,
+        tokenType: payload.token_type,
+      } as OAuthTokenResponse;
+    }
+
+    if (provider === SocialProvider.FACEBOOK) {
+      const config = this.getProviderConfig(provider);
+      const url = new URL(
+        `https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/oauth/access_token`,
+      );
+      url.searchParams.set('grant_type', 'fb_exchange_token');
+      url.searchParams.set('client_id', config.clientId);
+      url.searchParams.set('client_secret', config.clientSecret);
+      url.searchParams.set('fb_exchange_token', accessToken);
+      const payload = await fetchJson(url.toString(), { method: 'GET' });
+      return {
+        accessToken: payload.access_token,
+        expiresIn: payload.expires_in,
+        tokenType: payload.token_type,
+      } as OAuthTokenResponse;
+    }
+
+    if (provider === SocialProvider.INSTAGRAM) {
+      const url = new URL('https://graph.instagram.com/refresh_access_token');
+      url.searchParams.set('grant_type', 'ig_refresh_token');
+      url.searchParams.set('access_token', accessToken);
+      const payload = await fetchJson(url.toString(), { method: 'GET' });
+      return {
+        accessToken: payload.access_token,
+        expiresIn: payload.expires_in,
+        tokenType: payload.token_type,
+      } as OAuthTokenResponse;
+    }
+
+    return null;
+  }
 }
 
 const base64UrlEncode = (value: string) =>
@@ -709,6 +872,7 @@ const sanitizeProfile = (profile: unknown) => {
     'subscribers',
     'views',
     'videos',
+    'posts',
     'mediaCount',
   ];
   const result: Record<string, unknown> = {};
