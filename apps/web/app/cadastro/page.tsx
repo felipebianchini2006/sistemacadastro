@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
 import { PrivacyGate } from './PrivacyGate';
 import {
   normalizeCep,
@@ -1392,6 +1393,8 @@ export default function CadastroPage() {
           showStatus={Boolean(touched.phone)}
           hint={touched.phone && phoneStatus === 'invalid' ? 'Telefone invalido' : undefined}
           placeholder="(11) 91234-5678"
+          leadingIcon={<MessageCircle className="h-4 w-4" />}
+          leadingIconLabel="WhatsApp"
         />
       ),
     },

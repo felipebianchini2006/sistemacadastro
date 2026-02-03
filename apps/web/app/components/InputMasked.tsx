@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef } from 'react';
-import type { ComponentPropsWithoutRef } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { cn } from '../lib/utils';
 import { maskCep, maskCpf, maskPhone } from '../lib/masks';
 
@@ -16,6 +16,8 @@ type InputMaskedProps = Omit<ComponentPropsWithoutRef<'input'>, 'onChange' | 'va
   status?: FieldStatus;
   hint?: string;
   showStatus?: boolean;
+  leadingIcon?: ReactNode;
+  leadingIconLabel?: string;
 };
 
 const StatusDot = ({ status }: { status?: FieldStatus }) => {
@@ -40,31 +42,58 @@ const applyMask = (value: string, mask?: InputMask) => {
 
 export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
   (
-    { label, value, onChange, mask, status, hint, showStatus = true, className, id, ...props },
+    {
+      label,
+      value,
+      onChange,
+      mask,
+      status,
+      hint,
+      showStatus = true,
+      leadingIcon,
+      leadingIconLabel,
+      className,
+      id,
+      ...props
+    },
     ref,
   ) => {
     const inputId = id ?? `input-${label.replace(/\s+/g, '-').toLowerCase()}`;
+    const hasIcon = Boolean(leadingIcon);
 
     return (
       <label htmlFor={inputId} className="flex flex-col gap-2 text-sm text-zinc-700">
         <span className="font-medium">{label}</span>
         <div className="flex items-center gap-3">
-          <input
-            {...props}
-            ref={ref}
-            id={inputId}
-            value={value}
-            onChange={(event) => onChange(applyMask(event.target.value, mask))}
-            className={cn(
-              'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm',
-              'focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-200',
-              status === 'invalid' && 'border-red-300 focus:ring-red-200',
-              status === 'valid' && 'border-emerald-300 focus:ring-emerald-200',
-              className,
-            )}
-            aria-invalid={status === 'invalid'}
-            aria-describedby={hint ? `${inputId}-hint` : undefined}
-          />
+          <div className="relative flex-1">
+            {hasIcon ? (
+              <span
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600"
+                aria-label={leadingIconLabel}
+                aria-hidden={leadingIconLabel ? undefined : true}
+                role={leadingIconLabel ? 'img' : undefined}
+              >
+                {leadingIcon}
+              </span>
+            ) : null}
+            <input
+              {...props}
+              ref={ref}
+              id={inputId}
+              value={value}
+              onChange={(event) => onChange(applyMask(event.target.value, mask))}
+              className={cn(
+                'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm',
+                'focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-200',
+                status === 'invalid' && 'border-red-300 focus:ring-red-200',
+                status === 'valid' && 'border-emerald-300 focus:ring-emerald-200',
+                hasIcon && 'pl-10',
+                className,
+              )}
+              aria-invalid={status === 'invalid'}
+              aria-describedby={hint ? `${inputId}-hint` : undefined}
+            />
+          </div>
           {showStatus ? <StatusDot status={status} /> : null}
         </div>
         {hint ? (

@@ -70,6 +70,14 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
     COMPROVANTE_RESIDENCIA: 'Comprovante de Residência',
   }[data.documentType];
 
+  const overlayItems = Object.values(data.fields)
+    .filter((field) => field?.value)
+    .map((field, index) => ({
+      key: `${field?.label ?? 'campo'}-${index}`,
+      label: field?.label ?? '',
+      value: field?.value ?? '',
+    }));
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl">
@@ -93,12 +101,26 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
 
         <div className="p-6">
           {/* Image Preview */}
-          <div className="mb-6 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+          <div className="relative mb-6 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
             <img
               src={data.imageUrl}
               alt="Documento capturado"
               className="w-full h-auto object-contain max-h-96"
             />
+            {overlayItems.length > 0 ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4">
+                <div className="flex flex-wrap gap-2 text-[11px] text-white">
+                  {overlayItems.map((item) => (
+                    <span
+                      key={item.key}
+                      className="rounded-full border border-white/20 bg-white/10 px-2 py-1 backdrop-blur"
+                    >
+                      <span className="font-semibold">{item.label}:</span> {item.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Processing State */}
