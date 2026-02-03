@@ -1,3 +1,4 @@
+import './load-env';
 import { OcrWorker } from './ocr/ocr.worker';
 import { SignatureWorker } from './signature/signature.worker';
 import { NotificationWorker } from './notifications/notification.worker';

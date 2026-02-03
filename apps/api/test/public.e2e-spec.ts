@@ -85,6 +85,11 @@ const buildPrismaStub = () => {
     consentLog: {
       create: jest.fn(async () => ({ id: randomUUID() })),
     },
+    auditLog: {
+      create: jest.fn(async () => ({ id: randomUUID() })),
+      createMany: jest.fn(async () => ({ count: 0 })),
+      findFirst: jest.fn(async () => null),
+    },
     documentFile: {
       findMany: jest.fn(async ({ where }) =>
         documents
@@ -106,6 +111,7 @@ const buildPrismaStub = () => {
         return input({
           proposal: stub.proposal,
           consentLog: stub.consentLog,
+          auditLog: stub.auditLog,
         });
       }
       if (Array.isArray(input)) {
@@ -133,6 +139,7 @@ describe('Public flow (e2e)', () => {
     } as unknown as JobsService;
     const notificationsStub = {
       notifyProposalReceived: jest.fn(),
+      notifyInternalNewProposal: jest.fn(),
     } as unknown as NotificationsService;
 
     const moduleRef = await Test.createTestingModule({
@@ -166,6 +173,7 @@ describe('Public flow (e2e)', () => {
     const draftId = create.body.draftId;
     const draftToken = create.body.draftToken;
 
+    const consentAt = new Date().toISOString();
     const payload = {
       data: {
         profileRoles: ['AUTOR'],
@@ -186,7 +194,10 @@ describe('Public flow (e2e)', () => {
         consent: {
           accepted: true,
           version: 'v1',
-          at: new Date().toISOString(),
+          at: consentAt,
+          privacyAccepted: true,
+          privacyVersion: 'v1',
+          privacyAt: consentAt,
         },
       },
     };

@@ -89,3 +89,7 @@ Notas:
 
 - `Proposal.protocol` eh humano e unico; acesso publico deve usar `Proposal.publicToken` (nao enumeravel).
 - Campos sensiveis ficam em `*_Encrypted` com `*_Hash` para busca.
+
+pnpm -C apps/api dev
+pnpm -C apps/web dev
+pnpm -C apps/worker dev
