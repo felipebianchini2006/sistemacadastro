@@ -160,12 +160,12 @@ export default function AdminDashboardPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">Dashboard</h2>
-          <p className="mt-1 text-sm text-zinc-500">Resumo geral das propostas.</p>
+          <h2 className="text-2xl font-semibold text-[color:var(--gray-900)]">Dashboard</h2>
+          <p className="mt-1 text-sm text-[color:var(--gray-500)]">Resumo geral das propostas.</p>
         </div>
         <Link
           href="/admin/propostas"
-          className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] shadow-sm"
         >
           Ver propostas
         </Link>
@@ -178,7 +178,7 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
           Carregando KPIs...
         </div>
       ) : null}
@@ -210,8 +210,10 @@ export default function AdminDashboardPage() {
       {/* Charts row */}
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly line chart */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Filiacoes por semana</p>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+            Filiacoes por semana
+          </p>
           <div className="mt-4">
             {(() => {
               const maxCount = Math.max(...weeklyData.map((d) => d.count), 1);
@@ -259,7 +261,7 @@ export default function AdminDashboardPage() {
                         x={p.x}
                         y={p.y - 8}
                         textAnchor="middle"
-                        className="fill-zinc-600"
+                        className="fill-[color:var(--gray-500)]"
                         style={{ fontSize: '8px' }}
                       >
                         {p.count}
@@ -268,7 +270,7 @@ export default function AdminDashboardPage() {
                         x={p.x}
                         y={h + 14}
                         textAnchor="middle"
-                        className="fill-zinc-400"
+                        className="fill-[color:var(--gray-500)]"
                         style={{ fontSize: '7px' }}
                       >
                         {p.label}
@@ -282,8 +284,10 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Status donut chart */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Status das propostas</p>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+            Status das propostas
+          </p>
           <div className="mt-4 flex items-center gap-4">
             {(() => {
               const total = statusDistribution.reduce((s, d) => s + d.count, 0) || 1;
@@ -324,7 +328,7 @@ export default function AdminDashboardPage() {
                       x={cx}
                       y={cy + 3}
                       textAnchor="middle"
-                      className="fill-zinc-900 font-semibold"
+                      className="fill-[color:var(--gray-900)] font-semibold"
                       style={{ fontSize: '14px' }}
                     >
                       {items.length}
@@ -337,8 +341,10 @@ export default function AdminDashboardPage() {
                           className="h-2.5 w-2.5 rounded-full"
                           style={{ backgroundColor: d.color }}
                         />
-                        <span className="text-zinc-600">{d.label}</span>
-                        <span className="font-semibold text-zinc-900">{d.count}</span>
+                        <span className="text-[color:var(--gray-500)]">{d.label}</span>
+                        <span className="font-semibold text-[color:var(--gray-900)]">
+                          {d.count}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -349,8 +355,8 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* SLA bar chart */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             SLA: dentro/fora do prazo
           </p>
           <div className="mt-4 grid gap-3">
@@ -363,9 +369,9 @@ export default function AdminDashboardPage() {
               const pct = Math.round((item.value / max) * 100);
               return (
                 <div key={item.label}>
-                  <div className="flex items-center justify-between text-xs text-zinc-600">
+                  <div className="flex items-center justify-between text-xs text-[color:var(--gray-500)]">
                     <span>{item.label}</span>
-                    <span className="font-semibold text-zinc-900">{item.value}</span>
+                    <span className="font-semibold text-[color:var(--gray-900)]">{item.value}</span>
                   </div>
                   <div className={`mt-1 h-3 w-full overflow-hidden rounded-full ${item.bg}`}>
                     <div
@@ -382,17 +388,21 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <SlaBuckets ok={metrics.ok} warning={metrics.warning} danger={metrics.danger} />
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Ultimas propostas</p>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+            Ultimas propostas
+          </p>
           <div className="mt-4 grid gap-3">
             {items.slice(0, 4).map((item) => (
               <div
                 key={item.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] px-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-semibold text-zinc-900">{item.protocol}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm font-semibold text-[color:var(--gray-900)]">
+                    {item.protocol}
+                  </p>
+                  <p className="text-xs text-[color:var(--gray-500)]">
                     {new Date(item.createdAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>

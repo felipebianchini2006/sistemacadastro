@@ -199,7 +199,10 @@ export function AnalystSelector({
   return (
     <div ref={containerRef} className="relative">
       {label && (
-        <label id={labelId} className="mb-2 block text-sm font-semibold text-zinc-700">
+        <label
+          id={labelId}
+          className="mb-2 block text-sm font-semibold text-[color:var(--gray-700)]"
+        >
           {label}
         </label>
       )}
@@ -215,13 +218,15 @@ export function AnalystSelector({
         aria-controls={listboxId}
         aria-label={!label ? placeholder : undefined}
         aria-labelledby={label ? labelId : undefined}
-        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-zinc-400 bg-white px-4 py-2 text-left text-sm hover:border-zinc-500 focus:border-[#ff6b35] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/20"
+        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-left text-sm hover:border-[var(--gray-300)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(255,107,53,0.2)]"
       >
-        <span className={selected ? 'text-zinc-900' : 'text-zinc-500'}>
+        <span
+          className={selected ? 'text-[color:var(--gray-900)]' : 'text-[color:var(--gray-500)]'}
+        >
           {selected ? selected.name : placeholder}
         </span>
         <svg
-          className={`h-4 w-4 text-zinc-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-[color:var(--gray-500)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -233,8 +238,8 @@ export function AnalystSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full rounded-xl border border-zinc-200 bg-white shadow-lg">
-          <div className="border-b border-zinc-100 p-2">
+        <div className="absolute z-50 mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg">
+          <div className="border-b border-[var(--border)] p-2">
             <input
               ref={searchRef}
               type="text"
@@ -242,7 +247,7 @@ export function AnalystSelector({
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Buscar analista..."
-              className="w-full rounded-lg border border-zinc-400 px-3 py-2 text-sm focus:border-[#ff6b35] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/20"
+              className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(255,107,53,0.2)]"
             />
           </div>
 
@@ -265,10 +270,10 @@ export function AnalystSelector({
                     aria-selected={false}
                     tabIndex={-1}
                     id={`${listboxId}-option-${index}`}
-                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                   >
                     <svg
-                      className="h-5 w-5 text-zinc-400"
+                      className="h-5 w-5 text-[color:var(--gray-500)]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -282,7 +287,7 @@ export function AnalystSelector({
                         d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
-                    <span className="italic text-zinc-500">{option.label}</span>
+                    <span className="italic text-[color:var(--gray-500)]">{option.label}</span>
                   </button>
                 );
               }
@@ -299,17 +304,17 @@ export function AnalystSelector({
                   aria-selected={isSelected}
                   tabIndex={-1}
                   id={`${listboxId}-option-${index}`}
-                  className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-zinc-50 ${
+                  className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-[var(--muted)] ${
                     isSelected ? 'bg-orange-50' : ''
                   }`}
                 >
                   <div>
-                    <div className="font-semibold text-zinc-900">{option.name}</div>
-                    <div className="text-xs text-zinc-500">{option.email}</div>
+                    <div className="font-semibold text-[color:var(--gray-900)]">{option.name}</div>
+                    <div className="text-xs text-[color:var(--gray-500)]">{option.email}</div>
                   </div>
                   {isSelected && (
                     <svg
-                      className="h-5 w-5 text-[#ff6b35]"
+                      className="h-5 w-5 text-[var(--primary)]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                       aria-hidden="true"
@@ -327,7 +332,7 @@ export function AnalystSelector({
             })}
 
             {options.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-zinc-500">
+              <div className="px-4 py-8 text-center text-sm text-[color:var(--gray-500)]">
                 Nenhum analista encontrado
               </div>
             )}

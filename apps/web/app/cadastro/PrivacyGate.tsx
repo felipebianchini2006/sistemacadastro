@@ -72,7 +72,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl md:p-8"
+        className="w-full max-w-2xl rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-xl)] md:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="privacy-gate-title"
@@ -80,24 +80,30 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
         tabIndex={-1}
       >
         <div className="mb-6">
-          <h2 id="privacy-gate-title" className="text-2xl font-bold text-zinc-900">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
+            LGPD
+          </p>
+          <h2
+            id="privacy-gate-title"
+            className="mt-3 text-2xl font-bold text-[color:var(--gray-900)]"
+          >
             Bem-vindo ao Sistema de Filiação SBACEM
           </h2>
-          <p id="privacy-gate-description" className="mt-2 text-sm text-zinc-600">
+          <p id="privacy-gate-description" className="mt-2 text-sm text-[color:var(--gray-500)]">
             Antes de iniciar seu cadastro, é necessário que você leia e aceite nossa Política de
             Privacidade.
           </p>
         </div>
 
-        <div className="mb-6 max-h-96 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-5">
-          <h3 className="mb-3 font-semibold text-zinc-900">
+        <div className="mb-6 max-h-96 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-5">
+          <h3 className="mb-3 font-semibold text-[color:var(--gray-900)]">
             Principais Pontos da Política de Privacidade
           </h3>
-          <div className="space-y-3 text-sm text-zinc-700">
+          <div className="space-y-3 text-sm text-[color:var(--gray-700)]">
             <div className="flex items-start gap-2">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-3 w-3 text-orange-600"
+                  className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -122,7 +128,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             <div className="flex items-start gap-2">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-3 w-3 text-orange-600"
+                  className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -147,7 +153,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             <div className="flex items-start gap-2">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-3 w-3 text-orange-600"
+                  className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -172,7 +178,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             <div className="flex items-start gap-2">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-3 w-3 text-orange-600"
+                  className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -197,7 +203,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             <div className="flex items-start gap-2">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-3 w-3 text-orange-600"
+                  className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -222,7 +228,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             <div className="flex items-start gap-2">
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-3 w-3 text-orange-600"
+                  className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -245,12 +251,12 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             </div>
           </div>
 
-          <div className="mt-5 border-t border-zinc-200 pt-4">
-            <p className="text-sm text-zinc-600">
+          <div className="mt-5 border-t border-[var(--border)] pt-4">
+            <p className="text-sm text-[color:var(--gray-500)]">
               Para ler a política completa, acesse:{' '}
               <Link
                 href="/privacidade"
-                className="font-semibold text-orange-600 underline"
+                className="font-semibold text-[color:var(--primary)] underline"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -264,15 +270,15 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-1 h-5 w-5 cursor-pointer rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
+              className="mt-1 h-5 w-5 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
             />
-            <span className="text-sm text-zinc-700">
+            <span className="text-sm text-[color:var(--gray-700)]">
               Li e aceito a{' '}
               <Link
                 href="/privacidade"
-                className="font-semibold text-orange-600 underline"
+                className="font-semibold text-[color:var(--primary)] underline"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -288,7 +294,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             type="button"
             onClick={handleClose}
             ref={closeButtonRef}
-            className="min-h-[44px] rounded-xl border border-zinc-400 bg-white px-6 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            className="min-h-[44px] rounded-xl border border-[var(--border)] bg-white px-6 py-3 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--gray-50)]"
           >
             Sair
           </button>
@@ -297,15 +303,15 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             disabled={!accepted}
             className={`min-h-[44px] rounded-xl px-6 py-3 text-sm font-semibold transition-colors ${
               accepted
-                ? 'bg-[#ff6b35] text-white hover:bg-[#ff5722]'
-                : 'cursor-not-allowed bg-zinc-200 text-zinc-400'
+                ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)]'
+                : 'cursor-not-allowed bg-[var(--gray-200)] text-[color:var(--gray-500)]'
             }`}
           >
             Aceitar e Iniciar Cadastro
           </button>
         </div>
 
-        <p className="mt-4 text-center text-xs text-zinc-500">
+        <p className="mt-4 text-center text-xs text-[color:var(--gray-500)]">
           Ao clicar em "Aceitar e Iniciar Cadastro", você concorda com os termos da Política de
           Privacidade e autoriza o tratamento dos seus dados pessoais.
         </p>

@@ -87,12 +87,16 @@ export default function TotvsMonitorPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">Monitoramento Totvs</h2>
-          <p className="mt-1 text-sm text-zinc-500">Acompanhe a sincronizacao com o ERP Totvs.</p>
+          <h2 className="text-2xl font-semibold text-[color:var(--gray-900)]">
+            Monitoramento Totvs
+          </h2>
+          <p className="mt-1 text-sm text-[color:var(--gray-500)]">
+            Acompanhe a sincronizacao com o ERP Totvs.
+          </p>
         </div>
         <Link
           href="/admin"
-          className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm"
+          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] shadow-sm"
         >
           Voltar ao Dashboard
         </Link>
@@ -105,7 +109,7 @@ export default function TotvsMonitorPage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
           Carregando dados...
         </div>
       ) : null}
@@ -124,30 +128,36 @@ export default function TotvsMonitorPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 Ultima sincronizacao com sucesso
               </p>
-              <p className="mt-2 text-lg font-semibold text-zinc-900">
+              <p className="mt-2 text-lg font-semibold text-[color:var(--gray-900)]">
                 {formatRelative(stats.lastSyncAt)}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">{formatDate(stats.lastSyncAt)}</p>
+              <p className="mt-1 text-xs text-[color:var(--gray-500)]">
+                {formatDate(stats.lastSyncAt)}
+              </p>
             </div>
-            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Ultima falha</p>
-              <p className="mt-2 text-lg font-semibold text-zinc-900">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                Ultima falha
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[color:var(--gray-900)]">
                 {stats.lastFailureAt ? formatRelative(stats.lastFailureAt) : 'Nenhuma'}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">{formatDate(stats.lastFailureAt)}</p>
+              <p className="mt-1 text-xs text-[color:var(--gray-500)]">
+                {formatDate(stats.lastFailureAt)}
+              </p>
             </div>
           </div>
 
           {/* Status distribution bar */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+            <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               Distribuicao de status
             </p>
-            <div className="mt-4 flex h-6 w-full overflow-hidden rounded-full bg-zinc-100">
+            <div className="mt-4 flex h-6 w-full overflow-hidden rounded-full bg-[var(--muted)]">
               {stats.total > 0 ? (
                 <>
                   {stats.synced > 0 ? (
@@ -192,9 +202,9 @@ export default function TotvsMonitorPage() {
       ) : null}
 
       {/* Recent syncs table */}
-      <div className="rounded-3xl border border-zinc-200 bg-white shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Sincronizacoes recentes
           </p>
           <div className="flex gap-1">
@@ -205,8 +215,8 @@ export default function TotvsMonitorPage() {
                 className={cn(
                   'rounded-lg px-3 py-1 text-xs font-semibold transition',
                   filter === f
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
+                    ? 'bg-[var(--primary)] text-white'
+                    : 'bg-[var(--muted)] text-[color:var(--gray-500)] hover:bg-[var(--gray-200)]',
                 )}
               >
                 {f === 'ALL' ? 'Todos' : (STATUS_LABELS[f]?.label ?? f)}
@@ -215,7 +225,7 @@ export default function TotvsMonitorPage() {
           </div>
         </div>
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-600">
+          <thead className="bg-[var(--muted)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             <tr>
               <th scope="col" className="px-4 py-3">
                 Protocolo
@@ -247,8 +257,8 @@ export default function TotvsMonitorPage() {
                 tone: 'default',
               };
               return (
-                <tr key={sync.id} className="border-t border-zinc-100">
-                  <td className="px-4 py-3 font-semibold text-zinc-900">
+                <tr key={sync.id} className="border-t border-[var(--border)]">
+                  <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
                     {sync.protocol ? (
                       <Link
                         href={`/admin/propostas/${sync.proposalId}`}
@@ -260,7 +270,9 @@ export default function TotvsMonitorPage() {
                       '-'
                     )}
                   </td>
-                  <td className="px-4 py-3 text-zinc-700">{sync.candidateName ?? '-'}</td>
+                  <td className="px-4 py-3 text-[color:var(--gray-700)]">
+                    {sync.candidateName ?? '-'}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
@@ -287,17 +299,24 @@ export default function TotvsMonitorPage() {
                   <td className="px-4 py-3">
                     {sync.proposalStatus ? <StatusBadge status={sync.proposalStatus} /> : '-'}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-500">
+                  <td className="px-4 py-3 font-mono text-xs text-[color:var(--gray-500)]">
                     {sync.externalId ?? '-'}
                   </td>
-                  <td className="px-4 py-3 text-zinc-500">{formatDate(sync.lastSyncAt)}</td>
-                  <td className="px-4 py-3 text-zinc-500">{formatRelative(sync.updatedAt)}</td>
+                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                    {formatDate(sync.lastSyncAt)}
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                    {formatRelative(sync.updatedAt)}
+                  </td>
                 </tr>
               );
             })}
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-zinc-400">
+                <td
+                  colSpan={7}
+                  className="px-4 py-8 text-center text-sm text-[color:var(--gray-500)]"
+                >
                   Nenhuma sincronizacao encontrada.
                 </td>
               </tr>

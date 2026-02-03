@@ -7,6 +7,7 @@ import { StatusBadge, STATUS_LABELS } from '../components/StatusBadge';
 import { Timeline, type TimelineEntry } from '../components/Timeline';
 import { PendingItems } from '../components/PendingItems';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 
 type TrackingResponse = {
   proposalId?: string;
@@ -229,61 +230,56 @@ export default function ClientPage() {
   };
 
   return (
-    <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <header className="rounded-3xl border border-zinc-200 bg-white/90 p-6 shadow-lg">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+    <div className="min-h-screen-dvh bg-soft-gradient px-4 py-10 sm:px-8">
+      <div className="page-shell flex flex-col gap-6">
+        <header className="surface-glass p-6 shadow-[var(--shadow-xl)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
             Acompanhar
           </p>
-          <h1 className="mt-3 text-3xl font-semibold text-zinc-900">Status da sua proposta</h1>
-          <p className="mt-2 text-sm text-zinc-500">
+          <h1 className="mt-3 text-3xl font-semibold text-[color:var(--gray-900)]">
+            Status da sua proposta
+          </h1>
+          <p className="mt-2 text-sm text-[color:var(--gray-500)]">
             Informe seu protocolo e token de acompanhamento para ver o andamento.
           </p>
           <form onSubmit={handleSubmit} className="mt-6 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-            <label className="flex flex-col gap-2 text-sm text-zinc-600">
-              Protocolo
-              <input
-                value={protocol}
-                onChange={(event) => setProtocol(event.target.value)}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                placeholder="000000"
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm text-zinc-600">
-              Token
-              <input
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                placeholder="Token seguro"
-              />
-            </label>
+            <Input
+              label="Protocolo"
+              value={protocol}
+              onChange={(event) => setProtocol(event.target.value)}
+              placeholder="000000"
+            />
+            <Input
+              label="Token"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              placeholder="Token seguro"
+            />
             <div className="flex items-end">
               <Button type="submit">Consultar</Button>
             </div>
           </form>
           {!token ? (
-            <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-              <p className="text-sm font-semibold text-zinc-700">Receber token via codigo</p>
-              <p className="mt-2 text-xs text-zinc-500">
+            <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+              <p className="text-sm font-semibold text-[color:var(--gray-700)]">
+                Receber token via codigo
+              </p>
+              <p className="mt-2 text-xs text-[color:var(--gray-500)]">
                 Informe seu telefone para receber um codigo de confirmacao.
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_200px]">
-                <label className="flex flex-col gap-2 text-sm text-zinc-600">
-                  Telefone
-                  <input
-                    value={otpPhone}
-                    onChange={(event) => setOtpPhone(event.target.value)}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                    placeholder="(11) 91234-5678"
-                  />
-                </label>
-                <label className="flex flex-col gap-2 text-sm text-zinc-600">
+                <Input
+                  label="Telefone"
+                  value={otpPhone}
+                  onChange={(event) => setOtpPhone(event.target.value)}
+                  placeholder="(11) 91234-5678"
+                />
+                <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
                   Canal
                   <select
                     value={otpChannel}
                     onChange={(event) => setOtpChannel(event.target.value as 'sms' | 'whatsapp')}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm text-[color:var(--gray-900)]"
                   >
                     <option value="sms">SMS</option>
                     <option value="whatsapp">WhatsApp</option>
@@ -299,10 +295,10 @@ export default function ClientPage() {
                 </Button>
                 {otpStatus === 'sent' || otpStatus === 'verifying' ? (
                   <>
-                    <input
+                    <Input
                       value={otpCode}
                       onChange={(event) => setOtpCode(event.target.value)}
-                      className="w-40 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="w-40"
                       placeholder="Codigo"
                     />
                     <Button
@@ -316,7 +312,7 @@ export default function ClientPage() {
                 ) : null}
               </div>
               {otpMessage ? (
-                <div className="mt-3 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
+                <div className="mt-3 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs text-[color:var(--gray-500)]">
                   {otpMessage}
                 </div>
               ) : null}
@@ -330,18 +326,22 @@ export default function ClientPage() {
         </header>
 
         {loading ? (
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[color:var(--gray-500)]">
             Consultando protocolo...
           </div>
         ) : null}
 
         {tracking ? (
           <>
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Protocolo</p>
-                  <p className="text-lg font-semibold text-zinc-900">{tracking.protocol}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                    Protocolo
+                  </p>
+                  <p className="text-lg font-semibold text-[color:var(--gray-900)]">
+                    {tracking.protocol}
+                  </p>
                 </div>
                 <StatusBadge status={tracking.status} />
               </div>
@@ -363,9 +363,9 @@ export default function ClientPage() {
               token={tokenParam}
             />
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Redes sociais</h3>
-              <p className="mt-2 text-sm text-zinc-500">
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Redes sociais</h3>
+              <p className="mt-2 text-sm text-[color:var(--gray-500)]">
                 Conecte suas redes para agilizar a avaliacao do seu perfil artistico.
               </p>
               {socialError ? (
@@ -379,15 +379,17 @@ export default function ClientPage() {
                   return (
                     <div
                       key={provider.id}
-                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-zinc-700">
+                        <span className="text-sm font-semibold text-[color:var(--gray-700)]">
                           {provider.label}
                         </span>
                         <span
                           className={
-                            connected ? 'text-xs text-emerald-600' : 'text-xs text-zinc-500'
+                            connected
+                              ? 'text-xs text-emerald-600'
+                              : 'text-xs text-[color:var(--gray-500)]'
                           }
                         >
                           {connected ? 'Conectado' : 'Nao conectado'}
@@ -409,25 +411,29 @@ export default function ClientPage() {
             </section>
 
             {tracking.bankAccount ? (
-              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-zinc-900">Dados bancarios</h3>
-                <p className="mt-2 text-sm text-zinc-500">
+              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                  Dados bancarios
+                </h3>
+                <p className="mt-2 text-sm text-[color:var(--gray-500)]">
                   Seus dados bancarios foram recebidos e serao usados para o cadastro.
                 </p>
               </section>
             ) : null}
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Timeline</h3>
-              <p className="mt-2 text-sm text-zinc-500">Historico de mudancas de status.</p>
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Timeline</h3>
+              <p className="mt-2 text-sm text-[color:var(--gray-500)]">
+                Historico de mudancas de status.
+              </p>
               <div className="mt-4">
                 <Timeline entries={tracking.timeline} />
               </div>
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Privacidade</h3>
-              <p className="mt-2 text-sm text-zinc-500">
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Privacidade</h3>
+              <p className="mt-2 text-sm text-[color:var(--gray-500)]">
                 Voce pode solicitar a exclusao dos seus dados pessoais a qualquer momento.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -440,7 +446,7 @@ export default function ClientPage() {
                 </Button>
               </div>
               {deleteMessage ? (
-                <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
                   {deleteMessage}
                 </div>
               ) : null}

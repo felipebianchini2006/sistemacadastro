@@ -62,7 +62,7 @@ const SortIcon = ({ field, sort }: { field: SortField; sort?: SortState }) => {
     );
   }
   return (
-    <span className="ml-1 text-emerald-600" aria-hidden="true">
+    <span className="ml-1 text-[color:var(--primary)]" aria-hidden="true">
       {sort.dir === 'asc' ? '\u25B2' : '\u25BC'}
     </span>
   );
@@ -102,9 +102,9 @@ export const ProposalsTable = ({
   const someSelected =
     selectedIds && items.some((item) => selectedIds.has(item.id)) && !allSelected;
   return (
-    <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-lg">
+    <div className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-lg">
       <table className="w-full text-left text-sm">
-        <thead className="bg-zinc-50 text-xs uppercase tracking-[0.2em] text-zinc-600">
+        <thead className="bg-[var(--muted)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
           <tr>
             {onSelectAll && (
               <th scope="col" className="w-12 px-4 py-3">
@@ -115,7 +115,7 @@ export const ProposalsTable = ({
                     if (el) el.indeterminate = someSelected ?? false;
                   }}
                   onChange={(e) => onSelectAll(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-zinc-400 text-[#ff6b35] focus:ring-[#ff6b35]"
+                  className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                   aria-label="Selecionar todas as propostas"
                 />
               </th>
@@ -132,7 +132,7 @@ export const ProposalsTable = ({
                   key={header.field}
                   scope="col"
                   aria-sort={ariaSortValue}
-                  className="cursor-pointer select-none px-4 py-3 hover:text-zinc-700"
+                  className="cursor-pointer select-none px-4 py-3 hover:text-[color:var(--gray-700)]"
                   tabIndex={0}
                   role="columnheader"
                   onClick={() => onSort?.(header.field)}
@@ -161,7 +161,7 @@ export const ProposalsTable = ({
               <tr
                 key={proposal.id}
                 className={cn(
-                  'border-t border-zinc-100',
+                  'border-t border-[var(--border)]',
                   updated && 'bg-blue-50/50',
                   selectedIds?.has(proposal.id) && 'bg-orange-50/30',
                 )}
@@ -172,12 +172,12 @@ export const ProposalsTable = ({
                       type="checkbox"
                       checked={selectedIds?.has(proposal.id) ?? false}
                       onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
-                      className="h-4 w-4 cursor-pointer rounded border-zinc-400 text-[#ff6b35] focus:ring-[#ff6b35]"
+                      className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                       aria-label={`Selecionar proposta ${proposal.protocol}`}
                     />
                   </td>
                 )}
-                <td className="px-4 py-3 font-semibold text-zinc-900">
+                <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
                   <div className="flex items-center gap-2">
                     <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">
                       {proposal.protocol}
@@ -189,14 +189,18 @@ export const ProposalsTable = ({
                     ) : null}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-zinc-700">{proposal.person?.fullName ?? '-'}</td>
-                <td className="px-4 py-3 text-zinc-600">{proposal.person?.cpfMasked ?? '-'}</td>
+                <td className="px-4 py-3 text-[color:var(--gray-700)]">
+                  {proposal.person?.fullName ?? '-'}
+                </td>
+                <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                  {proposal.person?.cpfMasked ?? '-'}
+                </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={proposal.status} />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-zinc-600">{proposal.type}</span>
+                    <span className="text-[color:var(--gray-500)]">{proposal.type}</span>
                     {proposal.type === 'MIGRACAO' ? (
                       <span className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-orange-700">
                         Migracao
@@ -204,7 +208,7 @@ export const ProposalsTable = ({
                     ) : null}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-zinc-600">
+                <td className="px-4 py-3 text-[color:var(--gray-500)]">
                   {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
                 </td>
                 <td className="px-4 py-3">
@@ -228,21 +232,21 @@ export const ProposalsTable = ({
                     {sla.label}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-600">
+                <td className="px-4 py-3 text-[color:var(--gray-500)]">
                   {proposal.assignedAnalyst?.name ?? 'Nao atribuido'}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <details className="relative inline-block text-left">
                     <summary
-                      className="cursor-pointer rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
+                      className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
                       aria-label="Abrir menu de acoes"
                     >
                       ⋮
                     </summary>
-                    <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-zinc-200 bg-white p-2 text-xs shadow-lg">
+                    <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-lg">
                       <Link
                         href={`/admin/propostas/${proposal.id}`}
-                        className="block rounded-xl px-3 py-2 text-zinc-700 hover:bg-zinc-50"
+                        className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                       >
                         Ver dossie
                       </Link>
@@ -256,7 +260,7 @@ export const ProposalsTable = ({
                       )}
                       <Link
                         href={`/admin/propostas/${proposal.id}?action=request`}
-                        className="mt-1 block rounded-xl px-3 py-2 text-zinc-700 hover:bg-zinc-50"
+                        className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                       >
                         Solicitar documento
                       </Link>
@@ -269,7 +273,7 @@ export const ProposalsTable = ({
                       {proposal.status === 'PENDING_SIGNATURE' && (
                         <Link
                           href={`/admin/propostas/${proposal.id}?action=resend`}
-                          className="mt-1 block rounded-xl px-3 py-2 text-zinc-700 hover:bg-zinc-50"
+                          className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                         >
                           Reenviar link
                         </Link>

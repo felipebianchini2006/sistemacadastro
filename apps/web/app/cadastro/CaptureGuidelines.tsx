@@ -62,7 +62,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="capture-guidelines-title"
@@ -70,10 +70,16 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
         tabIndex={-1}
       >
         <div className="mb-4">
-          <h3 id="capture-guidelines-title" className="text-lg font-bold text-zinc-900">
+          <h3
+            id="capture-guidelines-title"
+            className="text-lg font-bold text-[color:var(--gray-900)]"
+          >
             Prepare-se para capturar {documentType}
           </h3>
-          <p id="capture-guidelines-description" className="mt-1 text-sm text-zinc-600">
+          <p
+            id="capture-guidelines-description"
+            className="mt-1 text-sm text-[color:var(--gray-500)]"
+          >
             Siga essas dicas para garantir uma foto de qualidade
           </p>
         </div>
@@ -82,7 +88,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
               <svg
-                className="h-4 w-4 text-orange-600"
+                className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -98,8 +104,8 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-zinc-900">Use boa iluminação</h4>
-              <p className="text-sm text-zinc-600">
+              <h4 className="font-semibold text-[color:var(--gray-900)]">Use boa iluminação</h4>
+              <p className="text-sm text-[color:var(--gray-500)]">
                 Fotografe em um local bem iluminado, preferencialmente com luz natural
               </p>
             </div>
@@ -108,7 +114,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
               <svg
-                className="h-4 w-4 text-orange-600"
+                className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -124,8 +130,10 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-zinc-900">Evite reflexos e sombras</h4>
-              <p className="text-sm text-zinc-600">
+              <h4 className="font-semibold text-[color:var(--gray-900)]">
+                Evite reflexos e sombras
+              </h4>
+              <p className="text-sm text-[color:var(--gray-500)]">
                 Não use flash e evite superfícies que reflitam luz
               </p>
             </div>
@@ -134,7 +142,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
               <svg
-                className="h-4 w-4 text-orange-600"
+                className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -150,8 +158,10 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-zinc-900">Mantenha o documento legível</h4>
-              <p className="text-sm text-zinc-600">
+              <h4 className="font-semibold text-[color:var(--gray-900)]">
+                Mantenha o documento legível
+              </h4>
+              <p className="text-sm text-[color:var(--gray-500)]">
                 Certifique-se de que todos os textos estão nítidos e centralizados
               </p>
             </div>
@@ -160,7 +170,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
               <svg
-                className="h-4 w-4 text-orange-600"
+                className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -176,8 +186,12 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-zinc-900">Capture o documento inteiro</h4>
-              <p className="text-sm text-zinc-600">Inclua todas as bordas do documento na foto</p>
+              <h4 className="font-semibold text-[color:var(--gray-900)]">
+                Capture o documento inteiro
+              </h4>
+              <p className="text-sm text-[color:var(--gray-500)]">
+                Inclua todas as bordas do documento na foto
+              </p>
             </div>
           </div>
         </div>
@@ -186,13 +200,13 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           <button
             onClick={onCancel}
             ref={cancelButtonRef}
-            className="min-h-[44px] rounded-xl border border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            className="min-h-[44px] rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
           >
             Cancelar
           </button>
           <button
             onClick={onProceed}
-            className="min-h-[44px] rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722]"
+            className="min-h-[44px] rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)]"
           >
             Entendi, tirar foto
           </button>

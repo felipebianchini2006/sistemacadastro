@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { CheckCircle, XCircle, Edit2, Camera, Loader2 } from 'lucide-react';
 
 export type OcrField = {
@@ -52,7 +53,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
   };
 
   const getConfidenceColor = (confidence?: number) => {
-    if (!confidence) return 'text-zinc-400';
+    if (!confidence) return 'text-[color:var(--gray-500)]';
     if (confidence >= 0.9) return 'text-green-600';
     if (confidence >= 0.7) return 'text-yellow-600';
     return 'text-red-600';
@@ -85,23 +86,23 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div
-        className="relative w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl"
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl bg-[var(--card)] shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="ocr-preview-title"
         aria-describedby="ocr-preview-description"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-zinc-200 px-6 py-4">
-          <h2 id="ocr-preview-title" className="text-xl font-bold text-zinc-900">
+        <div className="sticky top-0 z-10 bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
+          <h2 id="ocr-preview-title" className="text-xl font-bold text-[color:var(--gray-900)]">
             {documentTitle}
           </h2>
-          <p id="ocr-preview-description" className="mt-1 text-sm text-zinc-600">
+          <p id="ocr-preview-description" className="mt-1 text-sm text-[color:var(--gray-500)]">
             Confira os dados extraídos e confirme se estão corretos
           </p>
           {data.overallConfidence && (
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-zinc-600">Confiança geral:</span>
+              <span className="text-sm text-[color:var(--gray-500)]">Confiança geral:</span>
               <span
                 className={`text-sm font-semibold ${getConfidenceColor(data.overallConfidence)}`}
               >
@@ -113,11 +114,14 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
 
         <div className="p-6">
           {/* Image Preview */}
-          <div className="relative mb-6 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-            <img
+          <div className="relative mb-6 h-72 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)] sm:h-80 md:h-96">
+            <Image
               src={data.imageUrl}
               alt="Documento capturado"
-              className="w-full h-auto object-contain max-h-96"
+              fill
+              sizes="(max-width: 768px) 100vw, 70vw"
+              className="object-contain"
+              unoptimized
             />
             {overlayItems.length > 0 ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4">
@@ -147,10 +151,12 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
           {!isProcessing && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-zinc-900">Dados extraídos</h3>
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                  Dados extraídos
+                </h3>
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50"
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-[color:var(--primary)] hover:bg-orange-50"
                 >
                   <Edit2 className="h-4 w-4" aria-hidden="true" />
                   {isEditing ? 'Cancelar edição' : 'Editar manualmente'}
@@ -170,11 +176,13 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                       className={`rounded-xl border p-4 transition-colors ${
                         isFieldEdited
                           ? 'border-orange-300 bg-orange-50'
-                          : 'border-zinc-200 bg-white'
+                          : 'border-[var(--border)] bg-[var(--card)]'
                       }`}
                     >
                       <div className="mb-2 flex items-center justify-between">
-                        <label className="text-sm font-medium text-zinc-700">{field.label}</label>
+                        <label className="text-sm font-medium text-[color:var(--gray-700)]">
+                          {field.label}
+                        </label>
                         {getConfidenceIcon(field.confidence)}
                       </div>
 
@@ -183,12 +191,14 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                           type="text"
                           value={currentValue}
                           onChange={(e) => handleFieldEdit(fieldKey, e.target.value)}
-                          className="w-full rounded-lg border border-zinc-400 px-3 py-2 text-sm font-mono focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm font-mono focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
                         />
                       ) : (
-                        <p className="text-base font-mono text-zinc-900">
+                        <p className="text-base font-mono text-[color:var(--gray-900)]">
                           {currentValue || (
-                            <span className="text-zinc-400 italic">Não detectado</span>
+                            <span className="text-[color:var(--gray-500)] italic">
+                              Não detectado
+                            </span>
                           )}
                         </p>
                       )}
@@ -200,7 +210,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                       )}
 
                       {isFieldEdited && (
-                        <p className="mt-1 text-xs text-orange-600 font-medium">
+                        <p className="mt-1 text-xs text-[color:var(--primary)] font-medium">
                           ✏️ Editado manualmente
                         </p>
                       )}
@@ -213,12 +223,12 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
         </div>
 
         {/* Actions */}
-        <div className="sticky bottom-0 bg-white border-t border-zinc-200 px-6 py-4">
+        <div className="sticky bottom-0 bg-[var(--card)] border-t border-[var(--border)] px-6 py-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               onClick={onRetake}
               disabled={isProcessing}
-              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Camera className="h-5 w-5" aria-hidden="true" />
               Refazer Foto
@@ -226,7 +236,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
             <button
               onClick={handleConfirm}
               disabled={isProcessing}
-              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="h-5 w-5" aria-hidden="true" />
               Confirmar Dados
@@ -234,7 +244,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
           </div>
 
           {Object.keys(editedValues).length > 0 && (
-            <p className="mt-3 text-center text-xs text-zinc-600">
+            <p className="mt-3 text-center text-xs text-[color:var(--gray-500)]">
               {Object.keys(editedValues).length} campo(s) editado(s) manualmente
             </p>
           )}

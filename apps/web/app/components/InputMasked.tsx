@@ -25,21 +25,41 @@ const StatusDot = ({ status }: { status?: FieldStatus }) => {
     'inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold';
   if (status === 'valid') {
     return (
-      <span className={cn(base, 'bg-[#22C55E] text-white')} aria-hidden="true">
-        ???
+      <span className={cn(base, 'bg-[color:var(--success)] text-white')} aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+          <path
+            d="M5 13l4 4L19 7"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </span>
     );
   }
   if (status === 'invalid') {
     return (
-      <span className={cn(base, 'bg-[#EF4444] text-white')} aria-hidden="true">
-        ???
+      <span className={cn(base, 'bg-[color:var(--error)] text-white')} aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+          <path
+            d="M6 6l12 12M18 6l-12 12"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
       </span>
     );
   }
   return (
-    <span className={cn(base, 'bg-zinc-200 text-zinc-500')} aria-hidden="true">
-      ???
+    <span
+      className={cn(base, 'bg-[var(--gray-100)] text-[color:var(--gray-500)]')}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+      </svg>
     </span>
   );
 };
@@ -74,13 +94,13 @@ export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
     const hasIcon = Boolean(leadingIcon);
 
     return (
-      <label htmlFor={inputId} className="flex flex-col gap-2 text-sm text-zinc-700">
+      <label htmlFor={inputId} className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
         <span className="font-medium">{label}</span>
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             {hasIcon ? (
               <span
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--primary)]"
                 aria-label={leadingIconLabel}
                 aria-hidden={leadingIconLabel ? undefined : true}
                 role={leadingIconLabel ? 'img' : undefined}
@@ -95,10 +115,12 @@ export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
               value={value}
               onChange={(event) => onChange(applyMask(event.target.value, mask))}
               className={cn(
-                'w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm',
-                'focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-200',
-                status === 'invalid' && 'border-red-300 focus:ring-red-200',
-                status === 'valid' && 'border-emerald-300 focus:ring-emerald-200',
+                'w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm',
+                'focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-light)]',
+                status === 'invalid' &&
+                  'border-[color:var(--error)] focus-visible:ring-[color:rgba(239,68,68,0.2)] animate-[shake_0.4s_ease]',
+                status === 'valid' &&
+                  'border-[color:var(--success)] focus-visible:ring-[color:rgba(34,197,94,0.2)]',
                 hasIcon && 'pl-10',
                 className,
               )}
@@ -112,7 +134,10 @@ export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
         {hint ? (
           <span
             id={`${inputId}-hint`}
-            className={cn('text-xs', status === 'invalid' ? 'text-red-600' : 'text-zinc-500')}
+            className={cn(
+              'text-xs',
+              status === 'invalid' ? 'text-[color:var(--error)]' : 'text-[color:var(--gray-500)]',
+            )}
           >
             {hint}
           </span>

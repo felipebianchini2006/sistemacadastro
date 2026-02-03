@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Camera, Upload } from 'lucide-react';
 import { CaptureGuidelines } from './CaptureGuidelines';
 import { ImageQualityAlert } from './ImageQualityAlert';
@@ -390,15 +391,20 @@ export function SmartDocumentUpload({
                 </div>
                 <span className="text-sm font-semibold text-green-900">Documento enviado</span>
               </div>
-              <img
-                src={existingPreviewUrl ?? localPreviewUrl ?? ''}
-                alt={documentLabel}
-                className="h-32 w-auto rounded-lg object-contain"
-              />
+              <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-lg bg-white/70">
+                <Image
+                  src={existingPreviewUrl ?? localPreviewUrl ?? ''}
+                  alt={documentLabel}
+                  fill
+                  sizes="(max-width: 640px) 70vw, 240px"
+                  className="object-contain"
+                  unoptimized
+                />
+              </div>
             </div>
           ) : (
-            <div className="rounded-xl border-2 border-dashed border-zinc-400 bg-zinc-50 p-6 text-center">
-              <p className="text-sm text-zinc-600">Nenhum documento enviado</p>
+            <div className="rounded-xl border-2 border-dashed border-[var(--gray-300)] bg-[var(--muted)] p-6 text-center">
+              <p className="text-sm text-[color:var(--gray-500)]">Nenhum documento enviado</p>
             </div>
           )}
 
@@ -406,7 +412,7 @@ export function SmartDocumentUpload({
             <button
               type="button"
               onClick={handleCaptureClick}
-              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722]"
+              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)]"
             >
               <Camera className="h-5 w-5" aria-hidden="true" />
               Tirar Foto
@@ -414,7 +420,7 @@ export function SmartDocumentUpload({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+              className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
             >
               <Upload className="h-5 w-5" aria-hidden="true" />
               Escolher Arquivo

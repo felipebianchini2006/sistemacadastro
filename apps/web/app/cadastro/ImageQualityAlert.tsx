@@ -20,7 +20,7 @@ export function ImageQualityAlert({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]">
         <div className="mb-4 flex items-start gap-3">
           <div
             className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
@@ -34,10 +34,10 @@ export function ImageQualityAlert({
             )}
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-zinc-900">
+            <h3 className="text-lg font-bold text-[color:var(--gray-900)]">
               {hasErrors ? 'Imagem inválida' : 'Atenção: Qualidade da imagem'}
             </h3>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-sm text-[color:var(--gray-500)]">
               {hasErrors
                 ? 'A imagem não atende aos requisitos mínimos'
                 : 'Detectamos possíveis problemas com a qualidade da imagem'}
@@ -88,7 +88,7 @@ export function ImageQualityAlert({
         <div className="grid gap-2 sm:grid-cols-2">
           <button
             onClick={onCancel}
-            className="min-h-[44px] rounded-xl bg-white border-2 border-zinc-400 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            className="min-h-[44px] rounded-xl bg-[var(--card)] border-2 border-[var(--gray-300)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
           >
             Tirar nova foto
           </button>

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { loginAdmin } from '../lib/api';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 
 export default function ClientPage() {
   const router = useRouter();
@@ -29,32 +30,32 @@ export default function ClientPage() {
   };
 
   return (
-    <div className="min-h-screen bg-soft-gradient px-4 py-16">
-      <div className="mx-auto w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Admin</p>
-        <h1 className="mt-3 text-2xl font-semibold text-zinc-900">Entrar no painel</h1>
-        <p className="mt-2 text-sm text-zinc-500">Use seu email corporativo para acessar.</p>
+    <div className="min-h-screen-dvh bg-soft-gradient px-4 py-16">
+      <div className="mx-auto w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-xl)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
+          Admin
+        </p>
+        <h1 className="mt-3 text-2xl font-semibold text-[color:var(--gray-900)]">
+          Entrar no painel
+        </h1>
+        <p className="mt-2 text-sm text-[color:var(--gray-500)]">
+          Use seu email corporativo para acessar.
+        </p>
         <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
-          <label className="flex flex-col gap-2 text-sm text-zinc-700">
-            Email
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type="email"
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm text-zinc-700">
-            Senha
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-              required
-            />
-          </label>
+          <Input
+            label="Email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            required
+          />
+          <Input
+            label="Senha"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            required
+          />
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}

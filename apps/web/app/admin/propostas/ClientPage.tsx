@@ -14,6 +14,7 @@ import {
 } from '../components/ProposalsTable';
 import { Pagination } from '../components/Pagination';
 import { Button } from '../../components/ui/button';
+import { Modal } from '../../components/ui/modal';
 
 const PAGE_SIZE = 20;
 const SERVER_SORT_FIELDS = new Set<SortField>([
@@ -389,8 +390,8 @@ export default function ClientPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">Propostas</h2>
-          <p className="mt-1 text-sm text-zinc-500">Consulte, filtre e exporte.</p>
+          <h2 className="text-2xl font-semibold text-[color:var(--gray-900)]">Propostas</h2>
+          <p className="mt-1 text-sm text-[color:var(--gray-500)]">Consulte, filtre e exporte.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => downloadCsv(tableItems)}>
@@ -433,7 +434,7 @@ export default function ClientPage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
             Carregando propostas...
           </div>
         ) : null}
@@ -469,101 +470,99 @@ export default function ClientPage() {
       />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      {showAssignModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-zinc-900">Atribuir analista</h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              Selecione um analista para {selectedIds.size}{' '}
-              {selectedIds.size === 1 ? 'proposta' : 'propostas'}.
-            </p>
-            <div className="mt-4">
-              <AnalystSelector
-                value={assignAnalystId ?? undefined}
-                analysts={analysts}
-                onChange={(value) => setAssignAnalystId(value)}
+      <Modal
+        open={showAssignModal}
+        title="Atribuir analista"
+        description={`Selecione um analista para ${selectedIds.size} ${
+          selectedIds.size === 1 ? 'proposta' : 'propostas'
+        }.`}
+        onClose={() => setShowAssignModal(false)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowAssignModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleBulkAssign} disabled={bulkLoading}>
+              {bulkLoading ? 'Salvando...' : 'Atribuir'}
+            </Button>
+          </>
+        }
+      >
+        <AnalystSelector
+          value={assignAnalystId ?? undefined}
+          analysts={analysts}
+          onChange={(value) => setAssignAnalystId(value)}
+        />
+        {bulkError ? (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {bulkError}
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={showStatusModal}
+        title="Alterar status"
+        description={`Atualize o status de ${selectedIds.size} ${
+          selectedIds.size === 1 ? 'proposta' : 'propostas'
+        }.`}
+        onClose={() => setShowStatusModal(false)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleBulkStatus} disabled={bulkLoading}>
+              {bulkLoading ? 'Atualizando...' : 'Atualizar'}
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3">
+          <label className="text-sm text-[color:var(--gray-700)]">
+            Status
+            <select
+              value={bulkStatus}
+              onChange={(event) => setBulkStatus(event.target.value as BulkStatus)}
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+            >
+              <option value="UNDER_REVIEW">Em analise</option>
+              <option value="PENDING_DOCS">Pendente documento</option>
+              <option value="REJECTED">Reprovada</option>
+              <option value="CANCELED">Cancelada</option>
+            </select>
+          </label>
+
+          {bulkStatus === 'PENDING_DOCS' ? (
+            <label className="text-sm text-[color:var(--gray-700)]">
+              Documentos pendentes
+              <input
+                value={bulkMissingItems}
+                onChange={(event) => setBulkMissingItems(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+                placeholder="RG frente, comprovante de residencia"
               />
-            </div>
-            {bulkError ? (
-              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {bulkError}
-              </div>
-            ) : null}
-            <div className="mt-6 flex items-center justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowAssignModal(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleBulkAssign} disabled={bulkLoading}>
-                {bulkLoading ? 'Salvando...' : 'Atribuir'}
-              </Button>
-            </div>
-          </div>
+            </label>
+          ) : null}
+
+          {bulkStatus === 'REJECTED' ? (
+            <label className="text-sm text-[color:var(--gray-700)]">
+              Motivo
+              <textarea
+                value={bulkReason}
+                onChange={(event) => setBulkReason(event.target.value)}
+                className="mt-2 min-h-[96px] w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+                placeholder="Explique o motivo da reprovação"
+              />
+            </label>
+          ) : null}
         </div>
-      ) : null}
-
-      {showStatusModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-zinc-900">Alterar status</h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              Atualize o status de {selectedIds.size}{' '}
-              {selectedIds.size === 1 ? 'proposta' : 'propostas'}.
-            </p>
-            <div className="mt-4 grid gap-3">
-              <label className="text-sm text-zinc-600">
-                Status
-                <select
-                  value={bulkStatus}
-                  onChange={(event) => setBulkStatus(event.target.value as BulkStatus)}
-                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                >
-                  <option value="UNDER_REVIEW">Em analise</option>
-                  <option value="PENDING_DOCS">Pendente documento</option>
-                  <option value="REJECTED">Reprovada</option>
-                  <option value="CANCELED">Cancelada</option>
-                </select>
-              </label>
-
-              {bulkStatus === 'PENDING_DOCS' ? (
-                <label className="text-sm text-zinc-600">
-                  Documentos pendentes
-                  <input
-                    value={bulkMissingItems}
-                    onChange={(event) => setBulkMissingItems(event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                    placeholder="RG frente, comprovante de residencia"
-                  />
-                </label>
-              ) : null}
-
-              {bulkStatus === 'REJECTED' ? (
-                <label className="text-sm text-zinc-600">
-                  Motivo
-                  <textarea
-                    value={bulkReason}
-                    onChange={(event) => setBulkReason(event.target.value)}
-                    className="mt-2 min-h-[96px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
-                    placeholder="Explique o motivo da reprovação"
-                  />
-                </label>
-              ) : null}
-            </div>
-            {bulkError ? (
-              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {bulkError}
-              </div>
-            ) : null}
-            <div className="mt-6 flex items-center justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleBulkStatus} disabled={bulkLoading}>
-                {bulkLoading ? 'Atualizando...' : 'Atualizar'}
-              </Button>
-            </div>
+        {bulkError ? (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {bulkError}
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </Modal>
     </div>
   );
 }

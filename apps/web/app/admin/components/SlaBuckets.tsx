@@ -8,8 +8,8 @@
   danger: number;
 }) => {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg">
-      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">SLA</p>
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+      <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">SLA</p>
       <div className="mt-4 grid gap-3 text-sm">
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-800">
           <span>Dentro do prazo</span>

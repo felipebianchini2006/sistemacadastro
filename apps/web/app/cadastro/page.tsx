@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MessageCircle } from 'lucide-react';
 import { PrivacyGate } from './PrivacyGate';
 import {
@@ -1353,7 +1354,7 @@ export default function CadastroPage() {
           autoComplete="off"
         />
       </div>
-      <label className="flex flex-col gap-2 text-sm text-zinc-700">
+      <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
         <span className="font-medium">Tipo de conta</span>
         <select
           value={form.bank.accountType}
@@ -1363,7 +1364,7 @@ export default function CadastroPage() {
             })
           }
           onBlur={() => handleFieldBlur('bank.accountType')}
-          className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
           autoComplete="off"
         >
           <option value="">Selecione</option>
@@ -1401,7 +1402,7 @@ export default function CadastroPage() {
           placeholder="email, CPF ou aleatoria"
           autoComplete="off"
         />
-        <label className="flex flex-col gap-2 text-sm text-zinc-700">
+        <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
           <span className="font-medium">Tipo de chave</span>
           <select
             value={form.bank.pixKeyType}
@@ -1411,7 +1412,7 @@ export default function CadastroPage() {
               })
             }
             onBlur={() => handleFieldBlur('bank.pixKeyType')}
-            className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+            className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
             autoComplete="off"
           >
             <option value="">Selecione</option>
@@ -1559,16 +1560,18 @@ export default function CadastroPage() {
   return (
     <>
       {showPrivacyGate && <PrivacyGate onAccept={handlePrivacyGateAccept} />}
-      <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
+      <div className="min-h-screen-dvh bg-soft-gradient px-4 py-10 sm:px-8">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-sheen" />
         {showRestorePrompt ? (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Retomar cadastro</p>
-              <h2 className="mt-2 text-lg font-semibold text-zinc-900">
+            <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]">
+              <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
+                Retomar cadastro
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-[color:var(--gray-900)]">
                 Deseja continuar de onde parou?
               </h2>
-              <p className="mt-2 text-sm text-zinc-500">
+              <p className="mt-2 text-sm text-[color:var(--gray-500)]">
                 Encontramos um rascunho salvo neste dispositivo.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -1580,25 +1583,25 @@ export default function CadastroPage() {
             </div>
           </div>
         ) : null}
-        <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_1.6fr]">
+        <div className="page-shell grid gap-8 lg:grid-cols-[1.1fr_1.6fr]">
           <aside className="flex flex-col gap-6">
-            <div className="rounded-3xl border border-zinc-200 bg-white/80 p-6 shadow-lg backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            <div className="surface-glass p-6 shadow-[var(--shadow-xl)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
                 Cadastro digital
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-zinc-900">
+              <h1 className="mt-3 text-3xl font-semibold text-[color:var(--gray-900)]">
                 Vamos montar seu dossie com calma.
               </h1>
-              <p className="mt-3 text-sm text-zinc-500">
+              <p className="mt-3 text-sm text-[color:var(--gray-500)]">
                 Tudo fica salvo automaticamente. Voce pode sair e continuar depois no mesmo
                 dispositivo.
               </p>
-              <div className="mt-6 flex flex-col gap-3 text-xs text-zinc-500">
-                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+              <div className="mt-6 flex flex-col gap-3 text-xs text-[color:var(--gray-500)]">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3">
                   <span>Autosave local</span>
                   <span className="font-semibold text-emerald-600">Ativo</span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3">
                   <span>Sincronizacao backend</span>
                   <span className="font-semibold" role="status" aria-live="polite">
                     {syncStatus === 'saving'
@@ -1610,7 +1613,7 @@ export default function CadastroPage() {
                           : 'Aguardando'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3">
                   <span>Ultimo salvamento</span>
                   <span className="font-semibold">
                     {lastSavedAt
@@ -1623,16 +1626,16 @@ export default function CadastroPage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-3xl border border-zinc-200 bg-white/90 p-6 shadow-lg">
-              <h3 className="text-sm font-semibold text-zinc-700">Suporte rapido</h3>
-              <p className="mt-2 text-sm text-zinc-500">
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-sm font-semibold text-[color:var(--gray-700)]">Suporte rapido</h3>
+              <p className="mt-2 text-sm text-[color:var(--gray-500)]">
                 Precisa de ajuda? Nossa equipe responde em ate 2 horas uteis.
               </p>
               <div className="mt-4 flex flex-wrap gap-2 text-xs">
                 <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
                   atendimento@sistemacadastro.com
                 </span>
-                <span className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
+                <span className="rounded-full bg-[var(--muted)] px-3 py-1 text-[color:var(--gray-500)]">
                   +55 11 99999-9999
                 </span>
               </div>
@@ -1663,29 +1666,33 @@ export default function CadastroPage() {
                         type="button"
                         className={cn(
                           'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
-                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b35]/30',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(255,107,53,0.3)]',
                           selected
-                            ? 'border-[#ff6b35] bg-[#ff6b35]/10 shadow-lg shadow-[#ff6b35]/20'
-                            : 'border-zinc-200 bg-white hover:-translate-y-0.5 hover:border-[#ff6b35]/60 hover:shadow',
+                            ? 'border-[var(--primary)] bg-[color:rgba(255,107,53,0.1)] shadow-[var(--shadow-md)]'
+                            : 'border-[var(--border)] bg-[var(--card)] hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow',
                         )}
                         onClick={() => toggleProfileRole(role.value)}
                         aria-pressed={selected}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm font-semibold text-zinc-900">{role.label}</div>
+                          <div className="text-sm font-semibold text-[color:var(--gray-900)]">
+                            {role.label}
+                          </div>
                           <span
                             className={cn(
                               'flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold',
                               selected
-                                ? 'border-[#ff6b35] bg-[#ff6b35] text-white'
-                                : 'border-zinc-200 bg-white text-zinc-400',
+                                ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+                                : 'border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)]',
                             )}
                             aria-hidden="true"
                           >
                             {selected ? '✓' : ''}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-zinc-500">{role.description}</p>
+                        <p className="mt-2 text-xs text-[color:var(--gray-500)]">
+                          {role.description}
+                        </p>
                       </button>
                     );
                   })}
@@ -1698,14 +1705,14 @@ export default function CadastroPage() {
                 ) : null}
 
                 {otherRoleSelected ? (
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                    <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+                    <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
                       <span className="font-medium">Descreva sua atuacao</span>
                       <input
                         value={form.profileRoleOther}
                         onChange={(event) => updateForm({ profileRoleOther: event.target.value })}
                         onBlur={() => handleFieldBlur('profileRoleOther')}
-                        className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
                         placeholder="Ex: arranjador, tecnico de audio..."
                         aria-required={otherRoleSelected}
                         aria-invalid={profileRoleOtherInvalid}
@@ -1727,8 +1734,8 @@ export default function CadastroPage() {
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     Tipo de proposta
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -1739,8 +1746,8 @@ export default function CadastroPage() {
                         className={cn(
                           'rounded-full px-4 py-2 text-sm font-semibold transition',
                           form.proposalType === type
-                            ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                            : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
+                            ? 'bg-[var(--primary)] text-white shadow shadow-orange-200/70'
+                            : 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)] hover:border-[var(--primary)]',
                         )}
                         onClick={() => handleProposalTypeSelect(type)}
                       >
@@ -1778,7 +1785,7 @@ export default function CadastroPage() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-xs text-zinc-500 sm:hidden">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-xs text-[color:var(--gray-500)] sm:hidden">
                   <Button
                     variant="ghost"
                     onClick={() => setMobileFieldIndex((prev) => Math.max(prev - 1, 0))}
@@ -1802,9 +1809,9 @@ export default function CadastroPage() {
                   </Button>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:hidden">
                   <details>
-                    <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
+                    <summary className="cursor-pointer text-sm font-semibold text-[color:var(--gray-700)]">
                       Endereco completo
                     </summary>
                     <fieldset className="mt-4 grid gap-4">
@@ -1814,10 +1821,10 @@ export default function CadastroPage() {
                   </details>
                 </div>
 
-                <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
+                <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:grid sm:gap-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-zinc-700">Endereco</h3>
-                    <span className="text-xs text-zinc-500">
+                    <h3 className="text-sm font-semibold text-[color:var(--gray-700)]">Endereco</h3>
+                    <span className="text-xs text-[color:var(--gray-500)]">
                       {viaCep.loading ? 'Consultando CEP...' : 'ViaCEP ativo'}
                     </span>
                   </div>
@@ -1827,9 +1834,9 @@ export default function CadastroPage() {
                   </fieldset>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:hidden">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:hidden">
                   <details>
-                    <summary className="cursor-pointer text-sm font-semibold text-zinc-700">
+                    <summary className="cursor-pointer text-sm font-semibold text-[color:var(--gray-700)]">
                       Dados bancarios (opcional)
                     </summary>
                     <fieldset className="mt-4 grid gap-4">
@@ -1839,12 +1846,14 @@ export default function CadastroPage() {
                   </details>
                 </div>
 
-                <div className="hidden rounded-2xl border border-zinc-200 bg-white p-4 sm:grid sm:gap-4">
+                <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:grid sm:gap-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-zinc-700">
+                    <h3 className="text-sm font-semibold text-[color:var(--gray-700)]">
                       Dados bancarios (opcional)
                     </h3>
-                    <span className="text-xs text-zinc-500">Preencha apenas se desejar</span>
+                    <span className="text-xs text-[color:var(--gray-500)]">
+                      Preencha apenas se desejar
+                    </span>
                   </div>
                   <fieldset className="grid gap-4">
                     <legend className="sr-only">Dados bancarios</legend>
@@ -1869,12 +1878,12 @@ export default function CadastroPage() {
                   </>
                 }
               >
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     Entidade anterior
                   </p>
                   <div className="mt-3 grid gap-3">
-                    <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                    <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
                       <span className="font-medium">Selecione a entidade</span>
                       <select
                         value={migrationSelectValue}
@@ -1900,7 +1909,7 @@ export default function CadastroPage() {
                           updateForm({ migrationEntity: nextValue });
                         }}
                         onBlur={() => handleFieldBlur('migrationEntity')}
-                        className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                        className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
                       >
                         <option value="">Selecione</option>
                         {MIGRATION_ENTITY_OPTIONS.map((entity) => (
@@ -1911,13 +1920,13 @@ export default function CadastroPage() {
                       </select>
                     </label>
                     {migrationSelectValue === 'Outras' ? (
-                      <label className="flex flex-col gap-2 text-sm text-zinc-700">
+                      <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
                         <span className="font-medium">Informe a entidade</span>
                         <input
                           value={form.migrationEntity}
                           onChange={(event) => updateForm({ migrationEntity: event.target.value })}
                           onBlur={() => handleFieldBlur('migrationEntity')}
-                          className="w-full rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
                           placeholder="Digite a entidade"
                         />
                       </label>
@@ -1925,11 +1934,11 @@ export default function CadastroPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[color:var(--gray-500)]">
                   <label className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
+                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                       checked={form.migrationConfirmed}
                       onChange={(event) => updateForm({ migrationConfirmed: event.target.checked })}
                     />
@@ -1947,7 +1956,7 @@ export default function CadastroPage() {
                   <button
                     type="button"
                     onClick={() => downloadDesfilicaoTemplate()}
-                    className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors"
+                    className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -2009,8 +2018,8 @@ export default function CadastroPage() {
                   </>
                 }
               >
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     Documento principal
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -2021,8 +2030,8 @@ export default function CadastroPage() {
                         className={cn(
                           'rounded-full px-4 py-2 text-sm font-semibold transition',
                           form.documentChoice === choice
-                            ? 'bg-[#ff6b35] text-white shadow shadow-orange-200/70'
-                            : 'border border-zinc-200 bg-white text-zinc-600 hover:border-[#ff6b35]/60',
+                            ? 'bg-[var(--primary)] text-white shadow shadow-orange-200/70'
+                            : 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)] hover:border-[var(--primary)]',
                         )}
                         onClick={() => updateForm({ documentChoice: choice })}
                       >
@@ -2191,34 +2200,39 @@ export default function CadastroPage() {
                 ) : null}
 
                 {documentPreview?.state.previewUrl ? (
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                        <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                           Previa OCR
                         </p>
-                        <p className="text-sm font-semibold text-zinc-900">
+                        <p className="text-sm font-semibold text-[color:var(--gray-900)]">
                           {documentPreview.label}
                         </p>
                       </div>
-                      <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--muted)] px-3 py-1 text-xs text-[color:var(--gray-500)]">
                         {previewOcrResult ? 'OCR processado' : 'OCR em processamento'}
                       </span>
                     </div>
 
                     <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-                      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
-                        <img
+                      <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--muted)] aspect-[4/3]">
+                        <Image
                           src={documentPreview.state.previewUrl}
                           alt="Previa do documento enviado"
-                          className="h-full w-full object-cover"
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className="object-cover"
+                          unoptimized
                         />
-                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 p-3 text-xs text-zinc-600 shadow">
+                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 p-3 text-xs text-[color:var(--gray-500)] shadow">
                           <div className="grid gap-1">
                             {ocrPreviewFields.slice(0, 3).map((field) => (
                               <div key={field.label} className="flex items-center justify-between">
-                                <span className="text-zinc-500">{field.label}</span>
-                                <span className="font-semibold text-zinc-900">{field.value}</span>
+                                <span className="text-[color:var(--gray-500)]">{field.label}</span>
+                                <span className="font-semibold text-[color:var(--gray-900)]">
+                                  {field.value}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -2226,13 +2240,17 @@ export default function CadastroPage() {
                       </div>
 
                       <div className="grid gap-3">
-                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
-                          <p className="font-semibold text-zinc-700">Dados extraidos</p>
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-3 text-xs text-[color:var(--gray-500)]">
+                          <p className="font-semibold text-[color:var(--gray-700)]">
+                            Dados extraidos
+                          </p>
                           <div className="mt-2 grid gap-2">
                             {ocrPreviewFields.map((field) => (
                               <div key={field.label} className="flex items-center justify-between">
-                                <span className="text-zinc-500">{field.label}</span>
-                                <span className="font-semibold text-zinc-900">{field.value}</span>
+                                <span className="text-[color:var(--gray-500)]">{field.label}</span>
+                                <span className="font-semibold text-[color:var(--gray-900)]">
+                                  {field.value}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -2327,7 +2345,7 @@ export default function CadastroPage() {
                 ) : null}
 
                 <div
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-5 text-sm text-[color:var(--gray-500)]"
                   role="status"
                   aria-live="polite"
                 >
@@ -2375,19 +2393,21 @@ export default function CadastroPage() {
                   </>
                 }
               >
-                <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
-                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-500">
+                <div className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[color:var(--gray-500)]">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     <span>Resumo</span>
                     <span>{form.proposalType}</span>
                   </div>
                   <div className="grid gap-2">
-                    <span className="text-xs text-zinc-500">{profileSummary}</span>
+                    <span className="text-xs text-[color:var(--gray-500)]">{profileSummary}</span>
                     {form.proposalType === 'MIGRACAO' ? (
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-[color:var(--gray-500)]">
                         Migracao: {form.migrationEntity || 'Entidade anterior'}
                       </span>
                     ) : null}
-                    <span className="font-semibold text-zinc-900">{form.fullName || 'Nome'}</span>
+                    <span className="font-semibold text-[color:var(--gray-900)]">
+                      {form.fullName || 'Nome'}
+                    </span>
                     <span>{form.cpf || 'CPF'}</span>
                     <span>{form.email || 'Email'}</span>
                     <span>{form.phone || 'Telefone'}</span>
@@ -2406,7 +2426,9 @@ export default function CadastroPage() {
                           .join(', ')}
                       </span>
                     ) : (
-                      <span className="text-zinc-400">Nenhuma rede social conectada</span>
+                      <span className="text-[color:var(--gray-500)]">
+                        Nenhuma rede social conectada
+                      </span>
                     )}
                   </div>
                 </div>
@@ -2428,16 +2450,16 @@ export default function CadastroPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-500">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[color:var(--gray-500)]">
                     OCR ainda nao processado. Assim que concluido, alertas aparecem aqui.
                   </div>
                 )}
 
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[color:var(--gray-500)]">
                   <label className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
+                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                       checked={form.consentAccepted}
                       onChange={(event) => handleConsentChange(event.target.checked)}
                     />
@@ -2446,7 +2468,7 @@ export default function CadastroPage() {
                   <label className="mt-3 flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
+                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                       checked={form.privacyAccepted}
                       onChange={(event) => handlePrivacyChange(event.target.checked)}
                     />
@@ -2454,7 +2476,7 @@ export default function CadastroPage() {
                       Li e aceito a{' '}
                       <Link
                         href="/privacidade"
-                        className="font-semibold text-orange-600 underline"
+                        className="font-semibold text-[color:var(--primary)] underline"
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -2530,14 +2552,14 @@ export default function CadastroPage() {
           <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 lg:hidden">
             <div
               className={cn(
-                'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg backdrop-blur transition-all',
+                'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-[var(--shadow-md)] backdrop-blur transition-all',
                 syncStatus === 'saving'
                   ? 'border-amber-200 bg-amber-50/90 text-amber-700'
                   : syncStatus === 'saved'
                     ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
                     : syncStatus === 'error'
                       ? 'border-red-200 bg-red-50/90 text-red-700'
-                      : 'border-zinc-200 bg-white/90 text-zinc-500',
+                      : 'border-[var(--border)] bg-white/90 text-[color:var(--gray-500)]',
               )}
               role="status"
               aria-live="polite"
@@ -2551,7 +2573,7 @@ export default function CadastroPage() {
                       ? 'bg-emerald-500'
                       : syncStatus === 'error'
                         ? 'bg-red-500'
-                        : 'bg-zinc-400',
+                        : 'bg-[var(--gray-300)]',
                 )}
               />
               {syncStatus === 'saving'
@@ -2721,16 +2743,16 @@ const SocialConnectionsStep = ({
         </>
       }
     >
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
           Perfis conectados
         </p>
-        <p className="mt-1 text-sm text-zinc-600">
+        <p className="mt-1 text-sm text-[color:var(--gray-500)]">
           {connectedCount === 0
             ? 'Nenhuma rede conectada ainda.'
             : `${connectedCount} ${connectedCount === 1 ? 'rede conectada' : 'redes conectadas'}`}
         </p>
-        <p className="mt-2 text-xs text-zinc-500">
+        <p className="mt-2 text-xs text-[color:var(--gray-500)]">
           Pode conectar agora no rascunho ou depois no acompanhamento. Suas credenciais ficam
           seguras.
         </p>
@@ -2768,7 +2790,7 @@ const SocialConnectionsStep = ({
                 'rounded-2xl border p-4 transition-all',
                 connected
                   ? 'border-emerald-200 bg-emerald-50/50'
-                  : 'border-zinc-200 bg-white hover:border-orange-200',
+                  : 'border-[var(--border)] bg-[var(--card)] hover:border-orange-200',
               )}
             >
               <div className="flex items-start justify-between gap-4">
@@ -2783,8 +2805,8 @@ const SocialConnectionsStep = ({
                     {provider.icon}
                   </span>
                   <div>
-                    <h4 className="font-semibold text-zinc-900">{provider.name}</h4>
-                    <p className="text-xs text-zinc-500">{provider.description}</p>
+                    <h4 className="font-semibold text-[color:var(--gray-900)]">{provider.name}</h4>
+                    <p className="text-xs text-[color:var(--gray-500)]">{provider.description}</p>
                     {connected && connection?.connectedAt ? (
                       <p className="mt-1 text-xs text-emerald-600">
                         Conectado em {new Date(connection.connectedAt).toLocaleDateString('pt-BR')}
@@ -2797,7 +2819,7 @@ const SocialConnectionsStep = ({
                     <button
                       type="button"
                       onClick={() => handleDisconnect(provider.id)}
-                      className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                      className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                     >
                       Desconectar
                     </button>
@@ -2809,8 +2831,8 @@ const SocialConnectionsStep = ({
                       className={cn(
                         'rounded-full px-4 py-1.5 text-xs font-semibold transition-all',
                         connecting === provider.id
-                          ? 'bg-zinc-100 text-zinc-400 cursor-wait'
-                          : 'bg-[#ff6b35] text-white hover:bg-[#e55a2b]',
+                          ? 'bg-[var(--muted)] text-[color:var(--gray-500)] cursor-wait'
+                          : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)]',
                       )}
                     >
                       {connecting === provider.id ? 'Conectando...' : 'Conectar'}
@@ -2823,8 +2845,8 @@ const SocialConnectionsStep = ({
         })}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-500">
-        <p className="font-semibold text-zinc-700">Por que conectar?</p>
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4 text-xs text-[color:var(--gray-500)]">
+        <p className="font-semibold text-[color:var(--gray-700)]">Por que conectar?</p>
         <ul className="mt-2 grid gap-1">
           <li>• Enriquece seu perfil artístico na SBACEM</li>
           <li>• Ajuda na validação da sua atuação profissional</li>
@@ -2871,16 +2893,18 @@ const UploadCard = ({
 
   return (
     <>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-zinc-700">{title}</h4>
-            <p className="text-xs text-zinc-500">
+            <h4 className="text-sm font-semibold text-[color:var(--gray-700)]">{title}</h4>
+            <p className="text-xs text-[color:var(--gray-500)]">
               {state.status === 'uploaded'
                 ? `Enviado: ${state.fileName ?? 'ok'}`
                 : 'JPEG, PNG ou PDF'}
             </p>
-            {description ? <p className="mt-1 text-xs text-zinc-500">{description}</p> : null}
+            {description ? (
+              <p className="mt-1 text-xs text-[color:var(--gray-500)]">{description}</p>
+            ) : null}
           </div>
           <span
             className={cn(
@@ -2891,7 +2915,7 @@ const UploadCard = ({
                   ? 'bg-amber-100 text-amber-700'
                   : state.status === 'error'
                     ? 'bg-red-100 text-red-700'
-                    : 'bg-zinc-100 text-zinc-600',
+                    : 'bg-[var(--muted)] text-[color:var(--gray-500)]',
             )}
           >
             {state.status === 'uploaded'
@@ -2903,15 +2927,15 @@ const UploadCard = ({
                   : 'pendente'}
           </span>
         </div>
-        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-zinc-400 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-dashed border-[var(--gray-300)] bg-[var(--muted)] px-4 py-6 text-center text-sm text-[color:var(--gray-500)]">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Como enviar
           </span>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <button
               type="button"
               onClick={handleTakePhoto}
-              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50"
+              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)] hover:bg-orange-50"
             >
               Tirar foto
             </button>
@@ -2926,7 +2950,7 @@ const UploadCard = ({
                 if (file) onSelect(file);
               }}
             />
-            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-zinc-400 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:border-[#ff6b35] hover:bg-orange-50">
+            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)] hover:bg-orange-50">
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -2945,10 +2969,12 @@ const UploadCard = ({
 
       {showGuidelines && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]">
             <div className="mb-4">
-              <h3 className="text-lg font-bold text-zinc-900">Prepare-se para capturar</h3>
-              <p className="mt-1 text-sm text-zinc-600">
+              <h3 className="text-lg font-bold text-[color:var(--gray-900)]">
+                Prepare-se para capturar
+              </h3>
+              <p className="mt-1 text-sm text-[color:var(--gray-500)]">
                 Siga essas dicas para garantir uma foto de qualidade
               </p>
             </div>
@@ -2956,11 +2982,11 @@ const UploadCard = ({
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
-                  <span className="text-sm font-bold text-[#ff6b35]">1</span>
+                  <span className="text-sm font-bold text-[color:var(--primary)]">1</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-zinc-900">Use boa iluminação</h4>
-                  <p className="text-sm text-zinc-600">
+                  <h4 className="font-semibold text-[color:var(--gray-900)]">Use boa iluminação</h4>
+                  <p className="text-sm text-[color:var(--gray-500)]">
                     Fotografe em local bem iluminado, preferencialmente com luz natural
                   </p>
                 </div>
@@ -2968,11 +2994,13 @@ const UploadCard = ({
 
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
-                  <span className="text-sm font-bold text-[#ff6b35]">2</span>
+                  <span className="text-sm font-bold text-[color:var(--primary)]">2</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-zinc-900">Evite reflexos e sombras</h4>
-                  <p className="text-sm text-zinc-600">
+                  <h4 className="font-semibold text-[color:var(--gray-900)]">
+                    Evite reflexos e sombras
+                  </h4>
+                  <p className="text-sm text-[color:var(--gray-500)]">
                     Não use flash e evite superfícies que reflitam luz
                   </p>
                 </div>
@@ -2980,11 +3008,13 @@ const UploadCard = ({
 
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
-                  <span className="text-sm font-bold text-[#ff6b35]">3</span>
+                  <span className="text-sm font-bold text-[color:var(--primary)]">3</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-zinc-900">Mantenha o documento legível</h4>
-                  <p className="text-sm text-zinc-600">
+                  <h4 className="font-semibold text-[color:var(--gray-900)]">
+                    Mantenha o documento legível
+                  </h4>
+                  <p className="text-sm text-[color:var(--gray-500)]">
                     Certifique-se de que todos os textos estão nítidos e centralizados
                   </p>
                 </div>
@@ -2994,13 +3024,13 @@ const UploadCard = ({
             <div className="mt-6 grid gap-2 sm:grid-cols-2">
               <button
                 onClick={() => setShowGuidelines(false)}
-                className="min-h-[44px] rounded-xl border border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                className="min-h-[44px] rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleProceedToCamera}
-                className="min-h-[44px] rounded-xl bg-[#ff6b35] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff5722]"
+                className="min-h-[44px] rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)]"
               >
                 Entendi, tirar foto
               </button>

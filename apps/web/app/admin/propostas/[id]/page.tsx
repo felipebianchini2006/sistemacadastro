@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { adminFetchWithRefresh } from '../../lib/api';
 import { StatusBadge, STATUS_LABELS } from '../../../components/StatusBadge';
@@ -473,11 +474,13 @@ export default function AdminProposalDetailsPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Dossie</p>
-          <h2 className="text-2xl font-semibold text-zinc-900">
+          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">Dossie</p>
+          <h2 className="text-2xl font-semibold text-[color:var(--gray-900)]">
             {details?.protocol ?? 'Proposta'}
           </h2>
-          <p className="mt-1 text-sm text-zinc-500">{details?.person?.fullName ?? '-'}</p>
+          <p className="mt-1 text-sm text-[color:var(--gray-500)]">
+            {details?.person?.fullName ?? '-'}
+          </p>
         </div>
         {details ? <StatusBadge status={details.status} /> : null}
       </div>
@@ -489,7 +492,7 @@ export default function AdminProposalDetailsPage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
           Carregando dossie...
         </div>
       ) : null}
@@ -497,28 +500,28 @@ export default function AdminProposalDetailsPage() {
       {details ? (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="grid gap-6">
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Dados</h3>
-              <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Dados</h3>
+              <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>Nome</span>
-                  <span className="font-semibold text-zinc-900">
+                  <span className="font-semibold text-[color:var(--gray-900)]">
                     {details.person?.fullName ?? '-'}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>CPF</span>
-                  <span className="font-semibold text-zinc-900">
+                  <span className="font-semibold text-[color:var(--gray-900)]">
                     {details.person?.cpfMasked ?? '-'}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>Tipo</span>
-                  <span className="font-semibold text-zinc-900">{details.type}</span>
+                  <span className="font-semibold text-[color:var(--gray-900)]">{details.type}</span>
                 </div>
                 {details.address ? (
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-600">
-                    <p className="font-semibold text-zinc-700">Endereco</p>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4 text-xs text-[color:var(--gray-500)]">
+                    <p className="font-semibold text-[color:var(--gray-700)]">Endereco</p>
                     <p>
                       {details.address.street}, {details.address.number ?? 's/n'}
                     </p>
@@ -531,8 +534,8 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Documentos</h3>
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Documentos</h3>
               {expiredDocIds.size > 0 ? (
                 <div className="mt-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
                   <p className="font-semibold">Documento(s) vencido(s) detectado(s)</p>
@@ -544,7 +547,7 @@ export default function AdminProposalDetailsPage() {
               ) : null}
               <div className="mt-4 grid gap-3">
                 {details.documents.length === 0 ? (
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
                     Nenhum documento enviado.
                   </div>
                 ) : (
@@ -555,12 +558,14 @@ export default function AdminProposalDetailsPage() {
                         key={doc.id}
                         className={cn(
                           'flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3 text-sm',
-                          isExpired ? 'border-red-300 bg-red-50' : 'border-zinc-200',
+                          isExpired ? 'border-red-300 bg-red-50' : 'border-[var(--border)]',
                         )}
                       >
                         <div>
-                          <p className="font-semibold text-zinc-900">{doc.fileName}</p>
-                          <p className="text-xs text-zinc-500">
+                          <p className="font-semibold text-[color:var(--gray-900)]">
+                            {doc.fileName}
+                          </p>
+                          <p className="text-xs text-[color:var(--gray-500)]">
                             {doc.type} • {Math.round(doc.size / 1024)}kb
                           </p>
                           {isExpired ? (
@@ -570,13 +575,13 @@ export default function AdminProposalDetailsPage() {
                           ) : null}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-[color:var(--gray-500)]">
                             {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
                           </span>
                           <button
                             type="button"
                             onClick={() => openDoc(doc)}
-                            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
+                            className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
                           >
                             Ver
                           </button>
@@ -589,10 +594,12 @@ export default function AdminProposalDetailsPage() {
             </section>
 
             {migrationChecklist ? (
-              <section className="rounded-3xl border border-orange-200 bg-orange-50/40 p-6 shadow-lg">
+              <section className="rounded-3xl border border-[color:rgba(255,107,53,0.3)] bg-orange-50/40 p-6 shadow-[var(--shadow-md)]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-zinc-900">Checklist de migracao</h3>
-                  <span className="rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-semibold text-orange-700">
+                  <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                    Checklist de migracao
+                  </h3>
+                  <span className="rounded-full border border-[color:rgba(255,107,53,0.3)] bg-[var(--card)] px-3 py-1 text-xs font-semibold text-[color:var(--primary-dark)]">
                     Migracao
                   </span>
                 </div>
@@ -611,10 +618,12 @@ export default function AdminProposalDetailsPage() {
                         <span className="text-xs font-semibold uppercase tracking-[0.2em]">
                           {item.ok ? 'OK' : 'Pendente'}
                         </span>
-                        <span className="font-semibold text-zinc-900">{item.label}</span>
+                        <span className="font-semibold text-[color:var(--gray-900)]">
+                          {item.label}
+                        </span>
                       </div>
                       {item.value ? (
-                        <span className="text-xs text-zinc-600">{item.value}</span>
+                        <span className="text-xs text-[color:var(--gray-500)]">{item.value}</span>
                       ) : null}
                     </div>
                   ))}
@@ -622,8 +631,8 @@ export default function AdminProposalDetailsPage() {
               </section>
             ) : null}
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">OCR extraido</h3>
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">OCR extraido</h3>
               {latestOcr ? (
                 <div className="mt-4 grid gap-3 text-sm">
                   {ocrComparison.map((row) => (
@@ -633,121 +642,127 @@ export default function AdminProposalDetailsPage() {
                         'rounded-2xl border px-4 py-3',
                         row.match === false
                           ? 'border-amber-300 bg-amber-50 text-amber-800'
-                          : 'border-zinc-200 bg-white text-zinc-600',
+                          : 'border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)]',
                       )}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold text-zinc-900">{row.label}</span>
-                        <span className="text-xs text-zinc-500">OCR: {row.ocr}</span>
+                        <span className="font-semibold text-[color:var(--gray-900)]">
+                          {row.label}
+                        </span>
+                        <span className="text-xs text-[color:var(--gray-500)]">OCR: {row.ocr}</span>
                       </div>
                       {row.expected ? (
-                        <p className="mt-1 text-xs text-zinc-500">Digitado: {row.expected}</p>
+                        <p className="mt-1 text-xs text-[color:var(--gray-500)]">
+                          Digitado: {row.expected}
+                        </p>
                       ) : null}
                     </div>
                   ))}
-                  <details className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+                  <details className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-xs text-[color:var(--gray-500)]">
                     <summary className="cursor-pointer font-semibold">Texto completo</summary>
                     <pre className="mt-2 whitespace-pre-wrap text-[11px]">{latestOcr.rawText}</pre>
                   </details>
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
                   OCR ainda nao processado.
                 </div>
               )}
 
               {can(user?.roles, 'update') && ocrEdit ? (
-                <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4">
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-zinc-900">Editar OCR</p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-sm font-semibold text-[color:var(--gray-900)]">
+                        Editar OCR
+                      </p>
+                      <p className="text-xs text-[color:var(--gray-500)]">
                         Ajuste os dados extraidos pelo OCR antes de seguir o fluxo.
                       </p>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       Tipo de documento
                       <input
                         value={ocrEdit.documentType}
                         onChange={(event) => updateOcrEdit({ documentType: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                         placeholder="RG ou CNH"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       Nome
                       <input
                         value={ocrEdit.nome}
                         onChange={(event) => updateOcrEdit({ nome: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       CPF
                       <input
                         value={ocrEdit.cpf}
                         onChange={(event) => updateOcrEdit({ cpf: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       RG/CNH
                       <input
                         value={ocrEdit.rg_cnh}
                         onChange={(event) => updateOcrEdit({ rg_cnh: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       Data emissao
                       <input
                         value={ocrEdit.data_emissao}
                         onChange={(event) => updateOcrEdit({ data_emissao: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                         placeholder="YYYY-MM-DD"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       Data validade
                       <input
                         value={ocrEdit.data_validade}
                         onChange={(event) => updateOcrEdit({ data_validade: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                         placeholder="YYYY-MM-DD"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       Orgao emissor
                       <input
                         value={ocrEdit.orgao_emissor}
                         onChange={(event) => updateOcrEdit({ orgao_emissor: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       UF
                       <input
                         value={ocrEdit.uf}
                         onChange={(event) => updateOcrEdit({ uf: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       CEP
                       <input
                         value={ocrEdit.cep}
                         onChange={(event) => updateOcrEdit({ cep: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    <label className="flex flex-col gap-1 text-xs text-[color:var(--gray-500)]">
                       Endereco
                       <input
                         value={ocrEdit.endereco}
                         onChange={(event) => updateOcrEdit({ endereco: event.target.value })}
-                        className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       />
                     </label>
                   </div>
@@ -760,58 +775,64 @@ export default function AdminProposalDetailsPage() {
               ) : null}
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Redes sociais</h3>
-              <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Redes sociais</h3>
+              <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 {details.socialAccounts && details.socialAccounts.length > 0 ? (
                   details.socialAccounts.map((account) => (
                     <div
                       key={`${account.provider}-${account.connectedAt}`}
-                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold text-zinc-900">{account.provider}</span>
-                        <span className="text-xs text-zinc-500">
+                        <span className="font-semibold text-[color:var(--gray-900)]">
+                          {account.provider}
+                        </span>
+                        <span className="text-xs text-[color:var(--gray-500)]">
                           {new Date(account.connectedAt).toLocaleString('pt-BR')}
                         </span>
                       </div>
                       {account.profile ? (
-                        <pre className="mt-3 whitespace-pre-wrap text-xs text-zinc-500">
+                        <pre className="mt-3 whitespace-pre-wrap text-xs text-[color:var(--gray-500)]">
                           {JSON.stringify(account.profile, null, 2)}
                         </pre>
                       ) : (
-                        <p className="mt-2 text-xs text-zinc-500">
+                        <p className="mt-2 text-xs text-[color:var(--gray-500)]">
                           Nenhum detalhe de perfil armazenado.
                         </p>
                       )}
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
                     Nenhuma rede social conectada.
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Dados bancarios</h3>
-              <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                Dados bancarios
+              </h3>
+              <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 {details.bankAccounts && details.bankAccounts.length > 0 ? (
                   details.bankAccounts.map((account) => (
                     <div
                       key={account.id}
-                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold text-zinc-900">
+                        <span className="font-semibold text-[color:var(--gray-900)]">
                           {account.bankName || account.bankCode || 'Banco'}
                         </span>
                         {account.accountType ? (
-                          <span className="text-xs text-zinc-500">{account.accountType}</span>
+                          <span className="text-xs text-[color:var(--gray-500)]">
+                            {account.accountType}
+                          </span>
                         ) : null}
                       </div>
-                      <div className="mt-3 grid gap-2 text-xs text-zinc-600 sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 text-xs text-[color:var(--gray-500)] sm:grid-cols-2">
                         <span>Agencia: {account.agencyMasked ?? '-'}</span>
                         <span>Conta: {account.accountMasked ?? '-'}</span>
                         <span>Titular: {account.holderName ?? '-'}</span>
@@ -822,36 +843,38 @@ export default function AdminProposalDetailsPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
                     Nenhum dado bancario informado.
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Timeline</h3>
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Timeline</h3>
               <div className="mt-4">
                 <Timeline entries={timelineEntries} />
               </div>
             </section>
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Audit trail</h3>
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Audit trail</h3>
               <div className="mt-4 grid gap-3">
                 {details.auditLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="rounded-2xl border border-zinc-200 px-4 py-3 text-sm"
+                    className="rounded-2xl border border-[var(--border)] px-4 py-3 text-sm"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-semibold text-zinc-900">{log.action}</span>
-                      <span className="text-xs text-zinc-500">
+                      <span className="font-semibold text-[color:var(--gray-900)]">
+                        {log.action}
+                      </span>
+                      <span className="text-xs text-[color:var(--gray-500)]">
                         {new Date(log.createdAt).toLocaleString('pt-BR')}
                       </span>
                     </div>
                     {log.metadata ? (
-                      <pre className="mt-2 whitespace-pre-wrap text-xs text-zinc-500">
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-[color:var(--gray-500)]">
                         {JSON.stringify(log.metadata, null, 2)}
                       </pre>
                     ) : null}
@@ -869,25 +892,25 @@ export default function AdminProposalDetailsPage() {
             />
 
             {latestSignature ? (
-              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-zinc-900">Assinatura</h3>
-                <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Assinatura</h3>
+                <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span>Status</span>
-                    <span className="font-semibold text-zinc-900">
+                    <span className="font-semibold text-[color:var(--gray-900)]">
                       {STATUS_LABELS[latestSignature.status] ?? latestSignature.status}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span>Envelope</span>
-                    <span className="font-semibold text-zinc-900">
+                    <span className="font-semibold text-[color:var(--gray-900)]">
                       {latestSignature.envelopeId}
                     </span>
                   </div>
                   {latestSignature.signedAt ? (
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span>Assinado em</span>
-                      <span className="font-semibold text-zinc-900">
+                      <span className="font-semibold text-[color:var(--gray-900)]">
                         {new Date(latestSignature.signedAt).toLocaleString('pt-BR')}
                       </span>
                     </div>
@@ -895,7 +918,7 @@ export default function AdminProposalDetailsPage() {
                   {latestSignature.signerIp ? (
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span>IP</span>
-                      <span className="font-semibold text-zinc-900">
+                      <span className="font-semibold text-[color:var(--gray-900)]">
                         {latestSignature.signerIp}
                       </span>
                     </div>
@@ -903,24 +926,24 @@ export default function AdminProposalDetailsPage() {
                   {latestSignature.signerMethod ? (
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span>Metodo</span>
-                      <span className="font-semibold text-zinc-900">
+                      <span className="font-semibold text-[color:var(--gray-900)]">
                         {latestSignature.signerMethod}
                       </span>
                     </div>
                   ) : null}
                   {latestSignature.originalFileHash ? (
-                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
-                      <p className="font-semibold text-zinc-700">Hashes</p>
-                      <p className="mt-2 break-all text-zinc-500">
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-3 text-xs">
+                      <p className="font-semibold text-[color:var(--gray-700)]">Hashes</p>
+                      <p className="mt-2 break-all text-[color:var(--gray-500)]">
                         Original: {latestSignature.originalFileHash}
                       </p>
                       {latestSignature.signedFileHash ? (
-                        <p className="mt-2 break-all text-zinc-500">
+                        <p className="mt-2 break-all text-[color:var(--gray-500)]">
                           Assinado: {latestSignature.signedFileHash}
                         </p>
                       ) : null}
                       {latestSignature.certificateFileHash ? (
-                        <p className="mt-2 break-all text-zinc-500">
+                        <p className="mt-2 break-all text-[color:var(--gray-500)]">
                           Certificado: {latestSignature.certificateFileHash}
                         </p>
                       ) : null}
@@ -931,15 +954,15 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {editForm && can(user?.roles, 'update') ? (
-              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-zinc-900">Editar dados</h3>
-                <div className="mt-4 grid gap-3 text-sm text-zinc-600">
+              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Editar dados</h3>
+                <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                   <label className="grid gap-2">
                     Nome completo
                     <input
                       value={editForm.person.fullName}
                       onChange={(event) => updateEditPerson({ fullName: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                     />
                   </label>
                   <label className="grid gap-2">
@@ -947,7 +970,7 @@ export default function AdminProposalDetailsPage() {
                     <input
                       value={editForm.person.email}
                       onChange={(event) => updateEditPerson({ email: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       type="email"
                     />
                   </label>
@@ -956,7 +979,7 @@ export default function AdminProposalDetailsPage() {
                     <input
                       value={editForm.person.phone}
                       onChange={(event) => updateEditPerson({ phone: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                     />
                   </label>
                   <label className="grid gap-2">
@@ -964,24 +987,27 @@ export default function AdminProposalDetailsPage() {
                     <input
                       value={editForm.person.birthDate}
                       onChange={(event) => updateEditPerson({ birthDate: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       type="date"
                     />
                   </label>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     Perfil artistico
                   </p>
                   <div className="mt-3 grid gap-2">
                     {(Object.keys(PROFILE_ROLE_LABELS) as ProfileRole[]).map((role) => (
-                      <label key={role} className="flex items-center gap-2 text-sm text-zinc-700">
+                      <label
+                        key={role}
+                        className="flex items-center gap-2 text-sm text-[color:var(--gray-700)]"
+                      >
                         <input
                           type="checkbox"
                           checked={editForm.profileRoles.includes(role)}
                           onChange={() => toggleRole(role)}
-                          className="h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
+                          className="h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                         />
                         <span>{PROFILE_ROLE_LABELS[role]}</span>
                       </label>
@@ -993,57 +1019,57 @@ export default function AdminProposalDetailsPage() {
                       onChange={(event) =>
                         setEditForm({ ...editForm, profileRoleOther: event.target.value })
                       }
-                      className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="Descreva a atuacao"
                     />
                   ) : null}
                 </div>
 
-                <div className="mt-4 grid gap-3 text-sm text-zinc-600">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     Endereco
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <input
                       value={editForm.address.cep}
                       onChange={(event) => updateEditAddress({ cep: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="CEP"
                     />
                     <input
                       value={editForm.address.street}
                       onChange={(event) => updateEditAddress({ street: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="Rua"
                     />
                     <input
                       value={editForm.address.number}
                       onChange={(event) => updateEditAddress({ number: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="Numero"
                     />
                     <input
                       value={editForm.address.complement}
                       onChange={(event) => updateEditAddress({ complement: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="Complemento"
                     />
                     <input
                       value={editForm.address.district}
                       onChange={(event) => updateEditAddress({ district: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="Bairro"
                     />
                     <input
                       value={editForm.address.city}
                       onChange={(event) => updateEditAddress({ city: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="Cidade"
                     />
                     <input
                       value={editForm.address.state}
                       onChange={(event) => updateEditAddress({ state: event.target.value })}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                       placeholder="UF"
                     />
                   </div>
@@ -1069,12 +1095,14 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {can(user?.roles, 'note') ? (
-              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-zinc-900">Notas internas</h3>
+              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                  Notas internas
+                </h3>
                 <textarea
                   value={noteText}
                   onChange={(event) => setNoteText(event.target.value)}
-                  className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                  className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                   rows={3}
                   placeholder="Escreva uma nota interna"
                 />
@@ -1097,12 +1125,12 @@ export default function AdminProposalDetailsPage() {
                   .map((log) => (
                     <div
                       key={log.id}
-                      className="mt-3 rounded-2xl border border-zinc-200 p-3 text-xs"
+                      className="mt-3 rounded-2xl border border-[var(--border)] p-3 text-xs"
                     >
-                      <p className="font-semibold text-zinc-700">
+                      <p className="font-semibold text-[color:var(--gray-700)]">
                         {new Date(log.createdAt).toLocaleString('pt-BR')}
                       </p>
-                      <pre className="mt-2 whitespace-pre-wrap text-[11px] text-zinc-600">
+                      <pre className="mt-2 whitespace-pre-wrap text-[11px] text-[color:var(--gray-500)]">
                         {JSON.stringify(log.metadata, null, 2)}
                       </pre>
                     </div>
@@ -1111,16 +1139,18 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {can(user?.roles, 'message') ? (
-              <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-zinc-900">Mensagem ao candidato</h3>
-                <label className="mt-3 flex flex-col gap-2 text-sm text-zinc-600">
+              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                  Mensagem ao candidato
+                </h3>
+                <label className="mt-3 flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
                   Canal
                   <select
                     value={messageChannel}
                     onChange={(event) =>
                       setMessageChannel(event.target.value as 'EMAIL' | 'SMS' | 'WHATSAPP')
                     }
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                   >
                     <option value="EMAIL">Email</option>
                     <option value="WHATSAPP">WhatsApp</option>
@@ -1128,21 +1158,21 @@ export default function AdminProposalDetailsPage() {
                   </select>
                 </label>
                 {messageChannel === 'EMAIL' ? (
-                  <label className="mt-3 flex flex-col gap-2 text-sm text-zinc-600">
+                  <label className="mt-3 flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
                     Assunto
                     <input
                       value={messageSubject}
                       onChange={(event) => setMessageSubject(event.target.value)}
-                      className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                     />
                   </label>
                 ) : null}
-                <label className="mt-3 flex flex-col gap-2 text-sm text-zinc-600">
+                <label className="mt-3 flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
                   Mensagem
                   <textarea
                     value={messageText}
                     onChange={(event) => setMessageText(event.target.value)}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                    className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                     rows={4}
                   />
                 </label>
@@ -1167,8 +1197,8 @@ export default function AdminProposalDetailsPage() {
               </section>
             ) : null}
 
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-zinc-900">Acoes</h3>
+            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Acoes</h3>
               {actionMessage ? (
                 <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                   {actionMessage}
@@ -1214,12 +1244,12 @@ export default function AdminProposalDetailsPage() {
                 ) : null}
 
                 {can(user?.roles, 'reject') ? (
-                  <div className="rounded-2xl border border-zinc-200 p-4 text-sm text-zinc-600">
-                    <p className="font-semibold text-zinc-700">Reprovar proposta</p>
+                  <div className="rounded-2xl border border-[var(--border)] p-4 text-sm text-[color:var(--gray-500)]">
+                    <p className="font-semibold text-[color:var(--gray-700)]">Reprovar proposta</p>
                     <textarea
                       value={rejectReason}
                       onChange={(event) => setRejectReason(event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
+                      className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                       rows={3}
                       placeholder="Motivo da reprova"
                     />
@@ -1241,12 +1271,14 @@ export default function AdminProposalDetailsPage() {
                 ) : null}
 
                 {can(user?.roles, 'requestChanges') ? (
-                  <div className="rounded-2xl border border-zinc-200 p-4 text-sm text-zinc-600">
-                    <p className="font-semibold text-zinc-700">Solicitar documento adicional</p>
+                  <div className="rounded-2xl border border-[var(--border)] p-4 text-sm text-[color:var(--gray-500)]">
+                    <p className="font-semibold text-[color:var(--gray-700)]">
+                      Solicitar documento adicional
+                    </p>
                     <input
                       value={missingItems}
                       onChange={(event) => setMissingItems(event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
+                      className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                       placeholder="RG, comprovante..."
                     />
                     <Button
@@ -1272,12 +1304,12 @@ export default function AdminProposalDetailsPage() {
                 ) : null}
 
                 {can(user?.roles, 'assign') ? (
-                  <div className="rounded-2xl border border-zinc-200 p-4 text-sm text-zinc-600">
-                    <p className="font-semibold text-zinc-700">Atribuir analista</p>
+                  <div className="rounded-2xl border border-[var(--border)] p-4 text-sm text-[color:var(--gray-500)]">
+                    <p className="font-semibold text-[color:var(--gray-700)]">Atribuir analista</p>
                     <input
                       value={analystId}
                       onChange={(event) => setAnalystId(event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
+                      className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                       placeholder="ID do analista"
                     />
                     <Button
@@ -1361,14 +1393,18 @@ export default function AdminProposalDetailsPage() {
           onClick={() => setActiveDoc(null)}
         >
           <div
-            className="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-zinc-200 bg-white shadow-xl"
+            className="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-xl)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-5">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Documento</p>
-                <h3 className="text-lg font-semibold text-zinc-900">{activeDoc.fileName}</h3>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                  Documento
+                </p>
+                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                  {activeDoc.fileName}
+                </h3>
+                <p className="mt-1 text-xs text-[color:var(--gray-500)]">
                   {activeDoc.type} • {Math.round(activeDoc.size / 1024)}kb •{' '}
                   {new Date(activeDoc.createdAt).toLocaleString('pt-BR')}
                 </p>
@@ -1379,7 +1415,7 @@ export default function AdminProposalDetailsPage() {
               <button
                 type="button"
                 onClick={() => setActiveDoc(null)}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:border-zinc-300"
+                className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
               >
                 Fechar
               </button>
@@ -1387,37 +1423,42 @@ export default function AdminProposalDetailsPage() {
 
             <div className="flex-1 overflow-auto p-5">
               {docViewLoading ? (
-                <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
+                <div className="flex h-64 items-center justify-center text-sm text-[color:var(--gray-500)]">
                   Carregando documento...
                 </div>
               ) : docViewUrl ? (
                 activeDoc.contentType.startsWith('image/') ? (
-                  <img
-                    src={docViewUrl}
-                    alt={activeDoc.fileName}
-                    className="mx-auto max-h-[70vh] rounded-xl object-contain"
-                  />
+                  <div className="relative mx-auto h-[70vh] w-full max-w-4xl overflow-hidden rounded-xl bg-[var(--muted)]">
+                    <Image
+                      src={docViewUrl}
+                      alt={activeDoc.fileName}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 70vw"
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
                 ) : activeDoc.contentType === 'application/pdf' ? (
                   <iframe
                     src={docViewUrl}
                     title={activeDoc.fileName}
-                    className="h-[70vh] w-full rounded-xl border border-zinc-200"
+                    className="h-[70vh] w-full rounded-xl border border-[var(--border)]"
                   />
                 ) : (
-                  <div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-zinc-500">
+                  <div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-[color:var(--gray-500)]">
                     <p>Formato nao suportado para pre-visualizacao.</p>
                     <a
                       href={docViewUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:border-zinc-300"
+                      className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[color:var(--gray-700)] hover:border-[var(--gray-300)]"
                     >
                       Baixar documento
                     </a>
                   </div>
                 )
               ) : (
-                <div className="flex h-64 items-center justify-center text-sm text-zinc-500">
+                <div className="flex h-64 items-center justify-center text-sm text-[color:var(--gray-500)]">
                   Nao foi possivel carregar o documento.
                 </div>
               )}

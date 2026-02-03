@@ -82,12 +82,14 @@ export default function ClientPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">Monitoramento de filas</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h2 className="text-2xl font-semibold text-[color:var(--gray-900)]">
+            Monitoramento de filas
+          </h2>
+          <p className="mt-1 text-sm text-[color:var(--gray-500)]">
             Indicadores de processamento em tempo quase real.
           </p>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-xs text-zinc-500">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs text-[color:var(--gray-500)]">
           Atualiza a cada 15s
         </div>
       </div>
@@ -99,9 +101,14 @@ export default function ClientPage() {
           { label: 'Atrasados', value: summary.delayed },
           { label: 'Falhas', value: summary.failed },
         ].map((card) => (
-          <div key={card.label} className="rounded-2xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{card.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">{card.value}</p>
+          <div
+            key={card.label}
+            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
+          >
+            <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+              {card.label}
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[color:var(--gray-900)]">{card.value}</p>
           </div>
         ))}
       </div>
@@ -113,18 +120,25 @@ export default function ClientPage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
           Carregando filas...
         </div>
       ) : null}
 
       <div className="grid gap-4">
         {queues.map((queue) => (
-          <div key={queue.name} className="rounded-3xl border border-zinc-200 bg-white p-6">
+          <div
+            key={queue.name}
+            className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6"
+          >
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{queue.name}</p>
-                <h3 className="mt-1 text-lg font-semibold text-zinc-900">{queue.label}</h3>
+                <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                  {queue.name}
+                </p>
+                <h3 className="mt-1 text-lg font-semibold text-[color:var(--gray-900)]">
+                  {queue.label}
+                </h3>
               </div>
               <span
                 className={cn(
@@ -140,14 +154,17 @@ export default function ClientPage() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {COUNT_ORDER.map((key) => (
-                <div key={key} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+                <div
+                  key={key}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-3"
+                >
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     {formatLabel(key)}
                   </p>
                   <p
                     className={cn(
                       'mt-2 text-lg font-semibold',
-                      key === 'failed' ? 'text-red-700' : 'text-zinc-900',
+                      key === 'failed' ? 'text-red-700' : 'text-[color:var(--gray-900)]',
                     )}
                   >
                     {queue.counts[key] ?? 0}

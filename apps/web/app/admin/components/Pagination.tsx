@@ -14,8 +14,8 @@ export const Pagination = ({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3">
-      <span className="text-xs text-zinc-500">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+      <span className="text-xs text-[color:var(--gray-500)]">
         Pagina {page} de {totalPages}
       </span>
       <div className="flex items-center gap-2">

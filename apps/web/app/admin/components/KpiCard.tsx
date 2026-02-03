@@ -14,7 +14,7 @@ export const KpiCard = ({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-zinc-200 bg-white p-5 shadow-lg',
+        'rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-md)]',
         tone === 'info' && 'border-blue-200 bg-blue-50',
         tone === 'purple' && 'border-purple-200 bg-purple-50',
         tone === 'success' && 'border-emerald-200 bg-emerald-50',
@@ -22,9 +22,9 @@ export const KpiCard = ({
         tone === 'danger' && 'border-red-200 bg-red-50',
       )}
     >
-      <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-zinc-900">{value}</p>
-      {hint ? <p className="mt-2 text-xs text-zinc-600">{hint}</p> : null}
+      <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-[color:var(--gray-900)]">{value}</p>
+      {hint ? <p className="mt-2 text-xs text-[color:var(--gray-500)]">{hint}</p> : null}
     </div>
   );
 };

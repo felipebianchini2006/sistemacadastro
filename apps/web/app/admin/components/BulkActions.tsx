@@ -97,18 +97,18 @@ export function BulkActions({
   return (
     <div className="flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 p-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ff6b35] text-sm font-bold text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
           {selectedCount}
         </div>
         <div>
-          <p className="text-sm font-semibold text-zinc-900">
+          <p className="text-sm font-semibold text-[color:var(--gray-900)]">
             {selectedCount}{' '}
             {selectedCount === 1 ? 'proposta selecionada' : 'propostas selecionadas'}
           </p>
           <button
             type="button"
             onClick={onClearSelection}
-            className="text-xs text-zinc-600 hover:text-zinc-900 hover:underline"
+            className="text-xs text-[color:var(--gray-500)] hover:text-[color:var(--gray-900)] hover:underline"
           >
             Limpar selecao
           </button>
@@ -128,7 +128,7 @@ export function BulkActions({
             aria-haspopup="menu"
             aria-expanded={isOpen}
             aria-controls={menuId}
-            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-zinc-400 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
           >
             Acoes em lote
             <svg
@@ -159,7 +159,7 @@ export function BulkActions({
                 ref={menuRef}
                 id={menuId}
                 role="menu"
-                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg"
+                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg"
                 onKeyDown={handleMenuKeyDown}
               >
                 <div className="py-1">
@@ -171,10 +171,10 @@ export function BulkActions({
                     }}
                     role="menuitem"
                     tabIndex={-1}
-                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                   >
                     <svg
-                      className="h-5 w-5 text-zinc-400"
+                      className="h-5 w-5 text-[color:var(--gray-500)]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -199,10 +199,10 @@ export function BulkActions({
                     }}
                     role="menuitem"
                     tabIndex={-1}
-                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                   >
                     <svg
-                      className="h-5 w-5 text-zinc-400"
+                      className="h-5 w-5 text-[color:var(--gray-500)]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -219,7 +219,7 @@ export function BulkActions({
                     Alterar status
                   </button>
 
-                  <div className="my-1 border-t border-zinc-100" />
+                  <div className="my-1 border-t border-[var(--border)]" />
 
                   <button
                     type="button"
@@ -229,10 +229,10 @@ export function BulkActions({
                     }}
                     role="menuitem"
                     tabIndex={-1}
-                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                   >
                     <svg
-                      className="h-5 w-5 text-zinc-400"
+                      className="h-5 w-5 text-[color:var(--gray-500)]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"

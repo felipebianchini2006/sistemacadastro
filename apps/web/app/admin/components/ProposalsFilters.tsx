@@ -58,38 +58,41 @@ export const ProposalsFilters = ({
   };
 
   return (
-    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-zinc-900">Filtros</h3>
+        <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Filtros</h3>
         <Button variant="secondary" onClick={onClear}>
           Limpar
         </Button>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <fieldset className="flex flex-col gap-2 text-sm text-zinc-600">
-          <legend className="font-medium text-zinc-700">Status</legend>
-          <div className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+        <fieldset className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
+          <legend className="font-medium text-[color:var(--gray-700)]">Status</legend>
+          <div className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
             {statusOptions.map((option) => (
-              <label key={option.value} className="flex items-center gap-2 text-sm text-zinc-700">
+              <label
+                key={option.value}
+                className="flex items-center gap-2 text-sm text-[color:var(--gray-700)]"
+              >
                 <input
                   type="checkbox"
                   checked={selectedStatuses.includes(option.value)}
                   onChange={() => toggleStatus(option.value)}
-                  className="h-4 w-4 rounded border-zinc-400 text-orange-500 focus:ring-orange-200"
+                  className="h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
                 />
                 <span>{option.label}</span>
               </label>
             ))}
           </div>
         </fieldset>
-        <label className="flex flex-col gap-2 text-sm text-zinc-600">
+        <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           Tipo
           <select
             value={memoFilters.type ?? ''}
             onChange={(event) =>
               onChange({ ...memoFilters, type: event.target.value || undefined })
             }
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
           >
             {typeOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -98,12 +101,12 @@ export const ProposalsFilters = ({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-2 text-sm text-zinc-600">
+        <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           SLA
           <select
             value={memoFilters.sla ?? ''}
             onChange={(event) => onChange({ ...memoFilters, sla: event.target.value || undefined })}
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
           >
             {slaOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -112,7 +115,7 @@ export const ProposalsFilters = ({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-2 text-sm text-zinc-600">
+        <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           Data inicial
           <input
             type="date"
@@ -120,10 +123,10 @@ export const ProposalsFilters = ({
             onChange={(event) =>
               onChange({ ...memoFilters, dateFrom: event.target.value || undefined })
             }
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
           />
         </label>
-        <label className="flex flex-col gap-2 text-sm text-zinc-600">
+        <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           Data final
           <input
             type="date"
@@ -131,10 +134,10 @@ export const ProposalsFilters = ({
             onChange={(event) =>
               onChange({ ...memoFilters, dateTo: event.target.value || undefined })
             }
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
           />
         </label>
-        <label className="flex flex-col gap-2 text-sm text-zinc-600">
+        <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           Busca
           <input
             value={memoFilters.text ?? ''}
@@ -142,7 +145,7 @@ export const ProposalsFilters = ({
               onChange({ ...memoFilters, text: event.target.value || undefined })
             }
             placeholder="Nome ou CPF"
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
           />
         </label>
       </div>

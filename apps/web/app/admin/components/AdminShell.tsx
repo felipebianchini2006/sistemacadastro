@@ -87,12 +87,16 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div className="min-h-screen bg-soft-gradient">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl">
-        <aside className="hidden w-64 flex-col gap-6 border-r border-zinc-200 bg-white/80 p-6 backdrop-blur lg:flex">
+    <div className="min-h-screen-dvh bg-soft-gradient">
+      <div className="mx-auto flex min-h-screen-dvh w-full max-w-7xl">
+        <aside className="hidden w-64 flex-col gap-6 border-r border-[var(--border)] bg-white/80 p-6 backdrop-blur lg:flex">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Admin</p>
-            <h2 className="mt-2 text-xl font-semibold text-zinc-900">Sistema Cadastro</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+              Admin
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-[color:var(--gray-900)]">
+              Sistema Cadastro
+            </h2>
           </div>
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
@@ -105,14 +109,18 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
                   href={item.href}
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center justify-between rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                    isActive ? 'bg-emerald-600 text-white' : 'text-zinc-600 hover:bg-zinc-100'
+                    isActive
+                      ? 'bg-[var(--primary)] text-white shadow-sm'
+                      : 'text-[color:var(--gray-500)] hover:bg-[var(--gray-100)]'
                   }`}
                 >
                   {item.label}
                   {badge ? (
                     <span
                       className={`ml-2 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                        isActive ? 'bg-white text-emerald-700' : 'bg-red-500 text-white'
+                        isActive
+                          ? 'bg-[var(--card)] text-[color:var(--primary-dark)]'
+                          : 'bg-red-500 text-white'
                       }`}
                     >
                       {badge}
@@ -122,24 +130,24 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
               );
             })}
           </nav>
-          <div className="mt-auto rounded-2xl border border-zinc-200 bg-white p-4 text-xs text-zinc-600">
-            <p className="font-semibold text-zinc-700">Logado como</p>
-            <p className="mt-1 text-sm text-zinc-700">{user?.email ?? 'usuario'}</p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.2em]">
+          <div className="mt-auto rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-xs text-[color:var(--gray-500)]">
+            <p className="font-semibold text-[color:var(--gray-700)]">Logado como</p>
+            <p className="mt-1 text-sm text-[color:var(--gray-700)]">{user?.email ?? 'usuario'}</p>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               {user?.roles?.join(', ') ?? '---'}
             </p>
             {pushSupported ? (
               <button
                 type="button"
                 onClick={togglePush}
-                className="mt-3 flex w-full items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50"
+                className="mt-3 flex w-full items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[color:var(--gray-700)] hover:bg-[var(--gray-50)]"
                 aria-label={
                   pushEnabled ? 'Desativar notificacoes push' : 'Ativar notificacoes push'
                 }
               >
                 <span>Notificacoes push</span>
                 <span
-                  className={`inline-block h-3 w-3 rounded-full ${pushEnabled ? 'bg-emerald-500' : 'bg-zinc-300'}`}
+                  className={`inline-block h-3 w-3 rounded-full ${pushEnabled ? 'bg-emerald-500' : 'bg-[var(--gray-300)]'}`}
                   aria-hidden="true"
                 />
               </button>
@@ -148,13 +156,17 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
         </aside>
 
         <div className="flex flex-1 flex-col">
-          <header className="flex items-center justify-between border-b border-zinc-200 bg-white/80 px-6 py-4 backdrop-blur">
+          <header className="flex items-center justify-between border-b border-[var(--border)] bg-white/80 px-6 py-4 backdrop-blur">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Admin</p>
-              <h1 className="text-lg font-semibold text-zinc-900">Painel de controle</h1>
+              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                Admin
+              </p>
+              <h1 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                Painel de controle
+              </h1>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden text-sm text-zinc-600 md:block">
+              <span className="hidden text-sm text-[color:var(--gray-500)] md:block">
                 {user?.email ?? 'usuario'}
               </span>
               <Button

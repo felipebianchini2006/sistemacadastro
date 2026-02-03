@@ -99,23 +99,26 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
   };
 
   return (
-    <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-lg">
+    <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold text-zinc-900">Pendencias</h3>
+        <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Pendencias</h3>
         {hasDocsPending ? (
           <Button onClick={() => setShowUpload((prev) => !prev)}>
             {showUpload ? 'Fechar envio' : 'Enviar documentos'}
           </Button>
         ) : null}
       </div>
-      <ul className="mt-4 grid gap-2 text-sm text-zinc-600">
+      <ul className="mt-4 grid gap-2 text-sm text-[color:var(--gray-500)]">
         {items.length === 0 ? (
           <li className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
             Nenhuma pendencia no momento.
           </li>
         ) : (
           items.map((item, index) => (
-            <li key={`${item}-${index}`} className="rounded-2xl border border-zinc-200 px-4 py-3">
+            <li
+              key={`${item}-${index}`}
+              className="rounded-2xl border border-[var(--border)] px-4 py-3"
+            >
               {item}
             </li>
           ))
@@ -123,9 +126,11 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
       </ul>
 
       {hasDocsPending && showUpload ? (
-        <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-          <p className="text-sm font-semibold text-zinc-700">Enviar documentos complementares</p>
-          <p className="mt-2 text-xs text-zinc-500">
+        <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+          <p className="text-sm font-semibold text-[color:var(--gray-700)]">
+            Enviar documentos complementares
+          </p>
+          <p className="mt-2 text-xs text-[color:var(--gray-500)]">
             Use o token seguro recebido por email. Nunca compartilhe este link.
           </p>
           {!canUpload ? (
@@ -134,12 +139,12 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
             </div>
           ) : (
             <div className="mt-4 grid gap-3">
-              <label className="flex flex-col gap-2 text-sm text-zinc-600">
+              <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
                 Tipo de documento
                 <select
                   value={docType}
                   onChange={(event) => setDocType(event.target.value as DocType)}
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+                  className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                 >
                   {DOC_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -148,7 +153,7 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
                   ))}
                 </select>
               </label>
-              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-zinc-400 bg-white px-4 py-6 text-sm text-zinc-500">
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-[var(--gray-300)] bg-[var(--card)] px-4 py-6 text-sm text-[color:var(--gray-500)]">
                 <input
                   type="file"
                   className="hidden"

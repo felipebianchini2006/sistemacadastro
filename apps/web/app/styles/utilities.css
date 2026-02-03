@@ -1,0 +1,67 @@
+@layer utilities {
+  .animate-fade-up {
+    animation: fade-up 0.45s ease-out both;
+  }
+
+  .bg-soft-gradient {
+    background-image:
+      radial-gradient(circle at top right, rgba(255, 107, 53, 0.18), transparent 45%),
+      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.12), transparent 50%);
+  }
+
+  .bg-sheen {
+    background-size: 200% 200%;
+    animation: shimmer 6s ease infinite;
+  }
+
+  .surface-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .surface-glass {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(12px);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+  }
+
+  .text-muted {
+    color: var(--gray-500);
+  }
+
+  .text-subtle {
+    color: var(--gray-700);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-md);
+  }
+
+  .min-h-screen-dvh {
+    min-height: 100dvh;
+  }
+
+  .page-shell {
+    width: min(1200px, 100% - 2rem);
+    margin-inline: auto;
+  }
+
+  .toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 400px;
+  }
+
+  .toast-progress {
+    animation: toastProgress 5s linear;
+  }
+}
