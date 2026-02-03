@@ -15,6 +15,7 @@ export const preprocessImage = async (buffer: Buffer) => {
   const metadata = await image.metadata();
   const width = metadata.width;
   const height = metadata.height;
+  const orientation = metadata.orientation ?? 1;
 
   let pipeline = image.rotate();
   let resized = false;
@@ -34,7 +35,7 @@ export const preprocessImage = async (buffer: Buffer) => {
   return {
     buffer: output,
     resized,
-    rotated: true,
+    rotated: orientation !== 1,
     originalWidth: width,
     originalHeight: height,
   } satisfies ImagePreprocessResult;

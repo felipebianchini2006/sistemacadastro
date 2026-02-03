@@ -6,6 +6,8 @@ export type OcrComparison = {
   mismatch: boolean;
   reasons: string[];
   nameSimilarity: number;
+  nameDivergence: number;
+  nameThreshold: number;
   cpfMatches?: boolean;
 };
 
@@ -15,12 +17,14 @@ export const compareOcrWithProposal = (input: {
   fields: OcrFields;
   proposalName?: string | null;
   proposalCpfHash?: string | null;
+  nameDivergenceThreshold?: number;
 }): OcrComparison => {
   const reasons: string[] = [];
   const nameSimilarity = stringSimilarity(input.fields.nome, input.proposalName ?? undefined);
   const divergence = 1 - nameSimilarity;
+  const threshold = input.nameDivergenceThreshold ?? 0.2;
 
-  if (input.fields.nome && input.proposalName && divergence > 0.2) {
+  if (input.fields.nome && input.proposalName && divergence > threshold) {
     reasons.push('nome');
   }
 
@@ -36,6 +40,8 @@ export const compareOcrWithProposal = (input: {
     mismatch: reasons.length > 0,
     reasons,
     nameSimilarity,
+    nameDivergence: divergence,
+    nameThreshold: threshold,
     cpfMatches,
   };
 };

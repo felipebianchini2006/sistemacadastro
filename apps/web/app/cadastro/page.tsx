@@ -927,6 +927,26 @@ export default function CadastroPage() {
     if (!data) return null;
     const name = resolveOcrField(data, ['nome', 'name', 'fullName']);
     const cpf = resolveOcrField(data, ['cpf', 'document', 'documento']);
+    const heuristics = previewOcrResult?.heuristics as
+      | {
+          comparison?: {
+            mismatch?: boolean;
+            nameThreshold?: number;
+            nameDivergence?: number;
+            cpfMatches?: boolean;
+          };
+        }
+      | undefined;
+    if (heuristics?.comparison) {
+      return {
+        divergence: Boolean(heuristics.comparison.mismatch),
+        name,
+        cpf,
+        threshold: heuristics.comparison.nameThreshold,
+        divergenceScore: heuristics.comparison.nameDivergence,
+      };
+    }
+
     const nameScore = similarity(name, form.fullName);
     const cpfMatch = normalizeCpf(cpf) === normalizeCpf(form.cpf);
     const divergence = nameScore < 0.8 || (cpf && !cpfMatch);
@@ -954,6 +974,16 @@ export default function CadastroPage() {
       return 'Documento vencido. Por favor, envie um documento dentro da validade.';
     }
     return null;
+  }, [previewOcrResult]);
+
+  const docTypeWarning = useMemo(() => {
+    const heuristics = previewOcrResult?.heuristics as
+      | { docType?: { detected?: string | null; uploaded?: string | null; mismatch?: boolean } }
+      | undefined;
+    if (!heuristics?.docType?.mismatch) return null;
+    const detected = heuristics.docType.detected ?? 'desconhecido';
+    const uploaded = heuristics.docType.uploaded ?? 'documento enviado';
+    return `O OCR identificou ${detected}, mas o documento enviado foi ${uploaded}. Verifique se esta correto.`;
   }, [previewOcrResult]);
 
   const ocrPreviewFields = useMemo(() => {
@@ -1874,6 +1904,11 @@ export default function CadastroPage() {
                         {legibilityWarning ? (
                           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                             {legibilityWarning}
+                          </div>
+                        ) : null}
+                        {docTypeWarning ? (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            {docTypeWarning}
                           </div>
                         ) : null}
                         {expiredWarning ? (

@@ -183,13 +183,17 @@ export class OcrWorker {
       mismatch: false,
       reasons: [],
       nameSimilarity: 1,
+      nameDivergence: 0,
+      nameThreshold: 0.2,
     };
     if (parsed) {
+      const divergenceThreshold = resolveDivergenceThreshold(process.env.OCR_DIVERGENCE_THRESHOLD);
       if (proposal?.person) {
         comparison = compareOcrWithProposal({
           fields: parsed.fields,
           proposalName: proposal.person.fullName,
           proposalCpfHash: proposal.person.cpfHash,
+          nameDivergenceThreshold: divergenceThreshold,
         });
       } else if (documentFile.draftId) {
         const draft = await prisma.draft.findUnique({
@@ -204,6 +208,7 @@ export class OcrWorker {
           fields: parsed.fields,
           proposalName: draftData.fullName,
           proposalCpfHash: cpfHash,
+          nameDivergenceThreshold: divergenceThreshold,
         });
       }
     }
@@ -369,6 +374,15 @@ const parseNumber = (value: string | undefined, fallback: number) => {
   const parsed = value ? Number(value) : NaN;
   if (Number.isFinite(parsed) && parsed > 0) return parsed;
   return fallback;
+};
+
+const resolveDivergenceThreshold = (value?: string) => {
+  if (!value) return 0.2;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0.2;
+  const ratio = parsed > 1 ? parsed / 100 : parsed;
+  if (!Number.isFinite(ratio)) return 0.2;
+  return Math.min(0.5, Math.max(0.05, ratio));
 };
 
 const resolveUploadedDocType = (type: DocumentType) => {

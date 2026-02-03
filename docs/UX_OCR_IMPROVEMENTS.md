@@ -401,12 +401,12 @@ graph TD
 
 ---
 
-## 10. Próximos Passos (Não implementados nesta etapa)
+## 10. Próximos Passos
 
-- [ ] Detecção automática de tipo de documento (RG vs CNH) via OCR
-- [ ] Limiar de divergência configurável (spec pede 20%)
-- [ ] Detecção de documento vencido via data de validade OCR
-- [ ] Rotação automática de documento inclinado
+- [x] Detecção automática de tipo de documento (RG vs CNH) via OCR
+- [x] Limiar de divergência configurável (OCR_DIVERGENCE_THRESHOLD = 0.1/0.2/0.3)
+- [x] Detecção de documento vencido via data de validade OCR
+- [x] Rotação automática via EXIF (sharp.rotate)
 - [ ] Crop automático das bordas do documento
 - [ ] Compressão de imagem antes do upload (reduzir payload)
 

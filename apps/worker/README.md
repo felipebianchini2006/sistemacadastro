@@ -23,6 +23,8 @@ Optional tuning:
 - OCR_LIMITER_MAX (default 10)
 - OCR_LIMITER_DURATION_MS (default 60000)
 - OCR_CONCURRENCY (default 2)
+- OCR_MIN_TEXT_LENGTH (default 20)
+- OCR_DIVERGENCE_THRESHOLD (default 0.2, aceita 0.1/0.2/0.3 ou 10/20/30)
 
 Signature env (Clicksign):
 
