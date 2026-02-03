@@ -14,37 +14,71 @@ async function main() {
     });
   }
 
-  const email = process.env.ADMIN_SEED_EMAIL ?? 'admin@sistemacadastro.local';
-  const password = process.env.ADMIN_SEED_PASSWORD ?? 'Admin123!';
-  const passwordHash = await bcrypt.hash(password, 10);
+  const adminRole = (await prisma.role.findUnique({
+    where: { name: RoleName.ADMIN },
+  }))!;
+  const analystRole = (await prisma.role.findUnique({
+    where: { name: RoleName.ANALYST },
+  }))!;
 
-  const admin = await prisma.adminUser.upsert({
-    where: { email },
-    update: { passwordHash },
+  const defaultAdminEmail =
+    process.env.ADMIN_SEED_EMAIL ?? 'admin@sistemacadastro.local';
+  const defaultAdminPassword = process.env.ADMIN_SEED_PASSWORD ?? 'Admin123!';
+  const defaultAdminPasswordHash = await bcrypt.hash(defaultAdminPassword, 10);
+
+  const defaultAdmin = await prisma.adminUser.upsert({
+    where: { email: defaultAdminEmail },
+    update: { passwordHash: defaultAdminPasswordHash },
     create: {
-      email,
+      email: defaultAdminEmail,
       name: 'Admin',
-      passwordHash,
-      roles: {
-        create: [
-          {
-            role: {
-              connect: { name: RoleName.ADMIN },
-            },
-          },
-        ],
-      },
+      passwordHash: defaultAdminPasswordHash,
     },
-    include: { roles: { include: { role: true } } },
   });
 
-  if (admin.roles.length === 0) {
-    await prisma.adminUserRole.create({
-      data: {
-        adminUserId: admin.id,
-        roleId: (await prisma.role.findUnique({
-          where: { name: RoleName.ADMIN },
-        }))!.id,
+  await prisma.adminUserRole.upsert({
+    where: {
+      adminUserId_roleId: {
+        adminUserId: defaultAdmin.id,
+        roleId: adminRole.id,
+      },
+    },
+    update: {},
+    create: {
+      adminUserId: defaultAdmin.id,
+      roleId: adminRole.id,
+    },
+  });
+
+  const seedUsers = [
+    { email: 'admin@email.com', name: 'Admin', roleId: adminRole.id },
+    { email: 'analista@email.com', name: 'Analista', roleId: analystRole.id },
+  ];
+
+  const seedPasswordHash = await bcrypt.hash('123456', 10);
+
+  for (const seedUser of seedUsers) {
+    const user = await prisma.adminUser.upsert({
+      where: { email: seedUser.email },
+      update: { passwordHash: seedPasswordHash },
+      create: {
+        email: seedUser.email,
+        name: seedUser.name,
+        passwordHash: seedPasswordHash,
+      },
+    });
+
+    await prisma.adminUserRole.upsert({
+      where: {
+        adminUserId_roleId: {
+          adminUserId: user.id,
+          roleId: seedUser.roleId,
+        },
+      },
+      update: {},
+      create: {
+        adminUserId: user.id,
+        roleId: seedUser.roleId,
       },
     });
   }
