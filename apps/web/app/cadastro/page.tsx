@@ -383,12 +383,9 @@ const loadImageSize = (file: File) =>
   });
 
 export default function CadastroPage() {
-  const initialRestore = useMemo(() => readStoredDraft(), []);
-  const [hydrated, setHydrated] = useState(!initialRestore);
-  const [privacyAcceptedGate, setPrivacyAcceptedGate] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('privacy_gate_accepted') === 'true';
-  });
+  const [hydrated, setHydrated] = useState(false);
+  const [privacyAcceptedGate, setPrivacyAcceptedGate] = useState(false);
+  const [privacyGateReady, setPrivacyGateReady] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [form, setForm] = useState<DraftFormState>(defaultForm);
   const [draftMeta, setDraftMeta] = useState<DraftMeta | null>(null);
@@ -403,8 +400,8 @@ export default function CadastroPage() {
     form: DraftFormState;
     draftMeta?: DraftMeta | null;
     stepIndex?: number;
-  } | null>(initialRestore);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(Boolean(initialRestore));
+  } | null>(null);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [mobileFieldIndex, setMobileFieldIndex] = useState(0);
@@ -422,6 +419,22 @@ export default function CadastroPage() {
     [form.proposalType],
   );
   const currentStep = steps[stepIndex]?.id ?? steps[0]?.id;
+
+  useEffect(() => {
+    const stored = readStoredDraft();
+    if (stored) {
+      setRestoreDraft(stored);
+      setShowRestorePrompt(true);
+    } else {
+      setHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setPrivacyAcceptedGate(localStorage.getItem('privacy_gate_accepted') === 'true');
+    setPrivacyGateReady(true);
+  }, []);
 
   const cpfValidation = useCpfValidation(form.cpf);
   const emailValidation = useEmailValidation(form.email);
@@ -1541,10 +1554,11 @@ export default function CadastroPage() {
     localStorage.setItem('privacy_gate_accepted', 'true');
     setPrivacyAcceptedGate(true);
   };
+  const showPrivacyGate = privacyGateReady && !privacyAcceptedGate;
 
   return (
     <>
-      {!privacyAcceptedGate && <PrivacyGate onAccept={handlePrivacyGateAccept} />}
+      {showPrivacyGate && <PrivacyGate onAccept={handlePrivacyGateAccept} />}
       <div className="min-h-screen bg-soft-gradient px-4 py-10 sm:px-8">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-sheen" />
         {showRestorePrompt ? (
