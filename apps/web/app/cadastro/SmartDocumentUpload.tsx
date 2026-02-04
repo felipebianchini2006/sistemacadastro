@@ -162,6 +162,7 @@ export function SmartDocumentUpload({
         resolvedMeta = basic.metadata;
       }
 
+      const contentType = file.type || 'application/octet-stream';
       const presign = await apiFetch<UploadPresignResponse>('/public/uploads/presign', {
         method: 'POST',
         headers: {
@@ -171,7 +172,7 @@ export function SmartDocumentUpload({
           draftId,
           docType: documentType,
           fileName: file.name,
-          contentType: file.type,
+          contentType,
           size: file.size,
           imageWidth: resolvedMeta?.width,
           imageHeight: resolvedMeta?.height,
@@ -187,7 +188,12 @@ export function SmartDocumentUpload({
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Falha no upload do arquivo');
+        const raw = await uploadResponse.text().catch(() => '');
+        const detail = raw.replace(/\s+/g, ' ').trim();
+        const message = detail
+          ? `Upload rejeitado (${uploadResponse.status}): ${detail.slice(0, 240)}`
+          : `Falha no upload do arquivo (${uploadResponse.status})`;
+        throw new Error(message);
       }
 
       const previewUrl = URL.createObjectURL(file);

@@ -17,7 +17,7 @@ export type ImageQualityCheck = {
 
 const MIN_WIDTH = 600;
 const MIN_HEIGHT = 600;
-const MIN_SIZE = 100 * 1024; // 100KB
+const MIN_SIZE = 5 * 1024; // 5KB
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 

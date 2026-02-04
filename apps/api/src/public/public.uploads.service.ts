@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DocumentType, ProposalStatus } from '@prisma/client';
+import { ProposalStatus } from '@prisma/client';
 import { createHash } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -68,7 +68,6 @@ export class PublicUploadsService {
       contentType: payload.contentType,
     });
 
-    const metadata = this.buildMetadata(owner, payload.docType);
     const document = await this.prisma.documentFile.create({
       data: {
         draftId: owner.kind === 'draft' ? owner.id : null,
@@ -118,7 +117,6 @@ export class PublicUploadsService {
     const presign = await this.storage.presignPutObject({
       key: storageKey,
       contentType: payload.contentType,
-      metadata,
     });
 
     return {
@@ -129,30 +127,8 @@ export class PublicUploadsService {
       method: 'PUT',
       headers: {
         'Content-Type': payload.contentType,
-        ...this.metadataHeaders(metadata),
       },
     };
-  }
-
-  private buildMetadata(
-    owner: { kind: 'draft' | 'proposal'; id: string },
-    docType: DocumentType,
-  ) {
-    return {
-      docType,
-      ...(owner.kind === 'draft'
-        ? { draftId: owner.id }
-        : { proposalId: owner.id }),
-    };
-  }
-
-  private metadataHeaders(metadata: Record<string, string>) {
-    return Object.fromEntries(
-      Object.entries(metadata).map(([key, value]) => [
-        `x-amz-meta-${key.toLowerCase()}`,
-        value,
-      ]),
-    );
   }
 
   private validatePayload(dto: UploadPresignDto, tokens: UploadTokens) {

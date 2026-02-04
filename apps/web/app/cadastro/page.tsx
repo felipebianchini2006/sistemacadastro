@@ -395,6 +395,7 @@ export default function CadastroPage() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'done' | 'error'>(
     'idle',
   );
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [draftOcrResults, setDraftOcrResults] = useState<DraftOcrResult[]>([]);
   const [restoreDraft, setRestoreDraft] = useState<{
@@ -871,7 +872,7 @@ export default function CadastroPage() {
       if (isImage && dimensions) {
         const minWidth = 600;
         const minHeight = 600;
-        const minSize = 20000; // 20KB
+        const minSize = 5 * 1024; // 5KB
 
         if (dimensions.width < minWidth || dimensions.height < minHeight) {
           throw new Error(
@@ -969,6 +970,7 @@ export default function CadastroPage() {
 
   const submitProposal = async () => {
     setSubmitStatus('submitting');
+    setSubmitError(null);
     try {
       await syncDraft(true);
       const meta = await ensureDraft(buildPayload());
@@ -980,7 +982,8 @@ export default function CadastroPage() {
       setSubmitStatus('done');
       setDraftMeta(null);
       window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : null);
       setSubmitStatus('error');
     }
   };
@@ -2514,7 +2517,7 @@ export default function CadastroPage() {
                     role="alert"
                     aria-live="assertive"
                   >
-                    Falha ao enviar. Revise os dados e tente novamente.
+                    {submitError ?? 'Falha ao enviar. Revise os dados e tente novamente.'}
                   </div>
                 ) : null}
               </StepLayout>
