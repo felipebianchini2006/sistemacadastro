@@ -16,7 +16,7 @@ const baseInput =
   'w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm placeholder:text-[color:var(--gray-500)]';
 
 const focusInput =
-  'focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-soft)] focus-visible:ring-offset-2 focus-visible:ring-offset-white';
+  'focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-soft)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]';
 
 const statusClasses: Record<InputStatus, string> = {
   default: '',

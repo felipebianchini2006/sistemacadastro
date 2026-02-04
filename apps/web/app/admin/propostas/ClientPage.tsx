@@ -394,11 +394,19 @@ export default function ClientPage() {
           <h2 className="text-2xl font-semibold text-[color:var(--gray-900)]">Propostas</h2>
           <p className="mt-1 text-sm text-[color:var(--gray-500)]">Consulte, filtre e exporte.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => downloadCsv(tableItems)}>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <Button
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => downloadCsv(tableItems)}
+          >
             Exportar CSV
           </Button>
-          <Button variant="secondary" onClick={() => downloadExcel(tableItems)}>
+          <Button
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => downloadExcel(tableItems)}
+          >
             Exportar Excel
           </Button>
         </div>
@@ -427,7 +435,7 @@ export default function ClientPage() {
       <div aria-live="polite" role="status">
         {error ? (
           <div
-            className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]"
             role="alert"
           >
             {error}
@@ -499,7 +507,7 @@ export default function ClientPage() {
           onChange={(value) => setAssignAnalystId(value)}
         />
         {bulkError ? (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="mt-3 rounded-xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-3 py-2 text-xs text-[color:var(--error)]">
             {bulkError}
           </div>
         ) : null}
@@ -563,7 +571,7 @@ export default function ClientPage() {
           ) : null}
         </div>
         {bulkError ? (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="mt-3 rounded-xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-3 py-2 text-xs text-[color:var(--error)]">
             {bulkError}
           </div>
         ) : null}

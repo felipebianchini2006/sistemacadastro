@@ -96,20 +96,20 @@ export default function TotvsMonitorPage() {
         </div>
         <Link
           href="/admin"
-          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] shadow-sm"
+          className="admin-pill border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-700)]"
         >
           Voltar ao Dashboard
         </Link>
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
           {error}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
+        <div className="admin-card px-4 py-3 text-sm text-[color:var(--gray-500)]">
           Carregando dados...
         </div>
       ) : null}
@@ -128,7 +128,7 @@ export default function TotvsMonitorPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+            <div className="admin-card p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 Ultima sincronizacao com sucesso
               </p>
@@ -139,7 +139,7 @@ export default function TotvsMonitorPage() {
                 {formatDate(stats.lastSyncAt)}
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+            <div className="admin-card p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 Ultima falha
               </p>
@@ -153,7 +153,7 @@ export default function TotvsMonitorPage() {
           </div>
 
           {/* Status distribution bar */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+          <div className="admin-card p-5">
             <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               Distribuicao de status
             </p>
@@ -203,12 +203,12 @@ export default function TotvsMonitorPage() {
       ) : null}
 
       {/* Recent syncs table */}
-      <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
+      <div className="admin-card rounded-3xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Sincronizacoes recentes
           </p>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {(['ALL', 'PENDING', 'SYNCED', 'FAILED'] as const).map((f) => (
               <button
                 key={f}
@@ -217,7 +217,7 @@ export default function TotvsMonitorPage() {
                   'rounded-lg px-3 py-1 text-xs font-semibold transition',
                   filter === f
                     ? 'bg-[var(--primary)] text-white'
-                    : 'bg-[var(--muted)] text-[color:var(--gray-500)] hover:bg-[var(--gray-200)]',
+                    : 'bg-[var(--muted)] text-[color:var(--gray-500)] hover:bg-[color:rgba(255,255,255,0.04)]',
                 )}
               >
                 {f === 'ALL' ? 'Todos' : (STATUS_LABELS[f]?.label ?? f)}
@@ -225,105 +225,192 @@ export default function TotvsMonitorPage() {
             ))}
           </div>
         </div>
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[var(--muted)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
-            <tr>
-              <th scope="col" className="px-4 py-3">
-                Protocolo
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Candidato
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Status Sync
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Status Proposta
-              </th>
-              <th scope="col" className="px-4 py-3">
-                ID Externo
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Ultima Sync
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Atualizado
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((sync) => {
-              const statusInfo = STATUS_LABELS[sync.status] ?? {
-                label: sync.status,
-                tone: 'default',
-              };
-              return (
-                <tr key={sync.id} className="border-t border-[var(--border)]">
-                  <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
-                    {sync.protocol ? (
-                      <Link
-                        href={`/admin/propostas/${sync.proposalId}`}
-                        className="hover:underline"
-                      >
-                        {sync.protocol}
-                      </Link>
-                    ) : (
-                      '-'
+        <div className="hidden lg:block">
+          <div className="admin-table-wrap">
+            <table className="admin-table w-full text-left text-sm">
+              <thead className="bg-[var(--muted)]/70 text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                <tr>
+                  <th scope="col" className="px-4 py-3">
+                    Protocolo
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Candidato
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Status Sync
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Status Proposta
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    ID Externo
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Ultima Sync
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    Atualizado
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((sync) => {
+                  const statusInfo = STATUS_LABELS[sync.status] ?? {
+                    label: sync.status,
+                    tone: 'default',
+                  };
+                  return (
+                    <tr key={sync.id} className="border-t border-[var(--border)]">
+                      <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
+                        {sync.protocol ? (
+                          <Link
+                            href={`/admin/propostas/${sync.proposalId}`}
+                            className="hover:underline"
+                          >
+                            {sync.protocol}
+                          </Link>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-700)]">
+                        {sync.candidateName ?? '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
+                            statusInfo.tone === 'success' &&
+                              'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
+                            statusInfo.tone === 'warning' &&
+                              'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
+                            statusInfo.tone === 'danger' &&
+                              'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'h-2 w-2 rounded-full',
+                              statusInfo.tone === 'success' && 'bg-[color:var(--success)]',
+                              statusInfo.tone === 'warning' && 'bg-[color:var(--warning)]',
+                              statusInfo.tone === 'danger' && 'bg-[color:var(--error)]',
+                            )}
+                            aria-hidden="true"
+                          />
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {sync.proposalStatus ? <StatusBadge status={sync.proposalStatus} /> : '-'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-[color:var(--gray-500)]">
+                        {sync.externalId ?? '-'}
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                        {formatDate(sync.lastSyncAt)}
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                        {formatRelative(sync.updatedAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-sm text-[color:var(--gray-500)]"
+                    >
+                      Nenhuma sincronizacao encontrada.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="grid gap-3 p-4 lg:hidden">
+          {filtered.map((sync) => {
+            const statusInfo = STATUS_LABELS[sync.status] ?? {
+              label: sync.status,
+              tone: 'default',
+            };
+            return (
+              <div key={sync.id} className="admin-card rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-[color:var(--gray-900)]">
+                      {sync.protocol ?? '-'}
+                    </p>
+                    <p className="mt-1 text-xs text-[color:var(--gray-500)]">
+                      {sync.candidateName ?? '-'}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold',
+                      statusInfo.tone === 'success' &&
+                        'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
+                      statusInfo.tone === 'warning' &&
+                        'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
+                      statusInfo.tone === 'danger' &&
+                        'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-[color:var(--gray-700)]">
-                    {sync.candidateName ?? '-'}
-                  </td>
-                  <td className="px-4 py-3">
+                  >
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
-                        statusInfo.tone === 'success' &&
-                          'border-emerald-200 bg-emerald-50 text-emerald-700',
-                        statusInfo.tone === 'warning' &&
-                          'border-amber-200 bg-amber-50 text-amber-700',
-                        statusInfo.tone === 'danger' && 'border-red-200 bg-red-50 text-red-700',
+                        'h-2 w-2 rounded-full',
+                        statusInfo.tone === 'success' && 'bg-[color:var(--success)]',
+                        statusInfo.tone === 'warning' && 'bg-[color:var(--warning)]',
+                        statusInfo.tone === 'danger' && 'bg-[color:var(--error)]',
                       )}
-                    >
-                      <span
-                        className={cn(
-                          'h-2 w-2 rounded-full',
-                          statusInfo.tone === 'success' && 'bg-emerald-500',
-                          statusInfo.tone === 'warning' && 'bg-amber-500',
-                          statusInfo.tone === 'danger' && 'bg-red-500',
-                        )}
-                        aria-hidden="true"
-                      />
-                      {statusInfo.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {sync.proposalStatus ? <StatusBadge status={sync.proposalStatus} /> : '-'}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-[color:var(--gray-500)]">
-                    {sync.externalId ?? '-'}
-                  </td>
-                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                    {formatDate(sync.lastSyncAt)}
-                  </td>
-                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                    {formatRelative(sync.updatedAt)}
-                  </td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-8 text-center text-sm text-[color:var(--gray-500)]"
-                >
-                  Nenhuma sincronizacao encontrada.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+                      aria-hidden="true"
+                    />
+                    {statusInfo.label}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid gap-2 text-xs text-[color:var(--gray-500)]">
+                  <div className="flex items-center justify-between">
+                    <span>Status proposta</span>
+                    {sync.proposalStatus ? (
+                      <StatusBadge status={sync.proposalStatus} />
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>ID externo</span>
+                    <span className="font-mono">{sync.externalId ?? '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Ultima sync</span>
+                    <span>{formatDate(sync.lastSyncAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Atualizado</span>
+                    <span>{formatRelative(sync.updatedAt)}</span>
+                  </div>
+                </div>
+
+                {sync.protocol ? (
+                  <Link
+                    href={`/admin/propostas/${sync.proposalId}`}
+                    className="mt-3 inline-flex text-xs font-semibold text-[color:var(--primary-dark)]"
+                  >
+                    Ver proposta
+                  </Link>
+                ) : null}
+              </div>
+            );
+          })}
+          {filtered.length === 0 ? (
+            <div className="admin-card rounded-2xl px-4 py-6 text-center text-sm text-[color:var(--gray-500)]">
+              Nenhuma sincronizacao encontrada.
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

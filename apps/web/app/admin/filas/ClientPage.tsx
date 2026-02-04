@@ -89,7 +89,7 @@ export default function ClientPage() {
             Indicadores de processamento em tempo quase real.
           </p>
         </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs text-[color:var(--gray-500)]">
+        <div className="admin-pill border-[var(--border)] bg-[var(--muted)] text-[color:var(--gray-500)]">
           Atualiza a cada 15s
         </div>
       </div>
@@ -101,10 +101,7 @@ export default function ClientPage() {
           { label: 'Atrasados', value: summary.delayed },
           { label: 'Falhas', value: summary.failed },
         ].map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
-          >
+          <div key={card.label} className="admin-card p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               {card.label}
             </p>
@@ -114,7 +111,7 @@ export default function ClientPage() {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
           {error}
         </div>
       ) : null}
@@ -127,10 +124,7 @@ export default function ClientPage() {
 
       <div className="grid gap-4">
         {queues.map((queue) => (
-          <div
-            key={queue.name}
-            className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6"
-          >
+          <div key={queue.name} className="admin-card rounded-3xl p-6">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
@@ -144,8 +138,8 @@ export default function ClientPage() {
                 className={cn(
                   'rounded-full border px-3 py-1 text-xs font-semibold',
                   queue.isPaused
-                    ? 'border-amber-200 bg-amber-50 text-amber-700'
-                    : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                    ? 'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]'
+                    : 'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
                 )}
               >
                 {queue.isPaused ? 'Pausada' : 'Ativa'}
@@ -156,7 +150,7 @@ export default function ClientPage() {
               {COUNT_ORDER.map((key) => (
                 <div
                   key={key}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-3"
+                  className="admin-card-muted rounded-2xl border border-[var(--border)] p-3"
                 >
                   <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     {formatLabel(key)}
@@ -164,7 +158,9 @@ export default function ClientPage() {
                   <p
                     className={cn(
                       'mt-2 text-lg font-semibold',
-                      key === 'failed' ? 'text-red-700' : 'text-[color:var(--gray-900)]',
+                      key === 'failed'
+                        ? 'text-[color:var(--error)]'
+                        : 'text-[color:var(--gray-900)]',
                     )}
                   >
                     {queue.counts[key] ?? 0}

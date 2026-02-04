@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/ui/button';
+import { cn } from '../../lib/utils';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 export type ProposalFilters = {
@@ -71,31 +72,39 @@ export const ProposalsFilters = ({
   }, [debouncedSearch, memoFilters, onChange]);
 
   return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
+    <div className="admin-card rounded-3xl p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Filtros</h3>
-        <Button variant="secondary" onClick={onClear}>
+        <Button variant="secondary" onClick={onClear} className="w-full sm:w-auto">
           Limpar
         </Button>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <fieldset className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
           <legend className="font-medium text-[color:var(--gray-700)]">Status</legend>
-          <div className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
-            {statusOptions.map((option) => (
-              <label
-                key={option.value}
-                className="flex items-center gap-2 text-sm text-[color:var(--gray-700)]"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedStatuses.includes(option.value)}
-                  onChange={() => toggleStatus(option.value)}
-                  className="h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
+          <div className="grid gap-2 rounded-2xl border border-[var(--border)] bg-[var(--muted)]/60 p-3 sm:grid-cols-2">
+            {statusOptions.map((option) => {
+              const checked = selectedStatuses.includes(option.value);
+              return (
+                <label
+                  key={option.value}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition',
+                    checked
+                      ? 'border-[color:var(--primary)] bg-[color:var(--primary-soft)] text-[color:var(--gray-900)]'
+                      : 'border-[var(--border)] bg-transparent text-[color:var(--gray-700)] hover:bg-[color:rgba(255,255,255,0.04)]',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleStatus(option.value)}
+                    className="h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+                  />
+                  <span>{option.label}</span>
+                </label>
+              );
+            })}
           </div>
         </fieldset>
         <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
@@ -105,7 +114,7 @@ export const ProposalsFilters = ({
             onChange={(event) =>
               onChange({ ...memoFilters, type: event.target.value || undefined })
             }
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+            className="admin-field"
           >
             {typeOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -119,7 +128,7 @@ export const ProposalsFilters = ({
           <select
             value={memoFilters.sla ?? ''}
             onChange={(event) => onChange({ ...memoFilters, sla: event.target.value || undefined })}
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+            className="admin-field"
           >
             {slaOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -136,7 +145,7 @@ export const ProposalsFilters = ({
             onChange={(event) =>
               onChange({ ...memoFilters, dateFrom: event.target.value || undefined })
             }
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+            className="admin-field"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
@@ -147,7 +156,7 @@ export const ProposalsFilters = ({
             onChange={(event) =>
               onChange({ ...memoFilters, dateTo: event.target.value || undefined })
             }
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+            className="admin-field"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
@@ -156,7 +165,7 @@ export const ProposalsFilters = ({
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
             placeholder="Nome ou CPF"
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
+            className="admin-field"
           />
         </label>
       </div>

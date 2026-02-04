@@ -165,20 +165,20 @@ export default function AdminDashboardPage() {
         </div>
         <Link
           href="/admin/propostas"
-          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] shadow-sm"
+          className="admin-pill border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-700)]"
         >
           Ver propostas
         </Link>
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
           {error}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[color:var(--gray-500)]">
+        <div className="admin-card px-4 py-3 text-sm text-[color:var(--gray-500)]">
           Carregando KPIs...
         </div>
       ) : null}
@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
       {/* Charts row */}
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly line chart */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+        <div className="admin-card p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Filiacoes por semana
           </p>
@@ -241,22 +241,22 @@ export default function AdminDashboardPage() {
                 >
                   <defs>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22C55E" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="#22C55E" stopOpacity="0.02" />
+                      <stop offset="0%" stopColor="var(--success)" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="var(--success)" stopOpacity="0.02" />
                     </linearGradient>
                   </defs>
                   <path d={areaPath} fill="url(#lineGrad)" />
                   <path
                     d={linePath}
                     fill="none"
-                    stroke="#22C55E"
+                    stroke="var(--success)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                   {points.map((p) => (
                     <g key={p.label}>
-                      <circle cx={p.x} cy={p.y} r="3" fill="#22C55E" />
+                      <circle cx={p.x} cy={p.y} r="3" fill="var(--success)" />
                       <text
                         x={p.x}
                         y={p.y - 8}
@@ -284,7 +284,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Status donut chart */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+        <div className="admin-card p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Status das propostas
           </p>
@@ -355,15 +355,30 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* SLA bar chart */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+        <div className="admin-card p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             SLA: dentro/fora do prazo
           </p>
           <div className="mt-4 grid gap-3">
             {[
-              { label: 'No prazo', value: metrics.ok, color: '#22C55E', bg: 'bg-emerald-50' },
-              { label: 'Atencao', value: metrics.warning, color: '#F59E0B', bg: 'bg-amber-50' },
-              { label: 'Estourado', value: metrics.danger, color: '#EF4444', bg: 'bg-red-50' },
+              {
+                label: 'No prazo',
+                value: metrics.ok,
+                color: 'var(--success)',
+                bg: 'bg-[color:var(--success-soft)]',
+              },
+              {
+                label: 'Atencao',
+                value: metrics.warning,
+                color: 'var(--warning)',
+                bg: 'bg-[color:var(--warning-soft)]',
+              },
+              {
+                label: 'Estourado',
+                value: metrics.danger,
+                color: 'var(--error)',
+                bg: 'bg-[color:var(--error-soft)]',
+              },
             ].map((item) => {
               const max = Math.max(metrics.ok, metrics.warning, metrics.danger, 1);
               const pct = Math.round((item.value / max) * 100);
@@ -388,7 +403,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <SlaBuckets ok={metrics.ok} warning={metrics.warning} danger={metrics.danger} />
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+        <div className="admin-card p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Ultimas propostas
           </p>

@@ -14,7 +14,7 @@ export const KpiCard = ({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]',
+        'admin-card p-5',
         tone === 'info' && 'border-[color:var(--info-border)] bg-[color:var(--info-soft)]',
         tone === 'purple' && 'border-[color:var(--purple-border)] bg-[color:var(--purple-soft)]',
         tone === 'success' && 'border-[color:var(--success-border)] bg-[color:var(--success-soft)]',

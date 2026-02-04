@@ -30,8 +30,8 @@ export default function ClientPage() {
   };
 
   return (
-    <div className="min-h-screen-dvh bg-soft-gradient px-4 py-16">
-      <div className="mx-auto w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)]">
+    <div className="admin-theme admin-shell min-h-screen-dvh px-4 py-16">
+      <div className="admin-panel mx-auto w-full max-w-md rounded-3xl p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
           Admin
         </p>
@@ -57,7 +57,7 @@ export default function ClientPage() {
             required
           />
           {error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
               {error}
             </div>
           ) : null}

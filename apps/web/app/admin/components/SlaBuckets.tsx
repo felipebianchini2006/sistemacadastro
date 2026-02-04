@@ -8,18 +8,18 @@
   danger: number;
 }) => {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
+    <div className="admin-card rounded-2xl p-5">
       <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">SLA</p>
       <div className="mt-4 grid gap-3 text-sm">
-        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-800">
+        <div className="flex items-center justify-between rounded-xl border border-[color:var(--success-border)] bg-[color:var(--success-soft)] px-4 py-2 text-[color:var(--success)]">
           <span>Dentro do prazo</span>
           <span className="font-semibold">{ok}</span>
         </div>
-        <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-amber-800">
+        <div className="flex items-center justify-between rounded-xl border border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] px-4 py-2 text-[color:var(--warning)]">
           <span>Proximo do limite</span>
           <span className="font-semibold">{warning}</span>
         </div>
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-red-700">
+        <div className="flex items-center justify-between rounded-xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-2 text-[color:var(--error)]">
           <span>Estourado</span>
           <span className="font-semibold">{danger}</span>
         </div>

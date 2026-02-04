@@ -486,7 +486,7 @@ export default function AdminProposalDetailsPage() {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
           {error}
         </div>
       ) : null}
@@ -500,7 +500,7 @@ export default function AdminProposalDetailsPage() {
       {details ? (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="grid gap-6">
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Dados</h3>
               <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -534,12 +534,12 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Documentos</h3>
               {expiredDocIds.size > 0 ? (
-                <div className="mt-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <div className="mt-3 rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
                   <p className="font-semibold">Documento(s) vencido(s) detectado(s)</p>
-                  <p className="mt-1 text-xs text-red-600">
+                  <p className="mt-1 text-xs text-[color:var(--error)]">
                     {expiredDocIds.size} documento(s) com data de validade expirada. Solicite novo
                     documento ao candidato.
                   </p>
@@ -558,7 +558,9 @@ export default function AdminProposalDetailsPage() {
                         key={doc.id}
                         className={cn(
                           'flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3 text-sm',
-                          isExpired ? 'border-red-300 bg-red-50' : 'border-[var(--border)]',
+                          isExpired
+                            ? 'border-[color:var(--error-border)] bg-[color:var(--error-soft)]'
+                            : 'border-[var(--border)]',
                         )}
                       >
                         <div>
@@ -569,7 +571,7 @@ export default function AdminProposalDetailsPage() {
                             {doc.type} • {Math.round(doc.size / 1024)}kb
                           </p>
                           {isExpired ? (
-                            <p className="mt-1 text-xs font-semibold text-red-600">
+                            <p className="mt-1 text-xs font-semibold text-[color:var(--error)]">
                               Documento vencido
                             </p>
                           ) : null}
@@ -610,8 +612,8 @@ export default function AdminProposalDetailsPage() {
                       className={cn(
                         'flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3',
                         item.ok
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                          : 'border-amber-200 bg-amber-50 text-amber-800',
+                          ? 'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]'
+                          : 'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -631,7 +633,7 @@ export default function AdminProposalDetailsPage() {
               </section>
             ) : null}
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">OCR extraido</h3>
               {latestOcr ? (
                 <div className="mt-4 grid gap-3 text-sm">
@@ -641,7 +643,7 @@ export default function AdminProposalDetailsPage() {
                       className={cn(
                         'rounded-2xl border px-4 py-3',
                         row.match === false
-                          ? 'border-amber-300 bg-amber-50 text-amber-800'
+                          ? 'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]'
                           : 'border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)]',
                       )}
                     >
@@ -775,7 +777,7 @@ export default function AdminProposalDetailsPage() {
               ) : null}
             </section>
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Redes sociais</h3>
               <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 {details.socialAccounts && details.socialAccounts.length > 0 ? (
@@ -811,7 +813,7 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
                 Dados bancarios
               </h3>
@@ -850,14 +852,14 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Timeline</h3>
               <div className="mt-4">
                 <Timeline entries={timelineEntries} />
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Audit trail</h3>
               <div className="mt-4 grid gap-3">
                 {details.auditLogs.map((log) => (
@@ -892,7 +894,7 @@ export default function AdminProposalDetailsPage() {
             />
 
             {latestSignature ? (
-              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <section className="admin-card rounded-3xl p-6">
                 <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Assinatura</h3>
                 <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -954,7 +956,7 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {editForm && can(user?.roles, 'update') ? (
-              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <section className="admin-card rounded-3xl p-6">
                 <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Editar dados</h3>
                 <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                   <label className="grid gap-2">
@@ -1095,7 +1097,7 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {can(user?.roles, 'note') ? (
-              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <section className="admin-card rounded-3xl p-6">
                 <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
                   Notas internas
                 </h3>
@@ -1139,7 +1141,7 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {can(user?.roles, 'message') ? (
-              <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+              <section className="admin-card rounded-3xl p-6">
                 <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
                   Mensagem ao candidato
                 </h3>
@@ -1197,15 +1199,15 @@ export default function AdminProposalDetailsPage() {
               </section>
             ) : null}
 
-            <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
+            <section className="admin-card rounded-3xl p-6">
               <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Acoes</h3>
               {actionMessage ? (
-                <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <div className="mt-3 rounded-2xl border border-[color:var(--success-border)] bg-[color:var(--success-soft)] px-4 py-3 text-sm text-[color:var(--success)]">
                   {actionMessage}
                 </div>
               ) : null}
               {actionError ? (
-                <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-3 rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
                   {actionError}
                 </div>
               ) : null}
@@ -1393,7 +1395,7 @@ export default function AdminProposalDetailsPage() {
           onClick={() => setActiveDoc(null)}
         >
           <div
-            className="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-xl)]"
+            className="admin-panel relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-5">
@@ -1409,7 +1411,9 @@ export default function AdminProposalDetailsPage() {
                   {new Date(activeDoc.createdAt).toLocaleString('pt-BR')}
                 </p>
                 {expiredDocIds.has(activeDoc.id) ? (
-                  <p className="mt-1 text-xs font-semibold text-red-600">Documento vencido</p>
+                  <p className="mt-1 text-xs font-semibold text-[color:var(--error)]">
+                    Documento vencido
+                  </p>
                 ) : null}
               </div>
               <button

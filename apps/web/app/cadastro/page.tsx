@@ -410,6 +410,7 @@ export default function CadastroPage() {
   const [ocrConfirmed, setOcrConfirmed] = useState(false);
   const [socialCallbackError, setSocialCallbackError] = useState<string | null>(null);
   const [pendingSocialRefresh, setPendingSocialRefresh] = useState(false);
+  const [showResidenceUpload, setShowResidenceUpload] = useState(false);
 
   const dirtyRef = useRef(false);
   const lastPayloadRef = useRef('');
@@ -493,6 +494,13 @@ export default function CadastroPage() {
     if (!hydrated || typeof window === 'undefined') return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, draftMeta, stepIndex }));
   }, [form, draftMeta, stepIndex, hydrated]);
+
+  useEffect(() => {
+    if (showResidenceUpload) return;
+    if (form.documents.residence.status !== 'idle' || form.documents.residence.documentId) {
+      setShowResidenceUpload(true);
+    }
+  }, [form.documents.residence.documentId, form.documents.residence.status, showResidenceUpload]);
 
   const updateForm = useCallback(
     (patch: Partial<DraftFormState>) => {
@@ -1583,66 +1591,8 @@ export default function CadastroPage() {
             </div>
           </div>
         ) : null}
-        <div className="page-shell grid gap-8 lg:grid-cols-[1.1fr_1.6fr]">
-          <aside className="flex flex-col gap-6">
-            <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
-                Cadastro digital
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold text-[color:var(--gray-900)]">
-                Vamos montar seu dossie com calma.
-              </h1>
-              <p className="mt-3 text-sm text-[color:var(--gray-500)]">
-                Tudo fica salvo automaticamente. Voce pode sair e continuar depois no mesmo
-                dispositivo.
-              </p>
-              <div className="mt-6 flex flex-col gap-3 text-xs text-[color:var(--gray-500)]">
-                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
-                  <span>Autosave local</span>
-                  <span className="font-semibold text-emerald-600">Ativo</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
-                  <span>Sincronizacao backend</span>
-                  <span className="font-semibold" role="status" aria-live="polite">
-                    {syncStatus === 'saving'
-                      ? 'Salvando...'
-                      : syncStatus === 'saved'
-                        ? 'Salvo agora mesmo'
-                        : syncStatus === 'error'
-                          ? 'Erro'
-                          : 'Aguardando'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
-                  <span>Ultimo salvamento</span>
-                  <span className="font-semibold">
-                    {lastSavedAt
-                      ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : '—'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
-              <h3 className="text-sm font-semibold text-[color:var(--gray-700)]">Suporte rapido</h3>
-              <p className="mt-2 text-sm text-[color:var(--gray-500)]">
-                Precisa de ajuda? Nossa equipe responde em ate 2 horas uteis.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
-                  atendimento@sistemacadastro.com
-                </span>
-                <span className="rounded-full bg-[var(--muted)] px-3 py-1 text-[color:var(--gray-500)]">
-                  +55 11 99999-9999
-                </span>
-              </div>
-            </div>
-          </aside>
-
-          <main className="flex flex-col gap-6">
+        <div className="page-shell flex justify-center">
+          <main className="flex w-full max-w-3xl flex-col gap-6">
             <ProgressBar steps={steps} current={stepIndex} />
 
             {currentStep === 'perfil' ? (
@@ -2162,35 +2112,60 @@ export default function CadastroPage() {
                       existingPreviewUrl={form.documents.cnh.previewUrl}
                     />
                   )}
-                  <SmartDocumentUpload
-                    documentType="COMPROVANTE_RESIDENCIA"
-                    documentLabel="Comprovante de Residência"
-                    draftId={draftMeta?.draftId || ''}
-                    draftToken={draftMeta?.draftToken || ''}
-                    onUploadComplete={(documentId, previewUrl, ocrData) => {
-                      updateDocument('residence', {
-                        status: 'uploaded',
-                        documentId,
-                        fileName: 'Comprovante',
-                        previewUrl,
-                      });
-                      if (previewUrl) previewUrlsRef.current.add(previewUrl);
-                      if (draftMeta) {
-                        void fetchDraftOcr(draftMeta);
-                      }
-                      if (ocrData) {
-                        console.log('OCR data received for COMPROVANTE_RESIDENCIA:', ocrData);
-                      }
-                    }}
-                    onError={(error) => {
-                      updateDocument('residence', {
-                        status: 'error',
-                        error,
-                      });
-                    }}
-                    existingDocumentId={form.documents.residence.documentId}
-                    existingPreviewUrl={form.documents.residence.previewUrl}
-                  />
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                        Comprovante de residencia (opcional)
+                      </p>
+                      <p className="mt-1 text-sm text-[color:var(--gray-500)]">
+                        Adicione somente se solicitado.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowResidenceUpload((prev) => !prev)}
+                      className="rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)]"
+                    >
+                      {showResidenceUpload ? 'Ocultar' : 'Adicionar comprovante'}
+                    </button>
+                  </div>
+
+                  {showResidenceUpload ? (
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <SmartDocumentUpload
+                        documentType="COMPROVANTE_RESIDENCIA"
+                        documentLabel="Comprovante de Residencia"
+                        draftId={draftMeta?.draftId || ''}
+                        draftToken={draftMeta?.draftToken || ''}
+                        onUploadComplete={(documentId, previewUrl, ocrData) => {
+                          updateDocument('residence', {
+                            status: 'uploaded',
+                            documentId,
+                            fileName: 'Comprovante',
+                            previewUrl,
+                          });
+                          if (previewUrl) previewUrlsRef.current.add(previewUrl);
+                          if (draftMeta) {
+                            void fetchDraftOcr(draftMeta);
+                          }
+                          if (ocrData) {
+                            console.log('OCR data received for COMPROVANTE_RESIDENCIA:', ocrData);
+                          }
+                        }}
+                        onError={(error) => {
+                          updateDocument('residence', {
+                            status: 'error',
+                            error,
+                          });
+                        }}
+                        existingDocumentId={form.documents.residence.documentId}
+                        existingPreviewUrl={form.documents.residence.previewUrl}
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
                 {!docsMainValid ? (
@@ -2548,51 +2523,6 @@ export default function CadastroPage() {
         </div>
 
         {/* Floating autosave indicator - visible on mobile where sidebar is hidden */}
-        {hydrated && !showRestorePrompt ? (
-          <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 lg:hidden">
-            <div
-              className={cn(
-                'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-[var(--shadow-sm)] backdrop-blur transition-all',
-                syncStatus === 'saving'
-                  ? 'border-amber-200 bg-amber-50/90 text-amber-700'
-                  : syncStatus === 'saved'
-                    ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
-                    : syncStatus === 'error'
-                      ? 'border-red-200 bg-red-50/90 text-red-700'
-                      : 'border-[var(--border)] bg-[var(--card)]/90 text-[color:var(--gray-500)]',
-              )}
-              role="status"
-              aria-live="polite"
-            >
-              <span
-                className={cn(
-                  'h-2 w-2 rounded-full',
-                  syncStatus === 'saving'
-                    ? 'animate-pulse bg-amber-500'
-                    : syncStatus === 'saved'
-                      ? 'bg-emerald-500'
-                      : syncStatus === 'error'
-                        ? 'bg-red-500'
-                        : 'bg-[var(--gray-300)]',
-                )}
-              />
-              {syncStatus === 'saving'
-                ? 'Salvando...'
-                : syncStatus === 'saved'
-                  ? `Salvo ${
-                      lastSavedAt
-                        ? new Date(lastSavedAt).toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : 'agora'
-                    }`
-                  : syncStatus === 'error'
-                    ? 'Erro ao salvar'
-                    : 'Autosave ativo'}
-            </div>
-          </div>
-        ) : null}
       </div>
     </>
   );

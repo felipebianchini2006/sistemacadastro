@@ -95,7 +95,7 @@ export function BulkActions({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-4">
+    <div className="admin-card flex flex-col gap-4 rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
           {selectedCount}
@@ -115,7 +115,7 @@ export function BulkActions({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <button
             type="button"
@@ -128,7 +128,7 @@ export function BulkActions({
             aria-haspopup="menu"
             aria-expanded={isOpen}
             aria-controls={menuId}
-            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+            className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[color:rgba(255,255,255,0.04)] sm:w-auto sm:justify-start"
           >
             Acoes em lote
             <svg
