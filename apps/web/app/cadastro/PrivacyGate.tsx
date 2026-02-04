@@ -101,7 +101,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
           </h3>
           <div className="space-y-3 text-sm text-[color:var(--gray-700)]">
             <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                 <svg
                   className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
@@ -126,7 +126,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                 <svg
                   className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
@@ -151,7 +151,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                 <svg
                   className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
@@ -176,7 +176,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                 <svg
                   className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
@@ -201,7 +201,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                 <svg
                   className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"
@@ -226,7 +226,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             </div>
 
             <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                 <svg
                   className="h-3 w-3 text-[color:var(--primary)]"
                   fill="none"

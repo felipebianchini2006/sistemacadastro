@@ -156,7 +156,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                 </h3>
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-[color:var(--primary)] hover:bg-orange-50"
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-[color:var(--primary)] hover:bg-[color:var(--primary-soft)]"
                 >
                   <Edit2 className="h-4 w-4" aria-hidden="true" />
                   {isEditing ? 'Cancelar edição' : 'Editar manualmente'}
@@ -175,7 +175,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                       key={fieldKey}
                       className={`rounded-xl border p-4 transition-colors ${
                         isFieldEdited
-                          ? 'border-orange-300 bg-orange-50'
+                          ? 'border-[color:var(--primary-light)] bg-[color:var(--primary-soft)]'
                           : 'border-[var(--border)] bg-[var(--card)]'
                       }`}
                     >

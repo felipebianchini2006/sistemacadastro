@@ -7,7 +7,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family:
-    var(--font-inter),
+    var(--font-sans),
     system-ui,
     -apple-system,
     sans-serif;

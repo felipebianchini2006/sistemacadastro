@@ -31,7 +31,7 @@ export default function GlobalError({
               <button
                 type="button"
                 onClick={() => reset()}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-md shadow-orange-200/70 transition hover:bg-[var(--primary-dark)]"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition hover:bg-[var(--primary-dark)]"
               >
                 Recarregar pagina
               </button>

@@ -38,9 +38,9 @@ export const ProgressBar = ({ steps, current }: { steps: ProgressStep[]; current
             className={cn(
               'rounded-lg border px-3 py-2',
               index === current
-                ? 'border-[var(--primary)] bg-orange-50 text-[color:var(--primary-dark)]'
+                ? 'border-[var(--primary)] bg-[color:var(--primary-soft)] text-[color:var(--primary-dark)]'
                 : index < current
-                  ? 'border-orange-200 bg-[var(--card)] text-[color:var(--primary-dark)]'
+                  ? 'border-[color:var(--primary-light)] bg-[var(--card)] text-[color:var(--primary-dark)]'
                   : 'border-[var(--border)] bg-[var(--card)]',
             )}
             data-testid={`progress-step-${index}`}

@@ -10,11 +10,14 @@ type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 const toneStyles: Record<BadgeTone, string> = {
-  default: 'border-[var(--border)] bg-[var(--gray-100)] text-[color:var(--gray-700)]',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  warning: 'border-amber-200 bg-amber-50 text-amber-700',
-  error: 'border-red-200 bg-red-50 text-red-700',
-  info: 'border-blue-200 bg-blue-50 text-blue-700',
+  default: 'border-[var(--border)] bg-[var(--muted)] text-[color:var(--gray-700)]',
+  success:
+    'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
+  warning:
+    'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
+  error:
+    'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
+  info: 'border-[color:var(--info-border)] bg-[color:var(--info-soft)] text-[color:var(--info)]',
 };
 
 export const Badge = ({ className, tone = 'default', ...props }: BadgeProps) => (

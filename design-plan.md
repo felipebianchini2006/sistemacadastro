@@ -27,29 +27,30 @@ Sistema de filiação digital 100% online com design moderno, mobile-first, vali
 
 ```css
 /* Cores Principais */
---primary: #ff6b35; /* Laranja Coral - Ação Principal */
---primary-dark: #e55a28; /* Hover/Active */
---primary-light: #ff8555; /* Backgrounds suaves */
+--primary: #0f766e; /* Teal Profissional - A��o Principal */
+--primary-dark: #0b5f59; /* Hover/Active */
+--primary-light: #5eead4; /* Backgrounds suaves */
+--primary-soft: #ecfeff; /* Superf�cies leves */
 
 /* Feedback Visual */
---success: #22c55e; /* Verde - Sucesso/Válido */
---error: #ef4444; /* Vermelho - Erro/Inválido */
---warning: #f59e0b; /* Amarelo - Atenção */
---info: #3b82f6; /* Azul - Informação */
+--success: #16a34a; /* Verde - Sucesso/V�lido */
+--error: #dc2626; /* Vermelho - Erro/Inv�lido */
+--warning: #d97706; /* �mbar - Aten��o */
+--info: #2563eb; /* Azul - Informa��o */
 
 /* Neutros (Tema Claro) */
---gray-50: #f9fafb;
---gray-100: #f3f4f6;
---gray-200: #e5e7eb;
---gray-300: #d1d5db;
---gray-500: #6b7280;
---gray-700: #374151;
---gray-900: #111827;
+--gray-50: #f8fafc;
+--gray-100: #f1f5f9;
+--gray-200: #e2e8f0;
+--gray-300: #cbd5e1;
+--gray-500: #64748b;
+--gray-700: #334155;
+--gray-900: #0f172a;
 
 /* Dark Mode (Opcional) */
---bg-dark: #0f172a;
---surface-dark: #1e293b;
---text-dark: #f1f5f9;
+--bg-dark: #0b1120;
+--surface-dark: #111827;
+--text-dark: #e2e8f0;
 ```
 
 ### 1.2 Tipografia
@@ -57,7 +58,7 @@ Sistema de filiação digital 100% online com design moderno, mobile-first, vali
 ```css
 /* Font Stack */
 font-family:
-  'Inter',
+  'Sora',
   -apple-system,
   BlinkMacSystemFont,
   'Segoe UI',
@@ -1063,7 +1064,7 @@ color: var(--gray-900); /* #111827 sobre #FFFFFF = 18.32:1 ✓ */
 
 /* Texto sobre fundo laranja */
 .primary-text {
-  color: white; /* #FFFFFF sobre #ff6b35 = 3.59:1 ✓ */
+  color: white; /* #FFFFFF sobre #0f766e = 3.59:1 ✓ */
   font-weight: var(--font-semibold); /* Aumenta legibilidade */
 }
 ```
@@ -1157,7 +1158,7 @@ color: var(--gray-900); /* #111827 sobre #FFFFFF = 18.32:1 ✓ */
 --sla-critical: #ef4444; /* 🔴 8+ dias */
 
 /* Action Colors */
---action-primary: #ff6b35; /* Enviar para Assinatura */
+--action-primary: #0f766e; /* Enviar para Assinatura */
 --action-success: #22c55e; /* Aprovar */
 --action-danger: #ef4444; /* Reprovar */
 --action-secondary: #6b7280; /* Outras ações */
@@ -2527,7 +2528,7 @@ const maskAccount = (account) => {
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ff6b35",
+  "theme_color": "#0f766e",
   "icons": [
     {
       "src": "/icons/icon-192.png",

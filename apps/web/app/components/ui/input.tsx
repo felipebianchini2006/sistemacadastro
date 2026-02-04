@@ -20,9 +20,9 @@ const focusInput =
 
 const statusClasses: Record<InputStatus, string> = {
   default: '',
-  valid: 'border-[color:var(--success)] focus-visible:ring-[color:rgba(34,197,94,0.2)]',
+  valid: 'border-[color:var(--success)] focus-visible:ring-[color:rgba(22,163,74,0.2)]',
   invalid:
-    'border-[color:var(--error)] focus-visible:ring-[color:rgba(239,68,68,0.2)] animate-[shake_0.4s_ease]',
+    'border-[color:var(--error)] focus-visible:ring-[color:rgba(220,38,38,0.2)] animate-[shake_0.4s_ease]',
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(

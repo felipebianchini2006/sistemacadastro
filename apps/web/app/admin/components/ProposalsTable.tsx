@@ -163,7 +163,7 @@ export const ProposalsTable = ({
                 className={cn(
                   'border-t border-[var(--border)] content-visibility-auto',
                   updated && 'bg-blue-50/50',
-                  selectedIds?.has(proposal.id) && 'bg-orange-50/30',
+                  selectedIds?.has(proposal.id) && 'bg-[color:var(--primary-soft)]',
                 )}
               >
                 {onSelectOne && (
@@ -202,7 +202,7 @@ export const ProposalsTable = ({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[color:var(--gray-500)]">{proposal.type}</span>
                     {proposal.type === 'MIGRACAO' ? (
-                      <span className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-orange-700">
+                      <span className="rounded-full border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary-dark)]">
                         Migracao
                       </span>
                     ) : null}
@@ -253,7 +253,7 @@ export const ProposalsTable = ({
                       {(proposal.status === 'SUBMITTED' || proposal.status === 'UNDER_REVIEW') && (
                         <Link
                           href={`/admin/propostas/${proposal.id}?action=signature`}
-                          className="mt-1 block rounded-xl px-3 py-2 font-semibold text-orange-700 hover:bg-orange-50"
+                          className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
                         >
                           Enviar para assinatura
                         </Link>

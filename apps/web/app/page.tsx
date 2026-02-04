@@ -60,7 +60,7 @@ export default function Home() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/cadastro"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200/70 transition hover:bg-[var(--primary-dark)]"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)] transition hover:bg-[var(--primary-dark)]"
                 >
                   Iniciar cadastro
                 </Link>
@@ -74,7 +74,7 @@ export default function Home() {
               <div className="mt-8 flex flex-wrap gap-4 text-sm text-[color:var(--gray-500)]">
                 {HIGHLIGHTS.map((item) => (
                   <div key={item} className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[color:var(--primary)]">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--primary-soft)] text-[color:var(--primary)]">
                       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
                         <path
                           d="M5 13l4 4L19 7"
@@ -105,7 +105,7 @@ export default function Home() {
                   <p className="mt-2 text-sm text-[color:var(--gray-500)]">{card.desc}</p>
                 </div>
               ))}
-              <div className="rounded-2xl border border-[var(--primary-light)] bg-orange-50 p-5 shadow-[var(--shadow-md)]">
+              <div className="rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-5 shadow-[var(--shadow-md)]">
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--primary)]">
                   Tempo medio
                 </p>
@@ -141,7 +141,7 @@ export default function Home() {
                 key={step.title}
                 className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 text-sm font-semibold text-[color:var(--primary)]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--primary-soft)] text-sm font-semibold text-[color:var(--primary)]">
                   {index + 1}
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-[color:var(--gray-900)]">
@@ -177,7 +177,7 @@ export default function Home() {
               </span>
             </div>
           </div>
-          <div className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-orange-50 p-8 shadow-[var(--shadow-lg)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-[color:var(--primary-soft)] p-8 shadow-[var(--shadow-lg)]">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
               Acompanhar
             </p>

@@ -86,7 +86,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
 
         <div className="space-y-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
               <svg
                 className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
@@ -112,7 +112,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
               <svg
                 className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
@@ -140,7 +140,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
               <svg
                 className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"
@@ -168,7 +168,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
               <svg
                 className="h-4 w-4 text-[color:var(--primary)]"
                 fill="none"

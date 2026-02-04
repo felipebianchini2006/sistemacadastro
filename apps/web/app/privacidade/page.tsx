@@ -54,7 +54,7 @@ export default function PrivacyPage() {
               </span>
             </div>
           </div>
-          <div className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-orange-50 p-6 shadow-[var(--shadow-md)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-[color:var(--primary-soft)] p-6 shadow-[var(--shadow-md)]">
             <h2 className="text-lg font-semibold text-[color:var(--gray-900)]">Contato</h2>
             <p className="mt-2 text-sm text-[color:var(--gray-500)]">
               Em caso de duvidas, entre em contato com o suporte da SBACEM.

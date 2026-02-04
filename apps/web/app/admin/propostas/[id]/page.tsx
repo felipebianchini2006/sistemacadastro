@@ -594,12 +594,12 @@ export default function AdminProposalDetailsPage() {
             </section>
 
             {migrationChecklist ? (
-              <section className="rounded-3xl border border-[color:rgba(255,107,53,0.3)] bg-orange-50/40 p-6 shadow-[var(--shadow-md)]">
+              <section className="rounded-3xl border border-[color:rgba(15,118,110,0.28)] bg-[color:var(--primary-soft)] p-6 shadow-[var(--shadow-md)]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
                     Checklist de migracao
                   </h3>
-                  <span className="rounded-full border border-[color:rgba(255,107,53,0.3)] bg-[var(--card)] px-3 py-1 text-xs font-semibold text-[color:var(--primary-dark)]">
+                  <span className="rounded-full border border-[color:rgba(15,118,110,0.28)] bg-[var(--card)] px-3 py-1 text-xs font-semibold text-[color:var(--primary-dark)]">
                     Migracao
                   </span>
                 </div>

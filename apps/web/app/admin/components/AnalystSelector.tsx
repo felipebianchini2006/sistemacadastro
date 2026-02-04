@@ -218,7 +218,7 @@ export function AnalystSelector({
         aria-controls={listboxId}
         aria-label={!label ? placeholder : undefined}
         aria-labelledby={label ? labelId : undefined}
-        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-left text-sm hover:border-[var(--gray-300)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(255,107,53,0.2)]"
+        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-left text-sm hover:border-[var(--gray-300)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(15,118,110,0.2)]"
       >
         <span
           className={selected ? 'text-[color:var(--gray-900)]' : 'text-[color:var(--gray-500)]'}
@@ -247,7 +247,7 @@ export function AnalystSelector({
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Buscar analista..."
-              className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(255,107,53,0.2)]"
+              className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(15,118,110,0.2)]"
             />
           </div>
 
@@ -305,7 +305,7 @@ export function AnalystSelector({
                   tabIndex={-1}
                   id={`${listboxId}-option-${index}`}
                   className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-[var(--muted)] ${
-                    isSelected ? 'bg-orange-50' : ''
+                    isSelected ? 'bg-[color:var(--primary-soft)]' : ''
                   }`}
                 >
                   <div>

@@ -18,13 +18,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-light)] focus-visible:ring-offset-2 focus-visible:ring-offset-white',
         'disabled:cursor-not-allowed disabled:opacity-60',
         variant === 'primary' &&
-          'bg-[var(--primary)] text-white shadow-md shadow-orange-200/70 hover:bg-[var(--primary-dark)]',
+          'bg-[var(--primary)] text-white shadow-[var(--shadow-md)] hover:bg-[var(--primary-dark)]',
         variant === 'secondary' &&
           'border border-[var(--border)] bg-white text-[color:var(--gray-700)] hover:border-[var(--gray-300)]',
         variant === 'ghost' &&
           'bg-transparent text-[color:var(--gray-700)] hover:bg-[var(--gray-100)]',
         variant === 'accent' &&
-          'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] text-white shadow-lg shadow-orange-200/70 hover:from-[var(--primary-dark)] hover:to-[#d94f20]',
+          'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] text-white shadow-[var(--shadow-lg)] hover:from-[var(--primary-dark)] hover:to-[color:var(--primary-dark)]',
         className,
       )}
       {...props}

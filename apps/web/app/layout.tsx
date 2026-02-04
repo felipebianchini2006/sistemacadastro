@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist_Mono, Inter } from 'next/font/google';
+import { Geist_Mono, Sora } from 'next/font/google';
 import './globals.css';
 import { ServiceWorker } from './components/ServiceWorker';
 
-const inter = Inter({
-  variable: '--font-inter',
+const sora = Sora({
+  variable: '--font-sora',
   subsets: ['latin'],
 });
 
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#ff6b35',
+  themeColor: '#0F766E',
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${sora.variable} ${geistMono.variable} antialiased`}>
         <a href="#main-content" className="skip-link">
           Pular para o conteudo principal
         </a>

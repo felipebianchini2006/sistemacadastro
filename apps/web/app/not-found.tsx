@@ -15,7 +15,7 @@ export default function NotFound() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-md shadow-orange-200/70 transition hover:bg-[var(--primary-dark)]"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition hover:bg-[var(--primary-dark)]"
             >
               Voltar ao inicio
             </Link>

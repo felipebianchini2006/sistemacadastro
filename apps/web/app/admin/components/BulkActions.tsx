@@ -95,7 +95,7 @@ export function BulkActions({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 p-4">
+    <div className="flex items-center justify-between rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-4">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
           {selectedCount}

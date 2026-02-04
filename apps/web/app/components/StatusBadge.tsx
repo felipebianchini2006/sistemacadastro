@@ -16,12 +16,18 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  SUBMITTED: 'bg-blue-50 text-blue-700 border-blue-200',
-  UNDER_REVIEW: 'bg-amber-50 text-amber-700 border-amber-200',
-  PENDING_DOCS: 'bg-red-50 text-red-700 border-red-200',
-  PENDING_SIGNATURE: 'bg-purple-50 text-purple-700 border-purple-200',
-  SIGNED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  APPROVED: 'bg-green-50 text-green-700 border-green-200',
+  SUBMITTED:
+    'bg-[color:var(--info-soft)] text-[color:var(--info)] border-[color:var(--info-border)]',
+  UNDER_REVIEW:
+    'bg-[color:var(--warning-soft)] text-[color:var(--warning)] border-[color:var(--warning-border)]',
+  PENDING_DOCS:
+    'bg-[color:var(--error-soft)] text-[color:var(--error)] border-[color:var(--error-border)]',
+  PENDING_SIGNATURE:
+    'bg-[color:var(--primary-soft)] text-[color:var(--primary-dark)] border-[color:var(--primary-light)]',
+  SIGNED:
+    'bg-[color:var(--success-soft)] text-[color:var(--success)] border-[color:var(--success-border)]',
+  APPROVED:
+    'bg-[color:var(--success-soft)] text-[color:var(--success)] border-[color:var(--success-border)]',
   REJECTED: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
   CANCELED: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
   DRAFT: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',

@@ -1666,9 +1666,9 @@ export default function CadastroPage() {
                         type="button"
                         className={cn(
                           'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
-                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(255,107,53,0.3)]',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(15,118,110,0.3)]',
                           selected
-                            ? 'border-[var(--primary)] bg-[color:rgba(255,107,53,0.1)] shadow-[var(--shadow-md)]'
+                            ? 'border-[var(--primary)] bg-[color:rgba(15,118,110,0.12)] shadow-[var(--shadow-md)]'
                             : 'border-[var(--border)] bg-[var(--card)] hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow',
                         )}
                         onClick={() => toggleProfileRole(role.value)}
@@ -1746,7 +1746,7 @@ export default function CadastroPage() {
                         className={cn(
                           'rounded-full px-4 py-2 text-sm font-semibold transition',
                           form.proposalType === type
-                            ? 'bg-[var(--primary)] text-white shadow shadow-orange-200/70'
+                            ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-md)]'
                             : 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)] hover:border-[var(--primary)]',
                         )}
                         onClick={() => handleProposalTypeSelect(type)}
@@ -2030,7 +2030,7 @@ export default function CadastroPage() {
                         className={cn(
                           'rounded-full px-4 py-2 text-sm font-semibold transition',
                           form.documentChoice === choice
-                            ? 'bg-[var(--primary)] text-white shadow shadow-orange-200/70'
+                            ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-md)]'
                             : 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)] hover:border-[var(--primary)]',
                         )}
                         onClick={() => updateForm({ documentChoice: choice })}
@@ -2790,7 +2790,7 @@ const SocialConnectionsStep = ({
                 'rounded-2xl border p-4 transition-all',
                 connected
                   ? 'border-emerald-200 bg-emerald-50/50'
-                  : 'border-[var(--border)] bg-[var(--card)] hover:border-orange-200',
+                  : 'border-[var(--border)] bg-[var(--card)] hover:border-[color:var(--primary-light)]',
               )}
             >
               <div className="flex items-start justify-between gap-4">
@@ -2935,7 +2935,7 @@ const UploadCard = ({
             <button
               type="button"
               onClick={handleTakePhoto}
-              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)] hover:bg-orange-50"
+              className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)] hover:bg-[color:var(--primary-soft)]"
             >
               Tirar foto
             </button>
@@ -2950,7 +2950,7 @@ const UploadCard = ({
                 if (file) onSelect(file);
               }}
             />
-            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)] hover:bg-orange-50">
+            <label className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)] hover:bg-[color:var(--primary-soft)]">
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -2981,7 +2981,7 @@ const UploadCard = ({
 
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                   <span className="text-sm font-bold text-[color:var(--primary)]">1</span>
                 </div>
                 <div>
@@ -2993,7 +2993,7 @@ const UploadCard = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                   <span className="text-sm font-bold text-[color:var(--primary)]">2</span>
                 </div>
                 <div>
@@ -3007,7 +3007,7 @@ const UploadCard = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--primary-soft)]">
                   <span className="text-sm font-bold text-[color:var(--primary)]">3</span>
                 </div>
                 <div>

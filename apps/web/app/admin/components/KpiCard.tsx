@@ -15,11 +15,12 @@ export const KpiCard = ({
     <div
       className={cn(
         'rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-md)]',
-        tone === 'info' && 'border-blue-200 bg-blue-50',
-        tone === 'purple' && 'border-purple-200 bg-purple-50',
-        tone === 'success' && 'border-emerald-200 bg-emerald-50',
-        tone === 'warning' && 'border-amber-200 bg-amber-50',
-        tone === 'danger' && 'border-red-200 bg-red-50',
+        tone === 'info' && 'border-[color:var(--info-border)] bg-[color:var(--info-soft)]',
+        tone === 'purple' &&
+          'border-[color:rgba(99,102,241,0.28)] bg-[color:rgba(99,102,241,0.12)]',
+        tone === 'success' && 'border-[color:var(--success-border)] bg-[color:var(--success-soft)]',
+        tone === 'warning' && 'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)]',
+        tone === 'danger' && 'border-[color:var(--error-border)] bg-[color:var(--error-soft)]',
       )}
     >
       <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">{label}</p>

@@ -1,25 +1,35 @@
 :root {
   color-scheme: light;
-  --primary: #ff6b35;
-  --primary-dark: #e55a28;
-  --primary-light: #ff8555;
+  --primary: #0f766e;
+  --primary-dark: #0b5f59;
+  --primary-light: #5eead4;
+  --primary-soft: #ecfeff;
 
-  --success: #22c55e;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --info: #3b82f6;
+  --success: #16a34a;
+  --error: #dc2626;
+  --warning: #d97706;
+  --info: #2563eb;
 
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-500: #6b7280;
-  --gray-700: #374151;
-  --gray-900: #111827;
+  --success-soft: rgba(22, 163, 74, 0.12);
+  --success-border: rgba(22, 163, 74, 0.28);
+  --error-soft: rgba(220, 38, 38, 0.12);
+  --error-border: rgba(220, 38, 38, 0.28);
+  --warning-soft: rgba(217, 119, 6, 0.12);
+  --warning-border: rgba(217, 119, 6, 0.28);
+  --info-soft: rgba(37, 99, 235, 0.12);
+  --info-border: rgba(37, 99, 235, 0.28);
 
-  --bg-dark: #0f172a;
-  --surface-dark: #1e293b;
-  --text-dark: #f1f5f9;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-500: #64748b;
+  --gray-700: #334155;
+  --gray-900: #0f172a;
+
+  --bg-dark: #0b1120;
+  --surface-dark: #111827;
+  --text-dark: #e2e8f0;
 
   --background: var(--gray-50);
   --foreground: var(--gray-900);
@@ -74,11 +84,12 @@
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
   --color-primary-light: var(--primary-light);
+  --color-primary-soft: var(--primary-soft);
   --color-success: var(--success);
   --color-error: var(--error);
   --color-warning: var(--warning);
   --color-info: var(--info);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-sora);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -87,8 +98,17 @@
     color-scheme: dark;
     --background: var(--bg-dark);
     --foreground: var(--text-dark);
-    --card: var(--surface-dark);
+    --card: #0f172a;
     --muted: #0b1220;
-    --border: #1f2a44;
+    --border: #1f2937;
+    --primary-soft: rgba(15, 118, 110, 0.16);
+
+    --gray-50: #0b1120;
+    --gray-100: #111827;
+    --gray-200: #1f2937;
+    --gray-300: #334155;
+    --gray-500: #94a3b8;
+    --gray-700: #e2e8f0;
+    --gray-900: #f8fafc;
   }
 }
