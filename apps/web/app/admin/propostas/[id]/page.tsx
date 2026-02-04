@@ -9,7 +9,7 @@ import { Timeline, type TimelineEntry } from '../../../components/Timeline';
 import { PendingItems } from '../../../components/PendingItems';
 import { Button } from '../../../components/ui/button';
 import { can } from '../../lib/permissions';
-import { getStoredAdminUser } from '../../lib/auth';
+import { getStoredAdminUser, type AdminUser } from '../../lib/auth';
 import { cn } from '../../../lib/utils';
 
 const OCR_FIELDS = [
@@ -166,6 +166,7 @@ export default function AdminProposalDetailsPage() {
   const [activeDoc, setActiveDoc] = useState<ProposalDetails['documents'][number] | null>(null);
   const [docViewUrl, setDocViewUrl] = useState<string | null>(null);
   const [docViewLoading, setDocViewLoading] = useState(false);
+  const [user, setUser] = useState<AdminUser | null>(null);
   type EditForm = {
     profileRoles: ProfileRole[];
     profileRoleOther: string;
@@ -205,7 +206,9 @@ export default function AdminProposalDetailsPage() {
   const [messageSubject, setMessageSubject] = useState('');
   const [messageChannel, setMessageChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL');
 
-  const user = getStoredAdminUser();
+  useEffect(() => {
+    setUser(getStoredAdminUser());
+  }, []);
 
   const loadDetails = useCallback(async () => {
     if (!proposalId) return;
@@ -500,8 +503,8 @@ export default function AdminProposalDetailsPage() {
       {details ? (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="grid gap-6">
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Dados</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">Dados</h3>
               <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>Nome</span>
@@ -534,8 +537,8 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Documentos</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">Documentos</h3>
               {expiredDocIds.size > 0 ? (
                 <div className="mt-3 rounded-2xl border border-[color:var(--error-border)] bg-[color:var(--error-soft)] px-4 py-3 text-sm text-[color:var(--error)]">
                   <p className="font-semibold">Documento(s) vencido(s) detectado(s)</p>
@@ -596,9 +599,9 @@ export default function AdminProposalDetailsPage() {
             </section>
 
             {migrationChecklist ? (
-              <section className="rounded-3xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-6 shadow-[var(--shadow-sm)]">
+              <section className="rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-6 shadow-[var(--shadow-sm)]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                  <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
                     Checklist de migracao
                   </h3>
                   <span className="rounded-full border border-[color:var(--primary-light)] bg-[var(--card)] px-3 py-1 text-xs font-semibold text-[color:var(--primary-dark)]">
@@ -633,8 +636,8 @@ export default function AdminProposalDetailsPage() {
               </section>
             ) : null}
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">OCR extraido</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">OCR extraido</h3>
               {latestOcr ? (
                 <div className="mt-4 grid gap-3 text-sm">
                   {ocrComparison.map((row) => (
@@ -777,8 +780,10 @@ export default function AdminProposalDetailsPage() {
               ) : null}
             </section>
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Redes sociais</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
+                Redes sociais
+              </h3>
               <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                 {details.socialAccounts && details.socialAccounts.length > 0 ? (
                   details.socialAccounts.map((account) => (
@@ -813,8 +818,8 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
                 Dados bancarios
               </h3>
               <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
@@ -852,15 +857,15 @@ export default function AdminProposalDetailsPage() {
               </div>
             </section>
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Timeline</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">Timeline</h3>
               <div className="mt-4">
                 <Timeline entries={timelineEntries} />
               </div>
             </section>
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Audit trail</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">Audit trail</h3>
               <div className="mt-4 grid gap-3">
                 {details.auditLogs.map((log) => (
                   <div
@@ -894,8 +899,8 @@ export default function AdminProposalDetailsPage() {
             />
 
             {latestSignature ? (
-              <section className="admin-card rounded-3xl p-6">
-                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Assinatura</h3>
+              <section className="admin-card rounded-2xl p-5">
+                <h3 className="text-base font-semibold text-[color:var(--gray-900)]">Assinatura</h3>
                 <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span>Status</span>
@@ -956,8 +961,10 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {editForm && can(user?.roles, 'update') ? (
-              <section className="admin-card rounded-3xl p-6">
-                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Editar dados</h3>
+              <section className="admin-card rounded-2xl p-5">
+                <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
+                  Editar dados
+                </h3>
                 <div className="mt-4 grid gap-3 text-sm text-[color:var(--gray-500)]">
                   <label className="grid gap-2">
                     Nome completo
@@ -1097,8 +1104,8 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {can(user?.roles, 'note') ? (
-              <section className="admin-card rounded-3xl p-6">
-                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+              <section className="admin-card rounded-2xl p-5">
+                <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
                   Notas internas
                 </h3>
                 <textarea
@@ -1141,8 +1148,8 @@ export default function AdminProposalDetailsPage() {
             ) : null}
 
             {can(user?.roles, 'message') ? (
-              <section className="admin-card rounded-3xl p-6">
-                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+              <section className="admin-card rounded-2xl p-5">
+                <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
                   Mensagem ao candidato
                 </h3>
                 <label className="mt-3 flex flex-col gap-2 text-sm text-[color:var(--gray-500)]">
@@ -1199,8 +1206,8 @@ export default function AdminProposalDetailsPage() {
               </section>
             ) : null}
 
-            <section className="admin-card rounded-3xl p-6">
-              <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Acoes</h3>
+            <section className="admin-card rounded-2xl p-5">
+              <h3 className="text-base font-semibold text-[color:var(--gray-900)]">Acoes</h3>
               {actionMessage ? (
                 <div className="mt-3 rounded-2xl border border-[color:var(--success-border)] bg-[color:var(--success-soft)] px-4 py-3 text-sm text-[color:var(--success)]">
                   {actionMessage}
@@ -1395,7 +1402,7 @@ export default function AdminProposalDetailsPage() {
           onClick={() => setActiveDoc(null)}
         >
           <div
-            className="admin-panel relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl"
+            className="admin-panel relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] p-5">
@@ -1403,7 +1410,7 @@ export default function AdminProposalDetailsPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                   Documento
                 </p>
-                <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">
+                <h3 className="text-base font-semibold text-[color:var(--gray-900)]">
                   {activeDoc.fileName}
                 </h3>
                 <p className="mt-1 text-xs text-[color:var(--gray-500)]">

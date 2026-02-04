@@ -119,10 +119,10 @@ export const ProposalsTable = ({
         </label>
       ) : null}
 
-      <div className="admin-card hidden overflow-hidden rounded-3xl lg:block">
+      <div className="admin-card hidden rounded-2xl lg:block">
         <div className="admin-table-wrap">
           <table className="admin-table w-full text-left text-sm">
-            <thead className="bg-[var(--muted)]/70 text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+            <thead className="bg-[var(--gray-50)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               <tr>
                 {onSelectAll && (
                   <th scope="col" className="w-12 px-4 py-3">
@@ -269,7 +269,7 @@ export const ProposalsTable = ({
                     <td className="px-4 py-3 text-right">
                       <details className="relative inline-block text-left">
                         <summary
-                          className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
+                          className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--gray-50)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
                           aria-label="Abrir menu de acoes"
                         >
                           ⋮
@@ -323,7 +323,7 @@ export const ProposalsTable = ({
 
       <div className="grid gap-3 lg:hidden">
         {items.length === 0 ? (
-          <div className="admin-card rounded-3xl p-6 text-center text-sm text-[color:var(--gray-500)]">
+          <div className="admin-card rounded-2xl p-6 text-center text-sm text-[color:var(--gray-500)]">
             Nenhuma proposta encontrada com os filtros atuais.
           </div>
         ) : null}
@@ -334,7 +334,7 @@ export const ProposalsTable = ({
             <div
               key={proposal.id}
               className={cn(
-                'admin-card rounded-3xl p-4',
+                'admin-card rounded-2xl p-4',
                 updated && 'border-[color:var(--info-border)] bg-[color:var(--info-soft)]',
                 selectedIds?.has(proposal.id) && 'border-[color:var(--primary)]',
               )}
@@ -427,7 +427,7 @@ export const ProposalsTable = ({
                 </Link>
                 <details className="relative inline-block text-left">
                   <summary
-                    className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)]"
+                    className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--gray-50)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)]"
                     aria-label="Abrir menu de acoes"
                   >
                     Acoes

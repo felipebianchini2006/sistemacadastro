@@ -96,9 +96,9 @@ export default function TotvsMonitorPage() {
         </div>
         <Link
           href="/admin"
-          className="admin-pill border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-700)]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--gray-700)] hover:text-[color:var(--gray-900)]"
         >
-          Voltar ao Dashboard
+          <span aria-hidden="true">←</span> Voltar ao Dashboard
         </Link>
       </div>
 
@@ -116,7 +116,7 @@ export default function TotvsMonitorPage() {
 
       {stats ? (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <KpiCard label="Pendentes" value={stats.pending} tone="warning" />
             <KpiCard label="Sincronizados" value={stats.synced} tone="success" />
             <KpiCard label="Falhas" value={stats.failed} tone="danger" />
@@ -124,6 +124,7 @@ export default function TotvsMonitorPage() {
               label="Taxa de sucesso"
               value={`${(stats.successRate * 100).toFixed(1)}%`}
               hint={`Total: ${stats.total} sincronizacoes`}
+              tone="info"
             />
           </div>
 
@@ -154,10 +155,24 @@ export default function TotvsMonitorPage() {
 
           {/* Status distribution bar */}
           <div className="admin-card p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               Distribuicao de status
             </p>
-            <div className="mt-4 flex h-6 w-full overflow-hidden rounded-full bg-[var(--muted)]">
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-[color:var(--gray-600)]">
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)]" />{' '}
+                Sincronizados ({stats.synced})
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--warning)]" /> Pendentes (
+                {stats.pending})
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--error)]" /> Falhas (
+                {stats.failed})
+              </span>
+            </div>
+            <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--gray-100)]">
               {stats.total > 0 ? (
                 <>
                   {stats.synced > 0 ? (
@@ -184,40 +199,26 @@ export default function TotvsMonitorPage() {
                 </>
               ) : null}
             </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs">
-              <span className="flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)]" />{' '}
-                Sincronizados ({stats.synced})
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--warning)]" /> Pendentes (
-                {stats.pending})
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--error)]" /> Falhas (
-                {stats.failed})
-              </span>
-            </div>
           </div>
         </>
       ) : null}
 
       {/* Recent syncs table */}
-      <div className="admin-card rounded-3xl">
+      <div className="admin-card rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Sincronizacoes recentes
           </p>
-          <div className="flex flex-wrap gap-1">
+          <div className="inline-flex flex-wrap rounded-full border border-[var(--border)] bg-[var(--gray-50)] p-1">
             {(['ALL', 'PENDING', 'SYNCED', 'FAILED'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={cn(
-                  'rounded-lg px-3 py-1 text-xs font-semibold transition',
+                  'rounded-full px-3 py-1 text-xs font-semibold transition',
                   filter === f
-                    ? 'bg-[var(--primary)] text-white'
-                    : 'bg-[var(--muted)] text-[color:var(--gray-500)] hover:bg-[color:rgba(255,255,255,0.04)]',
+                    ? 'bg-[var(--card)] text-[color:var(--gray-900)] shadow-[var(--shadow-sm)]'
+                    : 'bg-transparent text-[color:var(--gray-500)] hover:text-[color:var(--gray-700)]',
                 )}
               >
                 {f === 'ALL' ? 'Todos' : (STATUS_LABELS[f]?.label ?? f)}
@@ -228,7 +229,7 @@ export default function TotvsMonitorPage() {
         <div className="hidden lg:block">
           <div className="admin-table-wrap">
             <table className="admin-table w-full text-left text-sm">
-              <thead className="bg-[var(--muted)]/70 text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+              <thead className="bg-[var(--gray-50)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 <tr>
                   <th scope="col" className="px-4 py-3">
                     Protocolo

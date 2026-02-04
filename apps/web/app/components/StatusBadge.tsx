@@ -43,7 +43,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em]',
+        'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold',
         STATUS_STYLES[status] ??
           'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
       )}

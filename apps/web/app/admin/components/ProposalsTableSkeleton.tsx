@@ -2,7 +2,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 
 export const ProposalsTableSkeleton = ({ rows = 6 }: { rows?: number }) => (
   <div className="grid gap-3">
-    <div className="admin-card hidden overflow-hidden rounded-3xl lg:block">
+    <div className="admin-card hidden rounded-2xl lg:block">
       <div className="admin-table-wrap">
         <div className="bg-[var(--muted)] px-4 py-3">
           <Skeleton className="h-4 w-40" />
@@ -30,7 +30,7 @@ export const ProposalsTableSkeleton = ({ rows = 6 }: { rows?: number }) => (
 
     <div className="grid gap-3 lg:hidden">
       {Array.from({ length: Math.min(rows, 4) }).map((_, index) => (
-        <div key={`card-${index}`} className="admin-card rounded-3xl p-4">
+        <div key={`card-${index}`} className="admin-card rounded-2xl p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <Skeleton className="h-4 w-24" />

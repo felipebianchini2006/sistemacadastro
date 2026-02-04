@@ -37,16 +37,6 @@ const getWeekLabel = (date: Date) => {
   return `${start.getDate().toString().padStart(2, '0')}/${(start.getMonth() + 1).toString().padStart(2, '0')}`;
 };
 
-const STATUS_CHART_LABELS: Record<string, { label: string; color: string }> = {
-  SUBMITTED: { label: 'Aguardando', color: '#3B82F6' },
-  UNDER_REVIEW: { label: 'Em analise', color: '#F59E0B' },
-  PENDING_DOCS: { label: 'Pend. doc', color: '#EF4444' },
-  PENDING_SIGNATURE: { label: 'Aguard. assin.', color: '#A855F7' },
-  SIGNED: { label: 'Assinado', color: '#22C55E' },
-  APPROVED: { label: 'Concluido', color: '#16A34A' },
-  REJECTED: { label: 'Reprovado', color: '#6B7280' },
-};
-
 export default function AdminDashboardPage() {
   const [items, setItems] = useState<ProposalListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -144,18 +134,6 @@ export default function AdminDashboardPage() {
     return Array.from(weeks.entries()).map(([label, count]) => ({ label, count }));
   }, [items]);
 
-  const statusDistribution = useMemo(() => {
-    const entries = Object.entries(metrics.counts)
-      .filter(([status]) => STATUS_CHART_LABELS[status])
-      .map(([status, count]) => ({
-        status,
-        count,
-        label: STATUS_CHART_LABELS[status].label,
-        color: STATUS_CHART_LABELS[status].color,
-      }));
-    return entries;
-  }, [metrics.counts]);
-
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -165,9 +143,9 @@ export default function AdminDashboardPage() {
         </div>
         <Link
           href="/admin/propostas"
-          className="admin-pill border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-700)]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--gray-700)] hover:text-[color:var(--gray-900)]"
         >
-          Ver propostas
+          Ver propostas <span aria-hidden="true">→</span>
         </Link>
       </div>
 
@@ -183,14 +161,10 @@ export default function AdminDashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Aguardando analise" value={metrics.counts.SUBMITTED ?? 0} tone="info" />
-        <KpiCard label="Em analise" value={metrics.counts.UNDER_REVIEW ?? 0} tone="warning" />
-        <KpiCard
-          label="Aguardando assinatura"
-          value={metrics.counts.PENDING_SIGNATURE ?? 0}
-          tone="purple"
-        />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label="Aguardando analise" value={metrics.counts.SUBMITTED ?? 0} tone="warning" />
+        <KpiCard label="Em analise" value={metrics.counts.UNDER_REVIEW ?? 0} tone="info" />
+        <KpiCard label="Aguardando assinatura" value={metrics.counts.PENDING_SIGNATURE ?? 0} />
         <KpiCard label="Aprovados no mes" value={metrics.approved} tone="success" />
       </div>
 
@@ -208,10 +182,10 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Weekly line chart */}
         <div className="admin-card p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Filiacoes por semana
           </p>
           <div className="mt-4">
@@ -241,8 +215,8 @@ export default function AdminDashboardPage() {
                 >
                   <defs>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--success)" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="var(--success)" stopOpacity="0.02" />
+                      <stop offset="0%" stopColor="var(--success)" stopOpacity="0.2" />
+                      <stop offset="100%" stopColor="var(--success)" stopOpacity="0.04" />
                     </linearGradient>
                   </defs>
                   <path d={areaPath} fill="url(#lineGrad)" />
@@ -283,80 +257,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Status donut chart */}
-        <div className="admin-card p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
-            Status das propostas
-          </p>
-          <div className="mt-4 flex items-center gap-4">
-            {(() => {
-              const total = statusDistribution.reduce((s, d) => s + d.count, 0) || 1;
-              const r = 44;
-              const cx = 50;
-              const cy = 50;
-              const strokeW = 14;
-              const circumference = 2 * Math.PI * r;
-              let offset = 0;
-              return (
-                <>
-                  <svg
-                    viewBox="0 0 100 100"
-                    className="h-28 w-28 shrink-0"
-                    aria-label="Grafico de status"
-                  >
-                    {statusDistribution.map((d) => {
-                      const pct = d.count / total;
-                      const dashArray = `${pct * circumference} ${circumference}`;
-                      const dashOffset = -offset * circumference;
-                      offset += pct;
-                      return (
-                        <circle
-                          key={d.status}
-                          cx={cx}
-                          cy={cy}
-                          r={r}
-                          fill="none"
-                          stroke={d.color}
-                          strokeWidth={strokeW}
-                          strokeDasharray={dashArray}
-                          strokeDashoffset={dashOffset}
-                          transform={`rotate(-90 ${cx} ${cy})`}
-                        />
-                      );
-                    })}
-                    <text
-                      x={cx}
-                      y={cy + 3}
-                      textAnchor="middle"
-                      className="fill-[color:var(--gray-900)] font-semibold"
-                      style={{ fontSize: '14px' }}
-                    >
-                      {items.length}
-                    </text>
-                  </svg>
-                  <div className="grid gap-1 text-xs">
-                    {statusDistribution.map((d) => (
-                      <div key={d.status} className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: d.color }}
-                        />
-                        <span className="text-[color:var(--gray-500)]">{d.label}</span>
-                        <span className="font-semibold text-[color:var(--gray-900)]">
-                          {d.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-
         {/* SLA bar chart */}
         <div className="admin-card p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             SLA: dentro/fora do prazo
           </p>
           <div className="mt-4 grid gap-3">

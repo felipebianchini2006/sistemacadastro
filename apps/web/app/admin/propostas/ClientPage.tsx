@@ -16,6 +16,7 @@ import { ProposalsTableSkeleton } from '../components/ProposalsTableSkeleton';
 import { Pagination } from '../components/Pagination';
 import { Button } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
+import { ChevronDown } from 'lucide-react';
 
 const PAGE_SIZE = 20;
 const SERVER_SORT_FIELDS = new Set<SortField>([
@@ -395,20 +396,38 @@ export default function ClientPage() {
           <p className="mt-1 text-sm text-[color:var(--gray-500)]">Consulte, filtre e exporte.</p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <Button
-            variant="secondary"
-            className="w-full sm:w-auto"
-            onClick={() => downloadCsv(tableItems)}
-          >
-            Exportar CSV
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full sm:w-auto"
-            onClick={() => downloadExcel(tableItems)}
-          >
-            Exportar Excel
-          </Button>
+          <details className="relative">
+            <summary className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--gray-700)]">
+              Exportar
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            </summary>
+            <div className="absolute right-0 z-20 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-[var(--shadow-md)]">
+              <button
+                type="button"
+                onClick={(event) => {
+                  downloadCsv(tableItems);
+                  (
+                    event.currentTarget.closest('details') as HTMLDetailsElement | null
+                  )?.removeAttribute('open');
+                }}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-[color:var(--gray-700)] hover:bg-[var(--gray-50)]"
+              >
+                Exportar CSV
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  downloadExcel(tableItems);
+                  (
+                    event.currentTarget.closest('details') as HTMLDetailsElement | null
+                  )?.removeAttribute('open');
+                }}
+                className="mt-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-[color:var(--gray-700)] hover:bg-[var(--gray-50)]"
+              >
+                Exportar Excel
+              </button>
+            </div>
+          </details>
         </div>
       </div>
 
