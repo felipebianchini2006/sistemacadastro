@@ -159,7 +159,7 @@ export function BulkActions({
                 ref={menuRef}
                 id={menuId}
                 role="menu"
-                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg"
+                className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-md)]"
                 onKeyDown={handleMenuKeyDown}
               >
                 <div className="py-1">

@@ -31,7 +31,7 @@ export default function ClientPage() {
 
   return (
     <div className="min-h-screen-dvh bg-soft-gradient px-4 py-16">
-      <div className="mx-auto w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-xl)]">
+      <div className="mx-auto w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)]">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
           Admin
         </p>

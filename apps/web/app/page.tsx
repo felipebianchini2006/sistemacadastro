@@ -44,7 +44,7 @@ export default function Home() {
   return (
     <div className="min-h-screen-dvh bg-soft-gradient px-4 py-12 sm:px-8 sm:py-16">
       <div className="page-shell flex flex-col gap-12">
-        <header className="surface-glass p-8 shadow-[var(--shadow-xl)] sm:p-12">
+        <header className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)] sm:p-12">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
@@ -60,13 +60,13 @@ export default function Home() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/cadastro"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)] transition hover:bg-[var(--primary-dark)]"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--primary-dark)]"
                 >
                   Iniciar cadastro
                 </Link>
                 <Link
                   href="/acompanhar"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] bg-white px-5 py-3 text-sm font-semibold text-[color:var(--gray-700)] transition hover:border-[var(--gray-300)]"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm font-semibold text-[color:var(--gray-700)] transition hover:border-[var(--primary)]"
                 >
                   Ja sou filiado
                 </Link>
@@ -94,7 +94,7 @@ export default function Home() {
               {FEATURES.map((card) => (
                 <div
                   key={card.title}
-                  className="rounded-2xl border border-[var(--border)] bg-white/90 p-5 shadow-[var(--shadow-md)]"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]"
                 >
                   <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                     Beneficio
@@ -105,7 +105,7 @@ export default function Home() {
                   <p className="mt-2 text-sm text-[color:var(--gray-500)]">{card.desc}</p>
                 </div>
               ))}
-              <div className="rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-5 shadow-[var(--shadow-md)]">
+              <div className="rounded-2xl border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] p-5 shadow-[var(--shadow-sm)]">
                 <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--primary)]">
                   Tempo medio
                 </p>
@@ -139,7 +139,7 @@ export default function Home() {
             {STEPS.map((step, index) => (
               <div
                 key={step.title}
-                className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--primary-soft)] text-sm font-semibold text-[color:var(--primary)]">
                   {index + 1}
@@ -154,7 +154,7 @@ export default function Home() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-lg)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
               Privacidade e LGPD
             </p>
@@ -177,7 +177,7 @@ export default function Home() {
               </span>
             </div>
           </div>
-          <div className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-[color:var(--primary-soft)] p-8 shadow-[var(--shadow-lg)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
               Acompanhar
             </p>
@@ -189,7 +189,7 @@ export default function Home() {
             </p>
             <Link
               href="/acompanhar"
-              className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] bg-white px-5 py-3 text-sm font-semibold text-[color:var(--gray-700)] transition hover:border-[var(--gray-300)]"
+              className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm font-semibold text-[color:var(--gray-700)] transition hover:border-[var(--primary)]"
             >
               Acessar acompanhamento
             </Link>

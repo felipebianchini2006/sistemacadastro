@@ -62,7 +62,7 @@ export function CaptureGuidelines({ documentType, onProceed, onCancel }: Capture
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]"
+        className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-md)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="capture-guidelines-title"

@@ -71,7 +71,7 @@ export const ProposalsFilters = ({
   }, [debouncedSearch, memoFilters, onChange]);
 
   return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-lg">
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Filtros</h3>
         <Button variant="secondary" onClick={onClear}>
@@ -91,7 +91,7 @@ export const ProposalsFilters = ({
                   type="checkbox"
                   checked={selectedStatuses.includes(option.value)}
                   onChange={() => toggleStatus(option.value)}
-                  className="h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
+                  className="h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
                 />
                 <span>{option.label}</span>
               </label>

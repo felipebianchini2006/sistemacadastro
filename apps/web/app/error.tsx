@@ -18,7 +18,7 @@ export default function Error({
   return (
     <div className="min-h-screen-dvh bg-soft-gradient">
       <div className="page-shell flex min-h-screen-dvh flex-col items-center justify-center py-16">
-        <div className="surface-glass w-full max-w-xl rounded-3xl p-8 shadow-[var(--shadow-xl)]">
+        <div className="w-full max-w-xl rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)]">
           <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--gray-500)]">
             Ocorreu um problema
           </p>
@@ -33,7 +33,7 @@ export default function Error({
             <Button onClick={() => reset()}>Tentar novamente</Button>
             <Link
               href="/"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] px-4 text-sm font-semibold text-[color:var(--gray-700)] transition hover:border-[var(--gray-300)]"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] px-4 text-sm font-semibold text-[color:var(--gray-700)] transition hover:border-[var(--primary)]"
             >
               Ir para inicio
             </Link>

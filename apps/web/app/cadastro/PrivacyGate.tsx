@@ -72,7 +72,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-2xl rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-xl)] md:p-8"
+        className="w-full max-w-2xl rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)] md:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="privacy-gate-title"
@@ -270,7 +270,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-1 h-5 w-5 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
+              className="mt-1 h-5 w-5 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
             />
@@ -294,7 +294,7 @@ export function PrivacyGate({ onAccept }: PrivacyGateProps) {
             type="button"
             onClick={handleClose}
             ref={closeButtonRef}
-            className="min-h-[44px] rounded-xl border border-[var(--border)] bg-white px-6 py-3 text-sm font-semibold text-[color:var(--gray-700)] hover:bg-[var(--gray-50)]"
+            className="min-h-[44px] rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-3 text-sm font-semibold text-[color:var(--gray-700)] hover:border-[var(--primary)]"
           >
             Sair
           </button>

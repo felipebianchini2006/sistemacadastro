@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
       {/* Charts row */}
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly line chart */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Filiacoes por semana
           </p>
@@ -284,7 +284,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Status donut chart */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Status das propostas
           </p>
@@ -355,7 +355,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* SLA bar chart */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             SLA: dentro/fora do prazo
           </p>
@@ -388,7 +388,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <SlaBuckets ok={metrics.ok} warning={metrics.warning} danger={metrics.danger} />
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Ultimas propostas
           </p>

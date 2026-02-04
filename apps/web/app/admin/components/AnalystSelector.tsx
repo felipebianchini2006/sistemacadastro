@@ -218,7 +218,7 @@ export function AnalystSelector({
         aria-controls={listboxId}
         aria-label={!label ? placeholder : undefined}
         aria-labelledby={label ? labelId : undefined}
-        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-left text-sm hover:border-[var(--gray-300)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(15,118,110,0.2)]"
+        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-4 py-2 text-left text-sm hover:border-[var(--gray-300)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-soft)]"
       >
         <span
           className={selected ? 'text-[color:var(--gray-900)]' : 'text-[color:var(--gray-500)]'}
@@ -238,7 +238,7 @@ export function AnalystSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg">
+        <div className="absolute z-50 mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-md)]">
           <div className="border-b border-[var(--border)] p-2">
             <input
               ref={searchRef}
@@ -247,7 +247,7 @@ export function AnalystSelector({
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Buscar analista..."
-              className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:rgba(15,118,110,0.2)]"
+              className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-soft)]"
             />
           </div>
 

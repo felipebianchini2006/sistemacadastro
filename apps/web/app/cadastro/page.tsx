@@ -1364,7 +1364,7 @@ export default function CadastroPage() {
             })
           }
           onBlur={() => handleFieldBlur('bank.accountType')}
-          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
+          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
           autoComplete="off"
         >
           <option value="">Selecione</option>
@@ -1412,7 +1412,7 @@ export default function CadastroPage() {
               })
             }
             onBlur={() => handleFieldBlur('bank.pixKeyType')}
-            className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
+            className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
             autoComplete="off"
           >
             <option value="">Selecione</option>
@@ -1564,7 +1564,7 @@ export default function CadastroPage() {
         <div className="pointer-events-none absolute inset-0 -z-10 bg-sheen" />
         {showRestorePrompt ? (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]">
+            <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
               <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
                 Retomar cadastro
               </p>
@@ -1585,7 +1585,7 @@ export default function CadastroPage() {
         ) : null}
         <div className="page-shell grid gap-8 lg:grid-cols-[1.1fr_1.6fr]">
           <aside className="flex flex-col gap-6">
-            <div className="surface-glass p-6 shadow-[var(--shadow-xl)]">
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
                 Cadastro digital
               </p>
@@ -1597,11 +1597,11 @@ export default function CadastroPage() {
                 dispositivo.
               </p>
               <div className="mt-6 flex flex-col gap-3 text-xs text-[color:var(--gray-500)]">
-                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
                   <span>Autosave local</span>
                   <span className="font-semibold text-emerald-600">Ativo</span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
                   <span>Sincronizacao backend</span>
                   <span className="font-semibold" role="status" aria-live="polite">
                     {syncStatus === 'saving'
@@ -1613,7 +1613,7 @@ export default function CadastroPage() {
                           : 'Aguardando'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-4 py-3">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
                   <span>Ultimo salvamento</span>
                   <span className="font-semibold">
                     {lastSavedAt
@@ -1666,9 +1666,9 @@ export default function CadastroPage() {
                         type="button"
                         className={cn(
                           'group min-h-[140px] rounded-3xl border p-5 text-left transition-all sm:min-h-[160px] sm:p-6',
-                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(15,118,110,0.3)]',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-soft)]',
                           selected
-                            ? 'border-[var(--primary)] bg-[color:rgba(15,118,110,0.12)] shadow-[var(--shadow-md)]'
+                            ? 'border-[var(--primary)] bg-[color:var(--primary-soft)] shadow-[var(--shadow-sm)]'
                             : 'border-[var(--border)] bg-[var(--card)] hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow',
                         )}
                         onClick={() => toggleProfileRole(role.value)}
@@ -1712,7 +1712,7 @@ export default function CadastroPage() {
                         value={form.profileRoleOther}
                         onChange={(event) => updateForm({ profileRoleOther: event.target.value })}
                         onBlur={() => handleFieldBlur('profileRoleOther')}
-                        className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
+                        className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
                         placeholder="Ex: arranjador, tecnico de audio..."
                         aria-required={otherRoleSelected}
                         aria-invalid={profileRoleOtherInvalid}
@@ -1746,7 +1746,7 @@ export default function CadastroPage() {
                         className={cn(
                           'rounded-full px-4 py-2 text-sm font-semibold transition',
                           form.proposalType === type
-                            ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-md)]'
+                            ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-sm)]'
                             : 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)] hover:border-[var(--primary)]',
                         )}
                         onClick={() => handleProposalTypeSelect(type)}
@@ -1909,7 +1909,7 @@ export default function CadastroPage() {
                           updateForm({ migrationEntity: nextValue });
                         }}
                         onBlur={() => handleFieldBlur('migrationEntity')}
-                        className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
+                        className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
                       >
                         <option value="">Selecione</option>
                         {MIGRATION_ENTITY_OPTIONS.map((entity) => (
@@ -1926,7 +1926,7 @@ export default function CadastroPage() {
                           value={form.migrationEntity}
                           onChange={(event) => updateForm({ migrationEntity: event.target.value })}
                           onBlur={() => handleFieldBlur('migrationEntity')}
-                          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
+                          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
                           placeholder="Digite a entidade"
                         />
                       </label>
@@ -1938,7 +1938,7 @@ export default function CadastroPage() {
                   <label className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
+                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
                       checked={form.migrationConfirmed}
                       onChange={(event) => updateForm({ migrationConfirmed: event.target.checked })}
                     />
@@ -2030,7 +2030,7 @@ export default function CadastroPage() {
                         className={cn(
                           'rounded-full px-4 py-2 text-sm font-semibold transition',
                           form.documentChoice === choice
-                            ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-md)]'
+                            ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-sm)]'
                             : 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-500)] hover:border-[var(--primary)]',
                         )}
                         onClick={() => updateForm({ documentChoice: choice })}
@@ -2225,7 +2225,7 @@ export default function CadastroPage() {
                           className="object-cover"
                           unoptimized
                         />
-                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/90 p-3 text-xs text-[color:var(--gray-500)] shadow">
+                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-[var(--card)]/95 p-3 text-xs text-[color:var(--gray-500)] shadow">
                           <div className="grid gap-1">
                             {ocrPreviewFields.slice(0, 3).map((field) => (
                               <div key={field.label} className="flex items-center justify-between">
@@ -2459,7 +2459,7 @@ export default function CadastroPage() {
                   <label className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
+                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
                       checked={form.consentAccepted}
                       onChange={(event) => handleConsentChange(event.target.checked)}
                     />
@@ -2468,7 +2468,7 @@ export default function CadastroPage() {
                   <label className="mt-3 flex items-start gap-3">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
+                      className="mt-1 h-4 w-4 rounded border-[var(--gray-300)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
                       checked={form.privacyAccepted}
                       onChange={(event) => handlePrivacyChange(event.target.checked)}
                     />
@@ -2552,14 +2552,14 @@ export default function CadastroPage() {
           <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 lg:hidden">
             <div
               className={cn(
-                'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-[var(--shadow-md)] backdrop-blur transition-all',
+                'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-[var(--shadow-sm)] backdrop-blur transition-all',
                 syncStatus === 'saving'
                   ? 'border-amber-200 bg-amber-50/90 text-amber-700'
                   : syncStatus === 'saved'
                     ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
                     : syncStatus === 'error'
                       ? 'border-red-200 bg-red-50/90 text-red-700'
-                      : 'border-[var(--border)] bg-white/90 text-[color:var(--gray-500)]',
+                      : 'border-[var(--border)] bg-[var(--card)]/90 text-[color:var(--gray-500)]',
               )}
               role="status"
               aria-live="polite"
@@ -2969,7 +2969,7 @@ const UploadCard = ({
 
       {showGuidelines && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
             <div className="mb-4">
               <h3 className="text-lg font-bold text-[color:var(--gray-900)]">
                 Prepare-se para capturar

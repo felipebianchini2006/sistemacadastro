@@ -401,7 +401,7 @@ export function SmartDocumentUpload({
                 </div>
                 <span className="text-sm font-semibold text-green-900">Documento enviado</span>
               </div>
-              <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-lg bg-white/70">
+              <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-lg bg-[var(--card)]/80">
                 <Image
                   src={existingPreviewUrl ?? localPreviewUrl ?? ''}
                   alt={documentLabel}

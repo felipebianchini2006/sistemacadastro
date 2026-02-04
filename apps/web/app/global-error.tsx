@@ -17,7 +17,7 @@ export default function GlobalError({
     <html lang="pt-BR">
       <body className="min-h-screen-dvh bg-soft-gradient">
         <div className="page-shell flex min-h-screen-dvh flex-col items-center justify-center py-16">
-          <div className="surface-glass w-full max-w-xl rounded-3xl p-8 shadow-[var(--shadow-xl)]">
+          <div className="w-full max-w-xl rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-[var(--shadow-md)]">
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--gray-500)]">
               Erro global
             </p>
@@ -31,7 +31,7 @@ export default function GlobalError({
               <button
                 type="button"
                 onClick={() => reset()}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition hover:bg-[var(--primary-dark)]"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--primary-dark)]"
               >
                 Recarregar pagina
               </button>

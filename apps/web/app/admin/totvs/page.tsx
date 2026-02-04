@@ -128,7 +128,7 @@ export default function TotvsMonitorPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
               <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 Ultima sincronizacao com sucesso
               </p>
@@ -139,7 +139,7 @@ export default function TotvsMonitorPage() {
                 {formatDate(stats.lastSyncAt)}
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
               <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 Ultima falha
               </p>
@@ -153,7 +153,7 @@ export default function TotvsMonitorPage() {
           </div>
 
           {/* Status distribution bar */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-lg">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)]">
             <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               Distribuicao de status
             </p>
@@ -162,21 +162,21 @@ export default function TotvsMonitorPage() {
                 <>
                   {stats.synced > 0 ? (
                     <div
-                      className="h-full bg-emerald-500 transition-all"
+                      className="h-full bg-[color:var(--success)] transition-all"
                       style={{ width: `${(stats.synced / stats.total) * 100}%` }}
                       title={`Sincronizados: ${stats.synced}`}
                     />
                   ) : null}
                   {stats.pending > 0 ? (
                     <div
-                      className="h-full bg-amber-400 transition-all"
+                      className="h-full bg-[color:var(--warning)] transition-all"
                       style={{ width: `${(stats.pending / stats.total) * 100}%` }}
                       title={`Pendentes: ${stats.pending}`}
                     />
                   ) : null}
                   {stats.failed > 0 ? (
                     <div
-                      className="h-full bg-red-500 transition-all"
+                      className="h-full bg-[color:var(--error)] transition-all"
                       style={{ width: `${(stats.failed / stats.total) * 100}%` }}
                       title={`Falhas: ${stats.failed}`}
                     />
@@ -186,15 +186,16 @@ export default function TotvsMonitorPage() {
             </div>
             <div className="mt-3 flex flex-wrap gap-4 text-xs">
               <span className="flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Sincronizados (
-                {stats.synced})
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)]" />{' '}
+                Sincronizados ({stats.synced})
               </span>
               <span className="flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Pendentes (
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--warning)]" /> Pendentes (
                 {stats.pending})
               </span>
               <span className="flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Falhas ({stats.failed})
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--error)]" /> Falhas (
+                {stats.failed})
               </span>
             </div>
           </div>
@@ -202,7 +203,7 @@ export default function TotvsMonitorPage() {
       ) : null}
 
       {/* Recent syncs table */}
-      <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-lg">
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
             Sincronizacoes recentes

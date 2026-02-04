@@ -102,119 +102,280 @@ export const ProposalsTable = ({
   const someSelected =
     selectedIds && items.some((item) => selectedIds.has(item.id)) && !allSelected;
   return (
-    <div className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-lg">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-[var(--muted)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
-          <tr>
-            {onSelectAll && (
-              <th scope="col" className="w-12 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someSelected ?? false;
-                  }}
-                  onChange={(e) => onSelectAll(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
-                  aria-label="Selecionar todas as propostas"
-                />
-              </th>
-            )}
-            {HEADERS.map((header) => {
-              const ariaSortValue =
-                sort?.field === header.field
-                  ? sort.dir === 'asc'
-                    ? ('ascending' as const)
-                    : ('descending' as const)
-                  : ('none' as const);
-              return (
-                <th
-                  key={header.field}
-                  scope="col"
-                  aria-sort={ariaSortValue}
-                  className="cursor-pointer select-none px-4 py-3 hover:text-[color:var(--gray-700)]"
-                  tabIndex={0}
-                  role="columnheader"
-                  onClick={() => onSort?.(header.field)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onSort?.(header.field);
-                    }
-                  }}
-                >
-                  {header.label}
-                  <SortIcon field={header.field} sort={sort} />
+    <div className="grid gap-3">
+      {onSelectAll ? (
+        <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)] md:hidden">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = someSelected ?? false;
+            }}
+            onChange={(e) => onSelectAll(e.target.checked)}
+            className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+            aria-label="Selecionar todas as propostas"
+          />
+          Selecionar todas
+        </label>
+      ) : null}
+
+      <div className="hidden overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)] md:block">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-[var(--muted)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+            <tr>
+              {onSelectAll && (
+                <th scope="col" className="w-12 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected ?? false;
+                    }}
+                    onChange={(e) => onSelectAll(e.target.checked)}
+                    className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+                    aria-label="Selecionar todas as propostas"
+                  />
                 </th>
+              )}
+              {HEADERS.map((header) => {
+                const ariaSortValue =
+                  sort?.field === header.field
+                    ? sort.dir === 'asc'
+                      ? ('ascending' as const)
+                      : ('descending' as const)
+                    : ('none' as const);
+                return (
+                  <th
+                    key={header.field}
+                    scope="col"
+                    aria-sort={ariaSortValue}
+                    className="cursor-pointer select-none px-4 py-3 hover:text-[color:var(--gray-700)]"
+                    tabIndex={0}
+                    role="columnheader"
+                    onClick={() => onSort?.(header.field)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSort?.(header.field);
+                      }
+                    }}
+                  >
+                    {header.label}
+                    <SortIcon field={header.field} sort={sort} />
+                  </th>
+                );
+              })}
+              <th scope="col" className="px-4 py-3 text-right">
+                Acoes
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((proposal) => {
+              const sla = resolveSla(proposal);
+              const updated = hasRecentUpdate(proposal);
+              return (
+                <tr
+                  key={proposal.id}
+                  className={cn(
+                    'border-t border-[var(--border)] content-visibility-auto',
+                    updated && 'bg-[color:var(--info-soft)]',
+                    selectedIds?.has(proposal.id) && 'bg-[color:var(--primary-soft)]',
+                  )}
+                >
+                  {onSelectOne && (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds?.has(proposal.id) ?? false}
+                        onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
+                        className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+                        aria-label={`Selecionar proposta ${proposal.protocol}`}
+                      />
+                    </td>
+                  )}
+                  <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">
+                        {proposal.protocol}
+                      </Link>
+                      {updated ? (
+                        <span className="rounded-full bg-[color:var(--info)] px-2 py-0.5 text-[10px] font-bold text-white">
+                          Atualizado
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--gray-700)]">
+                    {proposal.person?.fullName ?? '-'}
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                    {proposal.person?.cpfMasked ?? '-'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={proposal.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[color:var(--gray-500)]">{proposal.type}</span>
+                      {proposal.type === 'MIGRACAO' ? (
+                        <span className="rounded-full border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary-dark)]">
+                          Migracao
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                    {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
+                        sla.tone === 'ok' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                        sla.tone === 'warning' && 'border-amber-200 bg-amber-50 text-amber-700',
+                        sla.tone === 'danger' && 'border-red-200 bg-red-50 text-red-700',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full',
+                          sla.tone === 'ok' && 'bg-emerald-500',
+                          sla.tone === 'warning' && 'bg-amber-500',
+                          sla.tone === 'danger' && 'bg-red-500',
+                        )}
+                        aria-hidden="true"
+                      />
+                      {sla.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                    {proposal.assignedAnalyst?.name ?? 'Nao atribuido'}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <details className="relative inline-block text-left">
+                      <summary
+                        className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
+                        aria-label="Abrir menu de acoes"
+                      >
+                        ⋮
+                      </summary>
+                      <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-[var(--shadow-md)]">
+                        <Link
+                          href={`/admin/propostas/${proposal.id}`}
+                          className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+                        >
+                          Ver dossie
+                        </Link>
+                        {(proposal.status === 'SUBMITTED' ||
+                          proposal.status === 'UNDER_REVIEW') && (
+                          <Link
+                            href={`/admin/propostas/${proposal.id}?action=signature`}
+                            className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
+                          >
+                            Enviar para assinatura
+                          </Link>
+                        )}
+                        <Link
+                          href={`/admin/propostas/${proposal.id}?action=request`}
+                          className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+                        >
+                          Solicitar documento
+                        </Link>
+                        <Link
+                          href={`/admin/propostas/${proposal.id}?action=reject`}
+                          className="mt-1 block rounded-xl px-3 py-2 text-red-600 hover:bg-red-50"
+                        >
+                          Reprovar proposta
+                        </Link>
+                        {proposal.status === 'PENDING_SIGNATURE' && (
+                          <Link
+                            href={`/admin/propostas/${proposal.id}?action=resend`}
+                            className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+                          >
+                            Reenviar link
+                          </Link>
+                        )}
+                      </div>
+                    </details>
+                  </td>
+                </tr>
               );
             })}
-            <th scope="col" className="px-4 py-3 text-right">
-              Acoes
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((proposal) => {
-            const sla = resolveSla(proposal);
-            const updated = hasRecentUpdate(proposal);
-            return (
-              <tr
-                key={proposal.id}
-                className={cn(
-                  'border-t border-[var(--border)] content-visibility-auto',
-                  updated && 'bg-blue-50/50',
-                  selectedIds?.has(proposal.id) && 'bg-[color:var(--primary-soft)]',
-                )}
-              >
-                {onSelectOne && (
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds?.has(proposal.id) ?? false}
-                      onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
-                      className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary-light)]"
-                      aria-label={`Selecionar proposta ${proposal.protocol}`}
-                    />
-                  </td>
-                )}
-                <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-3 md:hidden">
+        {items.map((proposal) => {
+          const sla = resolveSla(proposal);
+          const updated = hasRecentUpdate(proposal);
+          return (
+            <div
+              key={proposal.id}
+              className={cn(
+                'rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-sm)]',
+                updated && 'border-[color:var(--info-border)] bg-[color:var(--info-soft)]',
+                selectedIds?.has(proposal.id) && 'border-[color:var(--primary)]',
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">
+                    <Link
+                      href={`/admin/propostas/${proposal.id}`}
+                      className="text-sm font-semibold text-[color:var(--gray-900)]"
+                    >
                       {proposal.protocol}
                     </Link>
                     {updated ? (
-                      <span className="rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                      <span className="rounded-full bg-[color:var(--info)] px-2 py-0.5 text-[10px] font-bold text-white">
                         Atualizado
                       </span>
                     ) : null}
                   </div>
-                </td>
-                <td className="px-4 py-3 text-[color:var(--gray-700)]">
-                  {proposal.person?.fullName ?? '-'}
-                </td>
-                <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                  {proposal.person?.cpfMasked ?? '-'}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={proposal.status} />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[color:var(--gray-500)]">{proposal.type}</span>
-                    {proposal.type === 'MIGRACAO' ? (
-                      <span className="rounded-full border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary-dark)]">
-                        Migracao
-                      </span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                  {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
-                </td>
-                <td className="px-4 py-3">
+                  <p className="mt-1 text-sm text-[color:var(--gray-700)]">
+                    {proposal.person?.fullName ?? '-'}
+                  </p>
+                  <p className="mt-1 text-xs text-[color:var(--gray-500)]">
+                    {proposal.person?.cpfMasked ?? '-'}
+                  </p>
+                </div>
+                {onSelectOne ? (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds?.has(proposal.id) ?? false}
+                    onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
+                    className="mt-1 h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+                    aria-label={`Selecionar proposta ${proposal.protocol}`}
+                  />
+                ) : null}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <StatusBadge status={proposal.status} />
+                <span className="text-xs text-[color:var(--gray-500)]">{proposal.type}</span>
+                {proposal.type === 'MIGRACAO' ? (
+                  <span className="rounded-full border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary-dark)]">
+                    Migracao
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-3 grid gap-2 text-xs text-[color:var(--gray-500)]">
+                <div className="flex items-center justify-between">
+                  <span>Criada</span>
+                  <span>{new Date(proposal.createdAt).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Analista</span>
+                  <span>{proposal.assignedAnalyst?.name ?? 'Nao atribuido'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>SLA</span>
                   <span
                     className={cn(
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
+                      'inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold',
                       sla.tone === 'ok' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
                       sla.tone === 'warning' && 'border-amber-200 bg-amber-50 text-amber-700',
                       sla.tone === 'danger' && 'border-red-200 bg-red-50 text-red-700',
@@ -231,61 +392,65 @@ export const ProposalsTable = ({
                     />
                     {sla.label}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                  {proposal.assignedAnalyst?.name ?? 'Nao atribuido'}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <details className="relative inline-block text-left">
-                    <summary
-                      className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
-                      aria-label="Abrir menu de acoes"
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <Link
+                  href={`/admin/propostas/${proposal.id}`}
+                  className="text-xs font-semibold text-[color:var(--primary-dark)]"
+                >
+                  Ver dossie
+                </Link>
+                <details className="relative inline-block text-left">
+                  <summary
+                    className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)]"
+                    aria-label="Abrir menu de acoes"
+                  >
+                    Acoes
+                  </summary>
+                  <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-[var(--shadow-md)]">
+                    <Link
+                      href={`/admin/propostas/${proposal.id}`}
+                      className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                     >
-                      ⋮
-                    </summary>
-                    <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-lg">
+                      Ver dossie
+                    </Link>
+                    {(proposal.status === 'SUBMITTED' || proposal.status === 'UNDER_REVIEW') && (
                       <Link
-                        href={`/admin/propostas/${proposal.id}`}
-                        className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+                        href={`/admin/propostas/${proposal.id}?action=signature`}
+                        className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
                       >
-                        Ver dossie
+                        Enviar para assinatura
                       </Link>
-                      {(proposal.status === 'SUBMITTED' || proposal.status === 'UNDER_REVIEW') && (
-                        <Link
-                          href={`/admin/propostas/${proposal.id}?action=signature`}
-                          className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
-                        >
-                          Enviar para assinatura
-                        </Link>
-                      )}
+                    )}
+                    <Link
+                      href={`/admin/propostas/${proposal.id}?action=request`}
+                      className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+                    >
+                      Solicitar documento
+                    </Link>
+                    <Link
+                      href={`/admin/propostas/${proposal.id}?action=reject`}
+                      className="mt-1 block rounded-xl px-3 py-2 text-red-600 hover:bg-red-50"
+                    >
+                      Reprovar proposta
+                    </Link>
+                    {proposal.status === 'PENDING_SIGNATURE' && (
                       <Link
-                        href={`/admin/propostas/${proposal.id}?action=request`}
+                        href={`/admin/propostas/${proposal.id}?action=resend`}
                         className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                       >
-                        Solicitar documento
+                        Reenviar link
                       </Link>
-                      <Link
-                        href={`/admin/propostas/${proposal.id}?action=reject`}
-                        className="mt-1 block rounded-xl px-3 py-2 text-red-600 hover:bg-red-50"
-                      >
-                        Reprovar proposta
-                      </Link>
-                      {proposal.status === 'PENDING_SIGNATURE' && (
-                        <Link
-                          href={`/admin/propostas/${proposal.id}?action=resend`}
-                          className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                        >
-                          Reenviar link
-                        </Link>
-                      )}
-                    </div>
-                  </details>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    )}
+                  </div>
+                </details>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

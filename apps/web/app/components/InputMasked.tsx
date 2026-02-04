@@ -115,8 +115,8 @@ export const InputMasked = forwardRef<HTMLInputElement, InputMaskedProps>(
               value={value}
               onChange={(event) => onChange(applyMask(event.target.value, mask))}
               className={cn(
-                'w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm',
-                'focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-light)]',
+                'w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm placeholder:text-[color:var(--gray-500)]',
+                'focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-soft)]',
                 status === 'invalid' &&
                   'border-[color:var(--error)] focus-visible:ring-[color:rgba(220,38,38,0.2)] animate-[shake_0.4s_ease]',
                 status === 'valid' &&

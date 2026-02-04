@@ -11,7 +11,7 @@ export const Card = ({ className, tone = 'default', ...props }: CardProps) => (
   <div
     className={cn(
       'rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]',
-      tone === 'glass' && 'surface-glass border-white/20',
+      tone === 'glass' && 'surface-glass',
       tone === 'muted' && 'bg-[var(--muted)]',
       className,
     )}

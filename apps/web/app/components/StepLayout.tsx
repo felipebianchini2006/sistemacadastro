@@ -16,9 +16,8 @@ export const StepLayout = ({
   return (
     <section
       className={cn(
-        'rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-lg)] sm:p-8',
-        tone === 'review' &&
-          'bg-gradient-to-br from-white via-white to-[color:var(--primary-soft)] shadow-[var(--shadow-xl)]',
+        'rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)] sm:p-8',
+        tone === 'review' && 'bg-[var(--card)] shadow-[var(--shadow-md)]',
       )}
     >
       <header className="flex flex-col gap-2">

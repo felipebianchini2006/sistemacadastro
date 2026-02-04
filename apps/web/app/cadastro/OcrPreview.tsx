@@ -191,7 +191,7 @@ export function OcrPreview({ data, onConfirm, onRetake, isProcessing = false }: 
                           type="text"
                           value={currentValue}
                           onChange={(e) => handleFieldEdit(fieldKey, e.target.value)}
-                          className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm font-mono focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary-light)]"
+                          className="w-full rounded-lg border border-[var(--gray-300)] px-3 py-2 text-sm font-mono focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
                         />
                       ) : (
                         <p className="text-base font-mono text-[color:var(--gray-900)]">

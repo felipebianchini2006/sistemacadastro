@@ -11,6 +11,16 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
+  letter-spacing: -0.01em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .skip-link {
@@ -21,7 +31,7 @@ body {
   height: 1px;
   overflow: hidden;
   z-index: 9999;
-  background: #fff;
+  background: #ffffff;
   color: #111827;
   border: 2px solid var(--primary);
   border-radius: 999px;
@@ -38,7 +48,7 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--info);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 

@@ -4,9 +4,11 @@
   }
 
   .bg-soft-gradient {
+    background-color: var(--background);
     background-image:
-      radial-gradient(circle at top right, rgba(15, 118, 110, 0.18), transparent 45%),
-      radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.12), transparent 50%);
+      radial-gradient(circle at 10% 10%, rgba(255, 143, 100, 0.12), transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(59, 130, 246, 0.08), transparent 50%),
+      radial-gradient(circle at 50% 100%, rgba(255, 107, 53, 0.08), transparent 60%);
   }
 
   .bg-sheen {
@@ -22,11 +24,11 @@
   }
 
   .surface-glass {
-    background: rgba(248, 250, 252, 0.78);
-    border: 1px solid rgba(226, 232, 240, 0.7);
-    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(6px);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
   }
 
   .text-muted {

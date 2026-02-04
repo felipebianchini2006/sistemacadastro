@@ -3,13 +3,13 @@ export default function Loading() {
     <div className="min-h-screen-dvh bg-soft-gradient">
       <div className="page-shell flex min-h-screen-dvh flex-col items-center justify-center py-16">
         <div
-          className="surface-glass w-full max-w-xl rounded-3xl p-6 shadow-[var(--shadow-xl)]"
+          className="w-full max-w-xl rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]"
           role="status"
           aria-live="polite"
           aria-busy="true"
         >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 animate-pulse rounded-2xl bg-[var(--primary)]/20" />
+            <div className="h-10 w-10 animate-pulse rounded-2xl bg-[var(--primary-soft)]" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-2/3 animate-pulse rounded-full bg-[var(--gray-200)]" />
               <div className="h-3 w-1/2 animate-pulse rounded-full bg-[var(--gray-200)]" />

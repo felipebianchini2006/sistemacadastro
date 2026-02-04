@@ -20,7 +20,7 @@ export function ImageQualityAlert({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-xl)]">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
         <div className="mb-4 flex items-start gap-3">
           <div
             className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${

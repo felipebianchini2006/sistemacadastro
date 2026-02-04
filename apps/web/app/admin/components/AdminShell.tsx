@@ -89,7 +89,7 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen-dvh bg-soft-gradient">
       <div className="mx-auto flex min-h-screen-dvh w-full max-w-7xl">
-        <aside className="hidden w-64 flex-col gap-6 border-r border-[var(--border)] bg-white/80 p-6 backdrop-blur lg:flex">
+        <aside className="hidden w-64 flex-col gap-6 border-r border-[var(--border)] bg-[var(--card)] p-6 lg:flex">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
               Admin
@@ -110,17 +110,15 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center justify-between rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     isActive
-                      ? 'bg-[var(--primary)] text-white shadow-sm'
-                      : 'text-[color:var(--gray-500)] hover:bg-[var(--gray-100)]'
+                      ? 'bg-[color:var(--primary-soft)] text-[color:var(--gray-900)]'
+                      : 'text-[color:var(--gray-500)] hover:bg-[var(--muted)]'
                   }`}
                 >
                   {item.label}
                   {badge ? (
                     <span
                       className={`ml-2 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                        isActive
-                          ? 'bg-[var(--card)] text-[color:var(--primary-dark)]'
-                          : 'bg-red-500 text-white'
+                        isActive ? 'bg-[var(--primary)] text-white' : 'bg-[var(--error)] text-white'
                       }`}
                     >
                       {badge}
@@ -130,7 +128,7 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
               );
             })}
           </nav>
-          <div className="mt-auto rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-xs text-[color:var(--gray-500)]">
+          <div className="mt-auto rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4 text-xs text-[color:var(--gray-500)]">
             <p className="font-semibold text-[color:var(--gray-700)]">Logado como</p>
             <p className="mt-1 text-sm text-[color:var(--gray-700)]">{user?.email ?? 'usuario'}</p>
             <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
@@ -140,7 +138,7 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
               <button
                 type="button"
                 onClick={togglePush}
-                className="mt-3 flex w-full items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[color:var(--gray-700)] hover:bg-[var(--gray-50)]"
+                className="mt-3 flex w-full items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
                 aria-label={
                   pushEnabled ? 'Desativar notificacoes push' : 'Ativar notificacoes push'
                 }
@@ -156,7 +154,7 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
         </aside>
 
         <div className="flex flex-1 flex-col">
-          <header className="flex items-center justify-between border-b border-[var(--border)] bg-white/80 px-6 py-4 backdrop-blur">
+          <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-6 py-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 Admin

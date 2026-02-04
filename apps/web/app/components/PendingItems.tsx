@@ -99,7 +99,7 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
   };
 
   return (
-    <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-lg">
+    <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold text-[color:var(--gray-900)]">Pendencias</h3>
         {hasDocsPending ? (

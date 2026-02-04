@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen-dvh bg-soft-gradient px-4 py-10 sm:px-8">
       <div className="page-shell flex flex-col gap-6">
-        <header className="surface-glass p-6 shadow-[var(--shadow-xl)] sm:p-8">
+        <header className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)] sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
             LGPD
           </p>
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         </header>
 
         <section className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-md)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
             <h2 className="text-lg font-semibold text-[color:var(--gray-900)]">Dados coletados</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-[color:var(--gray-500)]">
               <li>Dados de identificacao (nome, CPF, data de nascimento).</li>
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
               <li>Dados bancarios e redes sociais (opcional, quando informados).</li>
             </ul>
           </div>
-          <div className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-md)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
             <h2 className="text-lg font-semibold text-[color:var(--gray-900)]">Finalidades</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-[color:var(--gray-500)]">
               <li>Processar sua proposta de filiacao.</li>
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-3xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-md)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
             <h2 className="text-lg font-semibold text-[color:var(--gray-900)]">Seus direitos</h2>
             <p className="mt-2 text-sm text-[color:var(--gray-500)]">
               Voce pode solicitar acesso, correcao ou exclusao dos seus dados pessoais. Para
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
               </span>
             </div>
           </div>
-          <div className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-[color:var(--primary-soft)] p-6 shadow-[var(--shadow-md)]">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-sm)]">
             <h2 className="text-lg font-semibold text-[color:var(--gray-900)]">Contato</h2>
             <p className="mt-2 text-sm text-[color:var(--gray-500)]">
               Em caso de duvidas, entre em contato com o suporte da SBACEM.

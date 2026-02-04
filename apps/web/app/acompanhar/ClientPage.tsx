@@ -232,7 +232,7 @@ export default function ClientPage() {
   return (
     <div className="min-h-screen-dvh bg-soft-gradient px-4 py-10 sm:px-8">
       <div className="page-shell flex flex-col gap-6">
-        <header className="surface-glass p-6 shadow-[var(--shadow-xl)]">
+        <header className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-md)]">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--gray-500)]">
             Acompanhar
           </p>
@@ -279,7 +279,7 @@ export default function ClientPage() {
                   <select
                     value={otpChannel}
                     onChange={(event) => setOtpChannel(event.target.value as 'sms' | 'whatsapp')}
-                    className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm text-[color:var(--gray-900)]"
+                    className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)]"
                   >
                     <option value="sms">SMS</option>
                     <option value="whatsapp">WhatsApp</option>
@@ -312,7 +312,7 @@ export default function ClientPage() {
                 ) : null}
               </div>
               {otpMessage ? (
-                <div className="mt-3 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs text-[color:var(--gray-500)]">
+                <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[color:var(--gray-500)]">
                   {otpMessage}
                 </div>
               ) : null}

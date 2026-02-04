@@ -23,15 +23,19 @@ const STATUS_STYLES: Record<string, string> = {
   PENDING_DOCS:
     'bg-[color:var(--error-soft)] text-[color:var(--error)] border-[color:var(--error-border)]',
   PENDING_SIGNATURE:
-    'bg-[color:var(--primary-soft)] text-[color:var(--primary-dark)] border-[color:var(--primary-light)]',
+    'bg-[color:var(--purple-soft)] text-[color:var(--purple)] border-[color:var(--purple-border)]',
   SIGNED:
     'bg-[color:var(--success-soft)] text-[color:var(--success)] border-[color:var(--success-border)]',
   APPROVED:
-    'bg-[color:var(--success-soft)] text-[color:var(--success)] border-[color:var(--success-border)]',
-  REJECTED: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
-  CANCELED: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
-  DRAFT: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
-  IN_PROGRESS: 'bg-[var(--gray-100)] text-[color:var(--gray-700)] border-[var(--border)]',
+    'bg-[color:rgba(22,163,74,0.12)] text-[color:var(--success-strong)] border-[color:rgba(22,163,74,0.3)]',
+  REJECTED:
+    'bg-[color:var(--status-muted-soft)] text-[color:var(--status-muted)] border-[color:var(--status-muted-border)]',
+  CANCELED:
+    'bg-[color:var(--status-muted-soft)] text-[color:var(--status-muted)] border-[color:var(--status-muted-border)]',
+  DRAFT:
+    'bg-[color:var(--status-muted-soft)] text-[color:var(--status-muted)] border-[color:var(--status-muted-border)]',
+  IN_PROGRESS:
+    'bg-[color:var(--status-muted-soft)] text-[color:var(--status-muted)] border-[color:var(--status-muted-border)]',
 };
 
 export const StatusBadge = ({ status }: { status: string }) => {

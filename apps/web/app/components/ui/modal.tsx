@@ -37,7 +37,7 @@ export const Modal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div
         role="dialog"
         aria-modal="true"
@@ -62,7 +62,7 @@ export const Modal = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] text-[color:var(--gray-500)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-light)]"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] text-[color:var(--gray-500)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]"
             aria-label="Fechar modal"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">

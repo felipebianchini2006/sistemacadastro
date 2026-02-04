@@ -15,16 +15,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       type={type}
       className={cn(
         'inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-all',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-light)] focus-visible:ring-offset-2 focus-visible:ring-offset-white',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white',
         'disabled:cursor-not-allowed disabled:opacity-60',
         variant === 'primary' &&
-          'bg-[var(--primary)] text-white shadow-[var(--shadow-md)] hover:bg-[var(--primary-dark)]',
+          'bg-[var(--primary)] text-white shadow-[var(--shadow-sm)] hover:bg-[var(--primary-dark)]',
         variant === 'secondary' &&
-          'border border-[var(--border)] bg-white text-[color:var(--gray-700)] hover:border-[var(--gray-300)]',
+          'border border-[var(--border)] bg-[var(--card)] text-[color:var(--gray-700)] hover:border-[color:var(--primary)] hover:text-[color:var(--gray-900)]',
         variant === 'ghost' &&
-          'bg-transparent text-[color:var(--gray-700)] hover:bg-[var(--gray-100)]',
+          'bg-transparent text-[color:var(--gray-700)] hover:bg-[var(--muted)]',
         variant === 'accent' &&
-          'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] text-white shadow-[var(--shadow-lg)] hover:from-[var(--primary-dark)] hover:to-[color:var(--primary-dark)]',
+          'bg-[var(--primary)] text-white shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)]',
         className,
       )}
       {...props}

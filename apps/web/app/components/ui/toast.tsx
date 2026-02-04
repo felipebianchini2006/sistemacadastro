@@ -24,7 +24,7 @@ export const Toast = ({ title, message, tone = 'success', onClose }: ToastProps)
     aria-live={tone === 'error' ? 'assertive' : 'polite'}
     aria-atomic="true"
     className={cn(
-      'relative flex items-start gap-3 rounded-2xl border-l-4 bg-[var(--card)] p-4 shadow-[var(--shadow-lg)]',
+      'relative flex items-start gap-3 rounded-2xl border-l-4 bg-[var(--card)] p-4 shadow-[var(--shadow-md)]',
       toneClasses[tone],
     )}
   >
@@ -39,7 +39,7 @@ export const Toast = ({ title, message, tone = 'success', onClose }: ToastProps)
       <button
         type="button"
         onClick={onClose}
-        className="flex h-11 w-11 items-center justify-center rounded-full text-[color:var(--gray-500)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary-light)]"
+        className="flex h-11 w-11 items-center justify-center rounded-full text-[color:var(--gray-500)] transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]"
         aria-label="Fechar notificacao"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
