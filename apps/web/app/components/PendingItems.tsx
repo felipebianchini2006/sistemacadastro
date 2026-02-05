@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { apiFetch } from '../lib/api';
+import { apiFetch, apiUpload } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 
@@ -62,32 +62,53 @@ export const PendingItems = ({ items, proposalId, token }: PendingItemsProps) =>
     if (!proposalId || !token) return;
     setUpload({ status: 'uploading' });
     try {
+      const useDirectUpload =
+        typeof window !== 'undefined' && window.location.hostname.endsWith('.devtunnels.ms');
       const isImage = file.type.startsWith('image/');
       const dimensions = isImage ? await loadImageSize(file) : null;
-      const presign = await apiFetch<{
-        uploadUrl: string;
-        headers: Record<string, string>;
-        documentId: string;
-      }>('/public/uploads/presign', {
-        method: 'POST',
-        headers: { 'x-proposal-token': token },
-        body: {
-          proposalId,
-          proposalToken: token,
-          docType,
-          fileName: file.name,
-          contentType: file.type || 'application/octet-stream',
-          size: file.size,
-          imageWidth: dimensions?.width,
-          imageHeight: dimensions?.height,
-        },
-      });
+      if (useDirectUpload) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('proposalId', proposalId);
+        form.append('docType', docType);
+        if (dimensions?.width) {
+          form.append('imageWidth', String(dimensions.width));
+        }
+        if (dimensions?.height) {
+          form.append('imageHeight', String(dimensions.height));
+        }
 
-      await fetch(presign.uploadUrl, {
-        method: 'PUT',
-        headers: presign.headers,
-        body: file,
-      });
+        await apiUpload<{ documentId: string; storageKey: string }>('/public/uploads/direct', {
+          method: 'POST',
+          headers: { 'x-proposal-token': token },
+          body: form,
+        });
+      } else {
+        const presign = await apiFetch<{
+          uploadUrl: string;
+          headers: Record<string, string>;
+          documentId: string;
+        }>('/public/uploads/presign', {
+          method: 'POST',
+          headers: { 'x-proposal-token': token },
+          body: {
+            proposalId,
+            proposalToken: token,
+            docType,
+            fileName: file.name,
+            contentType: file.type || 'application/octet-stream',
+            size: file.size,
+            imageWidth: dimensions?.width,
+            imageHeight: dimensions?.height,
+          },
+        });
+
+        await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: presign.headers,
+          body: file,
+        });
+      }
 
       setUpload({ status: 'success', message: 'Documento enviado com sucesso.' });
     } catch (error) {

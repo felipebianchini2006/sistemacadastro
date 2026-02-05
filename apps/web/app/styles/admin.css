@@ -105,16 +105,22 @@
 }
 
 .admin-table-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.admin-table-scroll {
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-color: var(--gray-300) transparent;
   scrollbar-width: thin;
 }
 
-.admin-table-wrap::-webkit-scrollbar {
+.admin-table-scroll::-webkit-scrollbar {
   height: 8px;
 }
 
-.admin-table-wrap::-webkit-scrollbar-thumb {
+.admin-table-scroll::-webkit-scrollbar-thumb {
   background: var(--gray-300);
   border-radius: 999px;
 }

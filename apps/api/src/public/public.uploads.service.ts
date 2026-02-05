@@ -57,62 +57,8 @@ export class PublicUploadsService {
     const payload = this.validatePayload(dto, tokens);
 
     const owner = await this.resolveOwner(payload);
-    const env =
-      this.configService.get<string>('NODE_ENV', { infer: true }) ??
-      'development';
-    const storageKey = buildDocumentStorageKey({
-      env,
-      owner,
-      docType: payload.docType,
-      fileName: payload.fileName,
-      contentType: payload.contentType,
-    });
-
-    const document = await this.prisma.documentFile.create({
-      data: {
-        draftId: owner.kind === 'draft' ? owner.id : null,
-        proposalId: owner.kind === 'proposal' ? owner.id : null,
-        type: payload.docType,
-        storageKey,
-        fileName: payload.fileName,
-        contentType: payload.contentType,
-        size: payload.size,
-        checksum: payload.checksum,
-      },
-    });
-
-    if (owner.kind === 'proposal') {
-      const proposal = await this.prisma.proposal.findUnique({
-        where: { id: owner.id },
-        select: { status: true },
-      });
-
-      if (proposal?.status === ProposalStatus.PENDING_DOCS) {
-        const updated = await this.prisma.proposal.update({
-          where: { id: owner.id },
-          data: {
-            status: ProposalStatus.UNDER_REVIEW,
-            statusHistory: {
-              create: {
-                fromStatus: ProposalStatus.PENDING_DOCS,
-                toStatus: ProposalStatus.UNDER_REVIEW,
-                reason: 'Documentos complementares enviados pelo candidato',
-              },
-            },
-          },
-          include: { person: true },
-        });
-
-        if (updated.person) {
-          const name = updated.person.fullName;
-          await this.notifications.notifyInternalDocsReceived({
-            proposalId: updated.id,
-            protocol: updated.protocol,
-            name,
-          });
-        }
-      }
-    }
+    const storageKey = this.buildStorageKey(owner, payload);
+    const document = await this.createDocument(owner, payload, storageKey);
 
     const presign = await this.storage.presignPutObject({
       key: storageKey,
@@ -128,6 +74,43 @@ export class PublicUploadsService {
       headers: {
         'Content-Type': payload.contentType,
       },
+    };
+  }
+
+  async uploadDirect(
+    dto: UploadPresignDto,
+    file: {
+      buffer: Buffer;
+      mimetype: string;
+      originalname: string;
+      size: number;
+    },
+    tokens: UploadTokens,
+  ) {
+    const payload = this.validatePayload(
+      {
+        ...dto,
+        fileName: file.originalname,
+        contentType: file.mimetype,
+        size: file.size,
+      },
+      tokens,
+    );
+
+    const owner = await this.resolveOwner(payload);
+    const storageKey = this.buildStorageKey(owner, payload);
+    const document = await this.createDocument(owner, payload, storageKey);
+
+    await this.storage.uploadObject({
+      key: storageKey,
+      contentType: payload.contentType,
+      body: file.buffer,
+      metadata: payload.checksum ? { checksum: payload.checksum } : undefined,
+    });
+
+    return {
+      documentId: document.id,
+      storageKey,
     };
   }
 
@@ -232,6 +215,76 @@ export class PublicUploadsService {
     }
 
     return { kind: 'proposal' as const, id: proposal.id };
+  }
+
+  private buildStorageKey(
+    owner: { kind: 'draft' | 'proposal'; id: string },
+    payload: UploadPresignPayload,
+  ) {
+    const env =
+      this.configService.get<string>('NODE_ENV', { infer: true }) ??
+      'development';
+    return buildDocumentStorageKey({
+      env,
+      owner,
+      docType: payload.docType,
+      fileName: payload.fileName,
+      contentType: payload.contentType,
+    });
+  }
+
+  private async createDocument(
+    owner: { kind: 'draft' | 'proposal'; id: string },
+    payload: UploadPresignPayload,
+    storageKey: string,
+  ) {
+    const document = await this.prisma.documentFile.create({
+      data: {
+        draftId: owner.kind === 'draft' ? owner.id : null,
+        proposalId: owner.kind === 'proposal' ? owner.id : null,
+        type: payload.docType,
+        storageKey,
+        fileName: payload.fileName,
+        contentType: payload.contentType,
+        size: payload.size,
+        checksum: payload.checksum,
+      },
+    });
+
+    if (owner.kind === 'proposal') {
+      const proposal = await this.prisma.proposal.findUnique({
+        where: { id: owner.id },
+        select: { status: true },
+      });
+
+      if (proposal?.status === ProposalStatus.PENDING_DOCS) {
+        const updated = await this.prisma.proposal.update({
+          where: { id: owner.id },
+          data: {
+            status: ProposalStatus.UNDER_REVIEW,
+            statusHistory: {
+              create: {
+                fromStatus: ProposalStatus.PENDING_DOCS,
+                toStatus: ProposalStatus.UNDER_REVIEW,
+                reason: 'Documentos complementares enviados pelo candidato',
+              },
+            },
+          },
+          include: { person: true },
+        });
+
+        if (updated.person) {
+          const name = updated.person.fullName;
+          await this.notifications.notifyInternalDocsReceived({
+            proposalId: updated.id,
+            protocol: updated.protocol,
+            name,
+          });
+        }
+      }
+    }
+
+    return document;
   }
 
   private hashToken(token: string) {

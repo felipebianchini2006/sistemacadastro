@@ -13,7 +13,7 @@ import {
   shouldWarnUser,
   type ImageValidationResult,
 } from '../lib/imageValidation';
-import { apiFetch } from '../lib/api';
+import { apiFetch, apiUpload } from '../lib/api';
 
 const OcrPreview = dynamic(() => import('./OcrPreview').then((mod) => mod.OcrPreview), {
   ssr: false,
@@ -35,8 +35,9 @@ type UploadFlow =
 interface SmartDocumentUploadProps {
   documentType: 'RG_FRENTE' | 'RG_VERSO' | 'CNH' | 'COMPROVANTE_RESIDENCIA';
   documentLabel: string;
-  draftId: string;
-  draftToken: string;
+  draftId?: string;
+  draftToken?: string;
+  ensureDraft?: () => Promise<{ draftId: string; draftToken: string }>;
   onUploadComplete: (
     documentId: string,
     previewUrl: string,
@@ -69,6 +70,7 @@ export function SmartDocumentUpload({
   documentLabel,
   draftId,
   draftToken,
+  ensureDraft,
   onUploadComplete,
   onError,
   existingDocumentId,
@@ -152,9 +154,19 @@ export function SmartDocumentUpload({
     setFlow('processing-ocr');
 
     try {
-      if (!draftId || !draftToken) {
+      let resolvedDraftId = draftId ?? '';
+      let resolvedDraftToken = draftToken ?? '';
+      if ((!resolvedDraftId || !resolvedDraftToken) && ensureDraft) {
+        const meta = await ensureDraft();
+        resolvedDraftId = meta.draftId;
+        resolvedDraftToken = meta.draftToken;
+      }
+      if (!resolvedDraftId || !resolvedDraftToken) {
         throw new Error('Draft nao inicializado');
       }
+
+      const useDirectUpload =
+        typeof window !== 'undefined' && window.location.hostname.endsWith('.devtunnels.ms');
 
       let resolvedMeta = metadata ?? null;
       if (file.type.startsWith('image/') && (!resolvedMeta?.width || !resolvedMeta?.height)) {
@@ -162,52 +174,81 @@ export function SmartDocumentUpload({
         resolvedMeta = basic.metadata;
       }
 
-      const contentType = file.type || 'application/octet-stream';
-      const presign = await apiFetch<UploadPresignResponse>('/public/uploads/presign', {
-        method: 'POST',
-        headers: {
-          'x-draft-token': draftToken,
-        },
-        body: {
-          draftId,
-          docType: documentType,
-          fileName: file.name,
-          contentType,
-          size: file.size,
-          imageWidth: resolvedMeta?.width,
-          imageHeight: resolvedMeta?.height,
-        },
-      });
+      let documentId: string;
+      if (useDirectUpload) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('draftId', resolvedDraftId);
+        form.append('docType', documentType);
+        if (resolvedMeta?.width) {
+          form.append('imageWidth', String(resolvedMeta.width));
+        }
+        if (resolvedMeta?.height) {
+          form.append('imageHeight', String(resolvedMeta.height));
+        }
 
-      setCurrentDocumentId(presign.documentId);
+        const direct = await apiUpload<{ documentId: string; storageKey: string }>(
+          '/public/uploads/direct',
+          {
+            method: 'POST',
+            headers: {
+              'x-draft-token': resolvedDraftToken,
+            },
+            body: form,
+          },
+        );
+        documentId = direct.documentId;
+        setCurrentDocumentId(direct.documentId);
+      } else {
+        const contentType = file.type || 'application/octet-stream';
+        const presign = await apiFetch<UploadPresignResponse>('/public/uploads/presign', {
+          method: 'POST',
+          headers: {
+            'x-draft-token': resolvedDraftToken,
+          },
+          body: {
+            draftId: resolvedDraftId,
+            docType: documentType,
+            fileName: file.name,
+            contentType,
+            size: file.size,
+            imageWidth: resolvedMeta?.width,
+            imageHeight: resolvedMeta?.height,
+          },
+        });
 
-      const uploadResponse = await fetch(presign.uploadUrl, {
-        method: presign.method ?? 'PUT',
-        headers: presign.headers,
-        body: file,
-      });
+        setCurrentDocumentId(presign.documentId);
 
-      if (!uploadResponse.ok) {
-        const raw = await uploadResponse.text().catch(() => '');
-        const detail = raw.replace(/\s+/g, ' ').trim();
-        const message = detail
-          ? `Upload rejeitado (${uploadResponse.status}): ${detail.slice(0, 240)}`
-          : `Falha no upload do arquivo (${uploadResponse.status})`;
-        throw new Error(message);
+        const uploadResponse = await fetch(presign.uploadUrl, {
+          method: presign.method ?? 'PUT',
+          headers: presign.headers,
+          body: file,
+        });
+
+        if (!uploadResponse.ok) {
+          const raw = await uploadResponse.text().catch(() => '');
+          const detail = raw.replace(/\s+/g, ' ').trim();
+          const message = detail
+            ? `Upload rejeitado (${uploadResponse.status}): ${detail.slice(0, 240)}`
+            : `Falha no upload do arquivo (${uploadResponse.status})`;
+          throw new Error(message);
+        }
+
+        documentId = presign.documentId;
       }
 
       const previewUrl = URL.createObjectURL(file);
       setLocalPreviewUrl(previewUrl);
 
-      await apiFetch(`/public/drafts/${draftId}/ocr`, {
+      await apiFetch(`/public/drafts/${resolvedDraftId}/ocr`, {
         method: 'POST',
         headers: {
-          'x-draft-token': draftToken,
+          'x-draft-token': resolvedDraftToken,
         },
       });
 
       if (documentType !== 'COMPROVANTE_RESIDENCIA') {
-        const ocrResult = await pollDraftOcr(draftId, draftToken, presign.documentId);
+        const ocrResult = await pollDraftOcr(resolvedDraftId, resolvedDraftToken, documentId);
         if (ocrResult) {
           const previewData = buildOcrPreviewData(documentType, previewUrl, ocrResult);
           setOcrPreviewData(previewData);
@@ -218,7 +259,7 @@ export function SmartDocumentUpload({
       }
 
       setIsProcessing(false);
-      onUploadComplete(presign.documentId, previewUrl);
+      onUploadComplete(documentId, previewUrl);
       setFlow('idle');
     } catch (error) {
       console.error('Erro no upload:', error);

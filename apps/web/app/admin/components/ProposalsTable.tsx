@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { StatusBadge } from '../../components/StatusBadge';
 import { cn } from '../../lib/utils';
@@ -68,6 +69,137 @@ const SortIcon = ({ field, sort }: { field: SortField; sort?: SortState }) => {
   );
 };
 
+const RowActionsMenu = ({
+  proposal,
+  buttonLabel,
+  buttonClassName,
+}: {
+  proposal: ProposalListItem;
+  buttonLabel: string;
+  buttonClassName: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [positioned, setPositioned] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = useCallback(() => {
+    const button = buttonRef.current;
+    const menu = menuRef.current;
+    if (!button || !menu) return;
+
+    const buttonRect = button.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const margin = 8;
+    let top = buttonRect.top - menuRect.height - margin;
+    if (top < margin) {
+      top = margin;
+    }
+    let left = buttonRect.right - menuRect.width;
+    if (left < margin) left = margin;
+    const maxLeft = window.innerWidth - menuRect.width - margin;
+    if (left > maxLeft) left = maxLeft;
+
+    setCoords({ top, left });
+    setPositioned(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    setPositioned(false);
+    updatePosition();
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    const handleReposition = () => updatePosition();
+    document.addEventListener('keydown', handleKey);
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+    };
+  }, [open, updatePosition]);
+
+  return (
+    <div className="relative inline-flex">
+      <button
+        type="button"
+        ref={buttonRef}
+        onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={buttonClassName}
+      >
+        {buttonLabel}
+      </button>
+
+      {open ? (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div
+            ref={menuRef}
+            className="fixed z-50 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-[var(--shadow-md)]"
+            style={{
+              top: coords.top,
+              left: coords.left,
+              visibility: positioned ? 'visible' : 'hidden',
+            }}
+          >
+            <Link
+              href={`/admin/propostas/${proposal.id}`}
+              className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+              onClick={() => setOpen(false)}
+            >
+              Ver dossie
+            </Link>
+            {(proposal.status === 'SUBMITTED' || proposal.status === 'UNDER_REVIEW') && (
+              <Link
+                href={`/admin/propostas/${proposal.id}?action=signature`}
+                className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
+                onClick={() => setOpen(false)}
+              >
+                Enviar para assinatura
+              </Link>
+            )}
+            <Link
+              href={`/admin/propostas/${proposal.id}?action=request`}
+              className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+              onClick={() => setOpen(false)}
+            >
+              Solicitar documento
+            </Link>
+            <Link
+              href={`/admin/propostas/${proposal.id}?action=reject`}
+              className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--error)] hover:bg-[color:var(--error-soft)]"
+              onClick={() => setOpen(false)}
+            >
+              Reprovar proposta
+            </Link>
+            {proposal.status === 'PENDING_SIGNATURE' && (
+              <Link
+                href={`/admin/propostas/${proposal.id}?action=resend`}
+                className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
+                onClick={() => setOpen(false)}
+              >
+                Reenviar link
+              </Link>
+            )}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};
+
 type SortableHeader = { field: SortField; label: string };
 
 const HEADERS: SortableHeader[] = [
@@ -121,203 +253,168 @@ export const ProposalsTable = ({
 
       <div className="admin-card hidden rounded-2xl lg:block">
         <div className="admin-table-wrap">
-          <table className="admin-table w-full text-left text-sm">
-            <thead className="bg-[var(--gray-50)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
-              <tr>
-                {onSelectAll && (
-                  <th scope="col" className="w-12 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = someSelected ?? false;
-                      }}
-                      onChange={(e) => onSelectAll(e.target.checked)}
-                      className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
-                      aria-label="Selecionar todas as propostas"
-                    />
-                  </th>
-                )}
-                {HEADERS.map((header) => {
-                  const ariaSortValue =
-                    sort?.field === header.field
-                      ? sort.dir === 'asc'
-                        ? ('ascending' as const)
-                        : ('descending' as const)
-                      : ('none' as const);
-                  return (
-                    <th
-                      key={header.field}
-                      scope="col"
-                      aria-sort={ariaSortValue}
-                      className="cursor-pointer select-none px-4 py-3 hover:text-[color:var(--gray-700)]"
-                      tabIndex={0}
-                      role="columnheader"
-                      onClick={() => onSort?.(header.field)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onSort?.(header.field);
-                        }
-                      }}
-                    >
-                      {header.label}
-                      <SortIcon field={header.field} sort={sort} />
-                    </th>
-                  );
-                })}
-                <th scope="col" className="px-4 py-3 text-right">
-                  Acoes
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
+          <div className="admin-table-scroll">
+            <table className="admin-table w-full text-left text-sm">
+              <thead className="bg-[var(--gray-50)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
                 <tr>
-                  <td
-                    colSpan={onSelectAll ? HEADERS.length + 2 : HEADERS.length + 1}
-                    className="px-6 py-10 text-center text-sm text-[color:var(--gray-500)]"
-                  >
-                    Nenhuma proposta encontrada com os filtros atuais.
-                  </td>
-                </tr>
-              ) : null}
-              {items.map((proposal) => {
-                const sla = resolveSla(proposal);
-                const updated = hasRecentUpdate(proposal);
-                return (
-                  <tr
-                    key={proposal.id}
-                    className={cn(
-                      'border-t border-[var(--border)] content-visibility-auto',
-                      updated && 'bg-[color:var(--info-soft)]',
-                      selectedIds?.has(proposal.id) && 'bg-[color:var(--primary-soft)]',
-                    )}
-                  >
-                    {onSelectOne && (
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds?.has(proposal.id) ?? false}
-                          onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
-                          className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
-                          aria-label={`Selecionar proposta ${proposal.protocol}`}
-                        />
-                      </td>
-                    )}
-                    <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/admin/propostas/${proposal.id}`} className="hover:underline">
-                          {proposal.protocol}
-                        </Link>
-                        {updated ? (
-                          <span className="rounded-full bg-[color:var(--info)] px-2 py-0.5 text-[10px] font-bold text-white">
-                            Atualizado
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-[color:var(--gray-700)]">
-                      {proposal.person?.fullName ?? '-'}
-                    </td>
-                    <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                      {proposal.person?.cpfMasked ?? '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={proposal.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[color:var(--gray-500)]">{proposal.type}</span>
-                        {proposal.type === 'MIGRACAO' ? (
-                          <span className="rounded-full border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary-dark)]">
-                            Migracao
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                      {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
-                          sla.tone === 'ok' &&
-                            'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
-                          sla.tone === 'warning' &&
-                            'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
-                          sla.tone === 'danger' &&
-                            'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
-                        )}
+                  {onSelectAll && (
+                    <th scope="col" className="w-12 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someSelected ?? false;
+                        }}
+                        onChange={(e) => onSelectAll(e.target.checked)}
+                        className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+                        aria-label="Selecionar todas as propostas"
+                      />
+                    </th>
+                  )}
+                  {HEADERS.map((header) => {
+                    const ariaSortValue =
+                      sort?.field === header.field
+                        ? sort.dir === 'asc'
+                          ? ('ascending' as const)
+                          : ('descending' as const)
+                        : ('none' as const);
+                    return (
+                      <th
+                        key={header.field}
+                        scope="col"
+                        aria-sort={ariaSortValue}
+                        className="cursor-pointer select-none px-4 py-3 hover:text-[color:var(--gray-700)]"
+                        tabIndex={0}
+                        role="columnheader"
+                        onClick={() => onSort?.(header.field)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSort?.(header.field);
+                          }
+                        }}
                       >
-                        <span
-                          className={cn(
-                            'h-2 w-2 rounded-full',
-                            sla.tone === 'ok' && 'bg-[color:var(--success)]',
-                            sla.tone === 'warning' && 'bg-[color:var(--warning)]',
-                            sla.tone === 'danger' && 'bg-[color:var(--error)]',
-                          )}
-                          aria-hidden="true"
-                        />
-                        {sla.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                      {proposal.assignedAnalyst?.name ?? 'Nao atribuido'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <details className="relative inline-block text-left">
-                        <summary
-                          className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--gray-50)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
-                          aria-label="Abrir menu de acoes"
-                        >
-                          ⋮
-                        </summary>
-                        <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-[var(--shadow-md)]">
-                          <Link
-                            href={`/admin/propostas/${proposal.id}`}
-                            className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                          >
-                            Ver dossie
-                          </Link>
-                          {(proposal.status === 'SUBMITTED' ||
-                            proposal.status === 'UNDER_REVIEW') && (
-                            <Link
-                              href={`/admin/propostas/${proposal.id}?action=signature`}
-                              className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
-                            >
-                              Enviar para assinatura
-                            </Link>
-                          )}
-                          <Link
-                            href={`/admin/propostas/${proposal.id}?action=request`}
-                            className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                          >
-                            Solicitar documento
-                          </Link>
-                          <Link
-                            href={`/admin/propostas/${proposal.id}?action=reject`}
-                            className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--error)] hover:bg-[color:var(--error-soft)]"
-                          >
-                            Reprovar proposta
-                          </Link>
-                          {proposal.status === 'PENDING_SIGNATURE' && (
-                            <Link
-                              href={`/admin/propostas/${proposal.id}?action=resend`}
-                              className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                            >
-                              Reenviar link
-                            </Link>
-                          )}
-                        </div>
-                      </details>
+                        {header.label}
+                        <SortIcon field={header.field} sort={sort} />
+                      </th>
+                    );
+                  })}
+                  <th scope="col" className="px-4 py-3 text-right">
+                    Acoes
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={onSelectAll ? HEADERS.length + 2 : HEADERS.length + 1}
+                      className="px-6 py-10 text-center text-sm text-[color:var(--gray-500)]"
+                    >
+                      Nenhuma proposta encontrada com os filtros atuais.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ) : null}
+                {items.map((proposal) => {
+                  const sla = resolveSla(proposal);
+                  const updated = hasRecentUpdate(proposal);
+                  return (
+                    <tr
+                      key={proposal.id}
+                      className={cn(
+                        'border-t border-[var(--border)] content-visibility-auto',
+                        updated && 'bg-[color:var(--info-soft)]',
+                        selectedIds?.has(proposal.id) && 'bg-[color:var(--primary-soft)]',
+                      )}
+                    >
+                      {onSelectOne && (
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds?.has(proposal.id) ?? false}
+                            onChange={(e) => onSelectOne(proposal.id, e.target.checked)}
+                            className="h-4 w-4 cursor-pointer rounded border-[var(--border)] text-[color:var(--primary)] focus:ring-[color:var(--primary)]"
+                            aria-label={`Selecionar proposta ${proposal.protocol}`}
+                          />
+                        </td>
+                      )}
+                      <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/admin/propostas/${proposal.id}`}
+                            className="hover:underline"
+                          >
+                            {proposal.protocol}
+                          </Link>
+                          {updated ? (
+                            <span className="rounded-full bg-[color:var(--info)] px-2 py-0.5 text-[10px] font-bold text-white">
+                              Atualizado
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-700)]">
+                        {proposal.person?.fullName ?? '-'}
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                        {proposal.person?.cpfMasked ?? '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={proposal.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[color:var(--gray-500)]">{proposal.type}</span>
+                          {proposal.type === 'MIGRACAO' ? (
+                            <span className="rounded-full border border-[color:var(--primary-light)] bg-[color:var(--primary-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary-dark)]">
+                              Migracao
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                        {new Date(proposal.createdAt).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
+                            sla.tone === 'ok' &&
+                              'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
+                            sla.tone === 'warning' &&
+                              'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
+                            sla.tone === 'danger' &&
+                              'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'h-2 w-2 rounded-full',
+                              sla.tone === 'ok' && 'bg-[color:var(--success)]',
+                              sla.tone === 'warning' && 'bg-[color:var(--warning)]',
+                              sla.tone === 'danger' && 'bg-[color:var(--error)]',
+                            )}
+                            aria-hidden="true"
+                          />
+                          {sla.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                        {proposal.assignedAnalyst?.name ?? 'Nao atribuido'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <RowActionsMenu
+                          proposal={proposal}
+                          buttonLabel="⋮"
+                          buttonClassName="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--gray-50)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)] hover:border-[var(--gray-300)]"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -425,50 +522,11 @@ export const ProposalsTable = ({
                 >
                   Ver dossie
                 </Link>
-                <details className="relative inline-block text-left">
-                  <summary
-                    className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--gray-50)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)]"
-                    aria-label="Abrir menu de acoes"
-                  >
-                    Acoes
-                  </summary>
-                  <div className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 text-xs shadow-[var(--shadow-md)]">
-                    <Link
-                      href={`/admin/propostas/${proposal.id}`}
-                      className="block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                    >
-                      Ver dossie
-                    </Link>
-                    {(proposal.status === 'SUBMITTED' || proposal.status === 'UNDER_REVIEW') && (
-                      <Link
-                        href={`/admin/propostas/${proposal.id}?action=signature`}
-                        className="mt-1 block rounded-xl px-3 py-2 font-semibold text-[color:var(--primary-dark)] hover:bg-[color:var(--primary-soft)]"
-                      >
-                        Enviar para assinatura
-                      </Link>
-                    )}
-                    <Link
-                      href={`/admin/propostas/${proposal.id}?action=request`}
-                      className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                    >
-                      Solicitar documento
-                    </Link>
-                    <Link
-                      href={`/admin/propostas/${proposal.id}?action=reject`}
-                      className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--error)] hover:bg-[color:var(--error-soft)]"
-                    >
-                      Reprovar proposta
-                    </Link>
-                    {proposal.status === 'PENDING_SIGNATURE' && (
-                      <Link
-                        href={`/admin/propostas/${proposal.id}?action=resend`}
-                        className="mt-1 block rounded-xl px-3 py-2 text-[color:var(--gray-700)] hover:bg-[var(--muted)]"
-                      >
-                        Reenviar link
-                      </Link>
-                    )}
-                  </div>
-                </details>
+                <RowActionsMenu
+                  proposal={proposal}
+                  buttonLabel="Acoes"
+                  buttonClassName="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--gray-50)] px-3 py-1 text-xs font-semibold text-[color:var(--gray-500)]"
+                />
               </div>
             </div>
           );

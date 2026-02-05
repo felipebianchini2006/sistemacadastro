@@ -228,106 +228,108 @@ export default function TotvsMonitorPage() {
         </div>
         <div className="hidden lg:block">
           <div className="admin-table-wrap">
-            <table className="admin-table w-full text-left text-sm">
-              <thead className="bg-[var(--gray-50)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
-                <tr>
-                  <th scope="col" className="px-4 py-3">
-                    Protocolo
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Candidato
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Status Sync
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Status Proposta
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    ID Externo
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Ultima Sync
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    Atualizado
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((sync) => {
-                  const statusInfo = STATUS_LABELS[sync.status] ?? {
-                    label: sync.status,
-                    tone: 'default',
-                  };
-                  return (
-                    <tr key={sync.id} className="border-t border-[var(--border)]">
-                      <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
-                        {sync.protocol ? (
-                          <Link
-                            href={`/admin/propostas/${sync.proposalId}`}
-                            className="hover:underline"
-                          >
-                            {sync.protocol}
-                          </Link>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-[color:var(--gray-700)]">
-                        {sync.candidateName ?? '-'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
-                            statusInfo.tone === 'success' &&
-                              'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
-                            statusInfo.tone === 'warning' &&
-                              'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
-                            statusInfo.tone === 'danger' &&
-                              'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
+            <div className="admin-table-scroll">
+              <table className="admin-table w-full text-left text-sm">
+                <thead className="bg-[var(--gray-50)] text-xs uppercase tracking-[0.2em] text-[color:var(--gray-500)]">
+                  <tr>
+                    <th scope="col" className="px-4 py-3">
+                      Protocolo
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Candidato
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Status Sync
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Status Proposta
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      ID Externo
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Ultima Sync
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Atualizado
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((sync) => {
+                    const statusInfo = STATUS_LABELS[sync.status] ?? {
+                      label: sync.status,
+                      tone: 'default',
+                    };
+                    return (
+                      <tr key={sync.id} className="border-t border-[var(--border)]">
+                        <td className="px-4 py-3 font-semibold text-[color:var(--gray-900)]">
+                          {sync.protocol ? (
+                            <Link
+                              href={`/admin/propostas/${sync.proposalId}`}
+                              className="hover:underline"
+                            >
+                              {sync.protocol}
+                            </Link>
+                          ) : (
+                            '-'
                           )}
-                        >
+                        </td>
+                        <td className="px-4 py-3 text-[color:var(--gray-700)]">
+                          {sync.candidateName ?? '-'}
+                        </td>
+                        <td className="px-4 py-3">
                           <span
                             className={cn(
-                              'h-2 w-2 rounded-full',
-                              statusInfo.tone === 'success' && 'bg-[color:var(--success)]',
-                              statusInfo.tone === 'warning' && 'bg-[color:var(--warning)]',
-                              statusInfo.tone === 'danger' && 'bg-[color:var(--error)]',
+                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
+                              statusInfo.tone === 'success' &&
+                                'border-[color:var(--success-border)] bg-[color:var(--success-soft)] text-[color:var(--success)]',
+                              statusInfo.tone === 'warning' &&
+                                'border-[color:var(--warning-border)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]',
+                              statusInfo.tone === 'danger' &&
+                                'border-[color:var(--error-border)] bg-[color:var(--error-soft)] text-[color:var(--error)]',
                             )}
-                            aria-hidden="true"
-                          />
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {sync.proposalStatus ? <StatusBadge status={sync.proposalStatus} /> : '-'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-[color:var(--gray-500)]">
-                        {sync.externalId ?? '-'}
-                      </td>
-                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                        {formatDate(sync.lastSyncAt)}
-                      </td>
-                      <td className="px-4 py-3 text-[color:var(--gray-500)]">
-                        {formatRelative(sync.updatedAt)}
+                          >
+                            <span
+                              className={cn(
+                                'h-2 w-2 rounded-full',
+                                statusInfo.tone === 'success' && 'bg-[color:var(--success)]',
+                                statusInfo.tone === 'warning' && 'bg-[color:var(--warning)]',
+                                statusInfo.tone === 'danger' && 'bg-[color:var(--error)]',
+                              )}
+                              aria-hidden="true"
+                            />
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {sync.proposalStatus ? <StatusBadge status={sync.proposalStatus} /> : '-'}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-[color:var(--gray-500)]">
+                          {sync.externalId ?? '-'}
+                        </td>
+                        <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                          {formatDate(sync.lastSyncAt)}
+                        </td>
+                        <td className="px-4 py-3 text-[color:var(--gray-500)]">
+                          {formatRelative(sync.updatedAt)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-8 text-center text-sm text-[color:var(--gray-500)]"
+                      >
+                        Nenhuma sincronizacao encontrada.
                       </td>
                     </tr>
-                  );
-                })}
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-sm text-[color:var(--gray-500)]"
-                    >
-                      Nenhuma sincronizacao encontrada.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 

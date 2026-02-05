@@ -32,3 +32,27 @@ export const apiFetch = async <T>(
 
   return (await response.json()) as T;
 };
+
+export const apiUpload = async <T>(
+  path: string,
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    body: FormData;
+  },
+): Promise<T> => {
+  const response = await fetch(buildUrl(path), {
+    method: options.method ?? 'POST',
+    headers: {
+      ...(options.headers ?? {}),
+    },
+    body: options.body,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'Falha na requisicao');
+  }
+
+  return (await response.json()) as T;
+};

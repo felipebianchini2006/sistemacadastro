@@ -20,7 +20,7 @@ import {
   usePhoneValidation,
 } from '../hooks/validation';
 import { useViaCepAutofill } from '../hooks/useViaCep';
-import { apiFetch } from '../lib/api';
+import { apiFetch, apiUpload } from '../lib/api';
 import { InputMasked } from '../components/InputMasked';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepLayout } from '../components/StepLayout';
@@ -700,6 +700,11 @@ export default function CadastroPage() {
     [ensureDraft, buildPayload],
   );
 
+  const ensureDraftForUploads = useCallback(
+    () => ensureDraft(buildPayload()),
+    [ensureDraft, buildPayload],
+  );
+
   const refreshDraftSocial = useCallback(
     async (meta?: DraftMeta | null) => {
       const current = meta ?? draftMeta;
@@ -863,6 +868,8 @@ export default function CadastroPage() {
     });
     setOcrConfirmed(false);
     try {
+      const useDirectUpload =
+        typeof window !== 'undefined' && window.location.hostname.endsWith('.devtunnels.ms');
       const payload = buildPayload();
       const meta = await ensureDraft(payload);
       const isImage = file.type.startsWith('image/');
@@ -886,34 +893,61 @@ export default function CadastroPage() {
           );
         }
       }
-      const presign = await apiFetch<{
-        uploadUrl: string;
-        headers: Record<string, string>;
-        documentId: string;
-      }>('/public/uploads/presign', {
-        method: 'POST',
-        headers: { 'x-draft-token': meta.draftToken },
-        body: {
-          draftId: meta.draftId,
-          draftToken: meta.draftToken,
-          docType,
-          fileName: file.name,
-          contentType: file.type || 'application/octet-stream',
-          size: file.size,
-          imageWidth: dimensions?.width,
-          imageHeight: dimensions?.height,
-        },
-      });
+      let documentId: string;
 
-      await fetch(presign.uploadUrl, {
-        method: 'PUT',
-        headers: presign.headers,
-        body: file,
-      });
+      if (useDirectUpload) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('draftId', meta.draftId);
+        form.append('docType', docType);
+        if (dimensions?.width) {
+          form.append('imageWidth', String(dimensions.width));
+        }
+        if (dimensions?.height) {
+          form.append('imageHeight', String(dimensions.height));
+        }
+
+        const direct = await apiUpload<{ documentId: string; storageKey: string }>(
+          '/public/uploads/direct',
+          {
+            method: 'POST',
+            headers: { 'x-draft-token': meta.draftToken },
+            body: form,
+          },
+        );
+        documentId = direct.documentId;
+      } else {
+        const presign = await apiFetch<{
+          uploadUrl: string;
+          headers: Record<string, string>;
+          documentId: string;
+        }>('/public/uploads/presign', {
+          method: 'POST',
+          headers: { 'x-draft-token': meta.draftToken },
+          body: {
+            draftId: meta.draftId,
+            draftToken: meta.draftToken,
+            docType,
+            fileName: file.name,
+            contentType: file.type || 'application/octet-stream',
+            size: file.size,
+            imageWidth: dimensions?.width,
+            imageHeight: dimensions?.height,
+          },
+        });
+
+        await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: presign.headers,
+          body: file,
+        });
+
+        documentId = presign.documentId;
+      }
 
       updateDocument(key, {
         status: 'uploaded',
-        documentId: presign.documentId,
+        documentId,
       });
 
       if (['RG_FRENTE', 'CNH', 'COMPROVANTE_RESIDENCIA'].includes(docType)) {
@@ -921,7 +955,7 @@ export default function CadastroPage() {
           method: 'POST',
           headers: { 'x-draft-token': meta.draftToken },
         });
-        pollDraftOcr(meta, presign.documentId);
+        pollDraftOcr(meta, documentId);
       }
     } catch (error) {
       updateDocument(key, {
@@ -2026,8 +2060,9 @@ export default function CadastroPage() {
                       <SmartDocumentUpload
                         documentType="RG_FRENTE"
                         documentLabel="RG - Frente"
-                        draftId={draftMeta?.draftId || ''}
-                        draftToken={draftMeta?.draftToken || ''}
+                        draftId={draftMeta?.draftId}
+                        draftToken={draftMeta?.draftToken}
+                        ensureDraft={ensureDraftForUploads}
                         onUploadComplete={(documentId, previewUrl, ocrData) => {
                           updateDocument('rgFront', {
                             status: 'uploaded',
@@ -2056,8 +2091,9 @@ export default function CadastroPage() {
                       <SmartDocumentUpload
                         documentType="RG_VERSO"
                         documentLabel="RG - Verso"
-                        draftId={draftMeta?.draftId || ''}
-                        draftToken={draftMeta?.draftToken || ''}
+                        draftId={draftMeta?.draftId}
+                        draftToken={draftMeta?.draftToken}
+                        ensureDraft={ensureDraftForUploads}
                         onUploadComplete={(documentId, previewUrl, ocrData) => {
                           updateDocument('rgBack', {
                             status: 'uploaded',
@@ -2087,8 +2123,9 @@ export default function CadastroPage() {
                     <SmartDocumentUpload
                       documentType="CNH"
                       documentLabel="CNH"
-                      draftId={draftMeta?.draftId || ''}
-                      draftToken={draftMeta?.draftToken || ''}
+                      draftId={draftMeta?.draftId}
+                      draftToken={draftMeta?.draftToken}
+                      ensureDraft={ensureDraftForUploads}
                       onUploadComplete={(documentId, previewUrl, ocrData) => {
                         updateDocument('cnh', {
                           status: 'uploaded',
@@ -2141,8 +2178,9 @@ export default function CadastroPage() {
                       <SmartDocumentUpload
                         documentType="COMPROVANTE_RESIDENCIA"
                         documentLabel="Comprovante de Residencia"
-                        draftId={draftMeta?.draftId || ''}
-                        draftToken={draftMeta?.draftToken || ''}
+                        draftId={draftMeta?.draftId}
+                        draftToken={draftMeta?.draftToken}
+                        ensureDraft={ensureDraftForUploads}
                         onUploadComplete={(documentId, previewUrl, ocrData) => {
                           updateDocument('residence', {
                             status: 'uploaded',
