@@ -4,13 +4,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getStoredAdminUser, type AdminUser } from '../lib/auth';
-import { Bell, FileText, LayoutDashboard, Layers, LogOut, Menu, RefreshCcw, X } from 'lucide-react';
+import {
+  Bell,
+  FileText,
+  LayoutDashboard,
+  Layers,
+  LogOut,
+  Menu,
+  RefreshCcw,
+  Users,
+  X,
+} from 'lucide-react';
 import { logoutAdmin, adminFetchWithRefresh } from '../lib/api';
 import { cn } from '../../lib/utils';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/propostas', label: 'Propostas', icon: FileText },
+  { href: '/admin/usuarios', label: 'Usuarios', icon: Users },
   { href: '/admin/filas', label: 'Filas', icon: Layers },
   { href: '/admin/totvs', label: 'Totvs', icon: RefreshCcw },
 ] as const;

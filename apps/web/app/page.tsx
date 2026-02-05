@@ -62,7 +62,13 @@ export default function Home() {
                   href="/cadastro"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--primary-dark)]"
                 >
-                  Iniciar cadastro
+                  Novo Cadastro
+                </Link>
+                <Link
+                  href="/migracao"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-[var(--primary)] bg-[var(--card)] px-5 py-3 text-sm font-semibold text-[color:var(--primary)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--primary)] hover:text-white"
+                >
+                  Migracao
                 </Link>
                 <Link
                   href="/acompanhar"

@@ -12,7 +12,8 @@ export type AdminAction =
   | 'assign'
   | 'resendSignature'
   | 'exportPdf'
-  | 'reprocessTotvs';
+  | 'reprocessTotvs'
+  | 'manageUsers';
 
 const ACTION_ROLES: Record<AdminAction, AdminRole[]> = {
   view: ['ADMIN', 'ANALYST', 'VIEWER'],
@@ -27,6 +28,7 @@ const ACTION_ROLES: Record<AdminAction, AdminRole[]> = {
   resendSignature: ['ADMIN', 'ANALYST'],
   exportPdf: ['ADMIN', 'ANALYST'],
   reprocessTotvs: ['ADMIN', 'ANALYST'],
+  manageUsers: ['ADMIN'],
 };
 
 export const can = (roles: AdminRole[] | undefined, action: AdminAction) => {

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Camera, Upload } from 'lucide-react';
+import { Camera, FileSearch, Upload } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { CaptureGuidelines } from './CaptureGuidelines';
 import { ImageQualityAlert } from './ImageQualityAlert';
@@ -87,6 +87,12 @@ export function SmartDocumentUpload({
   const [validationMeta, setValidationMeta] = useState<ImageValidationResult['metadata'] | null>(
     null,
   );
+  const [uploadedDraftInfo, setUploadedDraftInfo] = useState<{
+    draftId: string;
+    draftToken: string;
+    documentId: string;
+  } | null>(null);
+  const [ocrError, setOcrError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCaptureClick = () => {
@@ -240,23 +246,11 @@ export function SmartDocumentUpload({
       const previewUrl = URL.createObjectURL(file);
       setLocalPreviewUrl(previewUrl);
 
-      await apiFetch(`/public/drafts/${resolvedDraftId}/ocr`, {
-        method: 'POST',
-        headers: {
-          'x-draft-token': resolvedDraftToken,
-        },
+      setUploadedDraftInfo({
+        draftId: resolvedDraftId,
+        draftToken: resolvedDraftToken,
+        documentId,
       });
-
-      if (documentType !== 'COMPROVANTE_RESIDENCIA') {
-        const ocrResult = await pollDraftOcr(resolvedDraftId, resolvedDraftToken, documentId);
-        if (ocrResult) {
-          const previewData = buildOcrPreviewData(documentType, previewUrl, ocrResult);
-          setOcrPreviewData(previewData);
-          setIsProcessing(false);
-          setFlow('show-preview');
-          return;
-        }
-      }
 
       setIsProcessing(false);
       onUploadComplete(documentId, previewUrl);
@@ -411,6 +405,39 @@ export function SmartDocumentUpload({
     setFlow('idle');
   };
 
+  const handleTriggerOcr = async () => {
+    if (!uploadedDraftInfo) return;
+    const { draftId: di, draftToken: dt, documentId: docId } = uploadedDraftInfo;
+
+    setOcrError(null);
+    setIsProcessing(true);
+    setFlow('processing-ocr');
+
+    try {
+      await apiFetch(`/public/drafts/${di}/ocr`, {
+        method: 'POST',
+        headers: { 'x-draft-token': dt },
+      });
+
+      const ocrResult = await pollDraftOcr(di, dt, docId);
+      if (ocrResult) {
+        const previewUrl = existingPreviewUrl ?? localPreviewUrl ?? '';
+        const previewData = buildOcrPreviewData(documentType, previewUrl, ocrResult);
+        setOcrPreviewData(previewData);
+        setIsProcessing(false);
+        setFlow('show-preview');
+      } else {
+        setIsProcessing(false);
+        setOcrError('Nao foi possivel extrair dados do documento. Tente novamente.');
+        setFlow('idle');
+      }
+    } catch {
+      setIsProcessing(false);
+      setOcrError('Erro ao processar OCR. Tente novamente.');
+      setFlow('idle');
+    }
+  };
+
   return (
     <>
       {/* Hidden file input */}
@@ -458,6 +485,17 @@ export function SmartDocumentUpload({
                   unoptimized
                 />
               </div>
+              {uploadedDraftInfo && documentType !== 'COMPROVANTE_RESIDENCIA' && (
+                <button
+                  type="button"
+                  onClick={handleTriggerOcr}
+                  className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                >
+                  <FileSearch className="h-4 w-4" aria-hidden="true" />
+                  Ler documento com OCR (opcional)
+                </button>
+              )}
+              {ocrError && <p className="mt-2 text-xs text-red-600">{ocrError}</p>}
             </div>
           ) : (
             <div className="rounded-xl border-2 border-dashed border-[var(--gray-300)] bg-[var(--muted)] p-6 text-center">
