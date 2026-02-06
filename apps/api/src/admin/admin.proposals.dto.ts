@@ -17,6 +17,7 @@ export type ListProposalsQuery = {
   dateFrom?: string;
   dateTo?: string;
   text?: string;
+  profileRoles?: string[];
   sortBy?: ListProposalsSortField;
   sortDir?: 'asc' | 'desc';
   page?: number;
@@ -115,6 +116,19 @@ const statusFilterSchema = z
       : (values as ProposalStatus[]);
   });
 
+const profileRolesFilterSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (!value) return undefined;
+    const raw = Array.isArray(value) ? value.join(',') : value;
+    const values = raw
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    return values.length === 0 ? undefined : values;
+  });
+
 export const listProposalsQuerySchema = z.object({
   status: statusFilterSchema,
   type: z.nativeEnum(ProposalType).optional(),
@@ -122,6 +136,7 @@ export const listProposalsQuerySchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   text: z.string().optional(),
+  profileRoles: profileRolesFilterSchema,
   sortBy: z
     .enum(['createdAt', 'protocol', 'status', 'type', 'fullName'])
     .optional(),

@@ -267,15 +267,6 @@ export class PublicService {
     ) {
       throw new BadRequestException('Documento de desfiliação obrigatorio');
     }
-    if (
-      data.type === ProposalType.MIGRACAO &&
-      this.requiresMigrationExtraDoc(data.migrationEntity) &&
-      !docTypes.has(DocumentType.OUTROS)
-    ) {
-      throw new BadRequestException(
-        'Documento adicional obrigatorio para migracao',
-      );
-    }
 
     const draftSocialAuth = this.extractDraftSocialAuth(draft.data ?? {});
 
@@ -905,11 +896,5 @@ export class PublicService {
         : null,
       pixKeyType: bank.pixKeyType,
     };
-  }
-
-  private requiresMigrationExtraDoc(entity?: string | null) {
-    if (!entity) return false;
-    const normalized = entity.trim().toLowerCase();
-    return normalized === 'abramus' || normalized === 'ubc';
   }
 }

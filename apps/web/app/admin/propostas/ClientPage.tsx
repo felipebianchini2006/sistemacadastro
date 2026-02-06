@@ -40,6 +40,7 @@ const buildApiQuery = (
   if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
   if (filters.dateTo) params.set('dateTo', filters.dateTo);
   if (filters.text) params.set('text', filters.text);
+  if (filters.profileRoles?.length) params.set('profileRoles', filters.profileRoles.join(','));
   if (sort && SERVER_SORT_FIELDS.has(sort.field)) {
     params.set('sortBy', sort.field);
     params.set('sortDir', sort.dir);
@@ -57,6 +58,7 @@ const buildUrlQuery = (filters: ProposalFilters) => {
   if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
   if (filters.dateTo) params.set('dateTo', filters.dateTo);
   if (filters.text) params.set('text', filters.text);
+  if (filters.profileRoles?.length) params.set('profileRoles', filters.profileRoles.join(','));
   return params.toString();
 };
 
@@ -219,6 +221,13 @@ export default function ClientPage() {
     dateFrom: searchParams.get('dateFrom') ?? undefined,
     dateTo: searchParams.get('dateTo') ?? undefined,
     text: searchParams.get('text') ?? undefined,
+    profileRoles: searchParams.get('profileRoles')
+      ? searchParams
+          .get('profileRoles')!
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : undefined,
   });
   const [items, setItems] = useState<ProposalListItem[]>([]);
   const [total, setTotal] = useState(0);

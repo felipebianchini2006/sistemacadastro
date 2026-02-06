@@ -105,7 +105,6 @@ type DraftFormState = {
     rgBack: UploadState;
     cnh: UploadState;
     desfiliacao: UploadState;
-    migrationExtra: UploadState;
     residence: UploadState;
   };
   socialConnections: SocialConnection[];
@@ -181,18 +180,7 @@ const migrationSteps = [
   { id: 'revisao', title: 'Revisao', subtitle: 'Confirme tudo' },
 ];
 
-const MIGRATION_ENTITIES = ['Abramus', 'UBC', 'SICAM', 'SOCINPRO'] as const;
-const MIGRATION_ENTITY_OPTIONS = [...MIGRATION_ENTITIES, 'Outras'] as const;
-const MIGRATION_EXTRA_DOCS: Record<string, { label: string; hint: string }> = {
-  Abramus: {
-    label: 'Documento adicional Abramus',
-    hint: 'Envie o documento exigido pela Abramus para concluir a migracao.',
-  },
-  UBC: {
-    label: 'Documento adicional UBC',
-    hint: 'Envie o documento exigido pela UBC para concluir a migracao.',
-  },
-};
+const MIGRATION_ENTITIES = ['ABRAMUS', 'AMAR', 'ASSIM', 'SOCINPRO', 'SICAM', 'UBC'] as const;
 
 const defaultForm: DraftFormState = {
   profileRoles: [],
@@ -235,7 +223,6 @@ const defaultForm: DraftFormState = {
     rgBack: { status: 'idle' },
     cnh: { status: 'idle' },
     desfiliacao: { status: 'idle' },
-    migrationExtra: { status: 'idle' },
     residence: { status: 'idle' },
   },
   socialConnections: [],
@@ -591,11 +578,6 @@ export function CadastroForm({ proposalType }: { proposalType: ProposalType }) {
           desfiliacao: {
             ...defaultForm.documents.desfiliacao,
             ...parsedDocs.desfiliacao,
-            previewUrl: undefined,
-          },
-          migrationExtra: {
-            ...defaultForm.documents.migrationExtra,
-            ...parsedDocs.migrationExtra,
             previewUrl: undefined,
           },
           residence: {
@@ -1199,22 +1181,18 @@ export function CadastroForm({ proposalType }: { proposalType: ProposalType }) {
       (entity) => entity.toLowerCase() === migrationEntityValue.toLowerCase(),
     ) ?? null;
   const migrationSelectValue = migrationEntityValue
-    ? (migrationEntityPreset ?? 'Outras')
+    ? (migrationEntityPreset ?? '')
     : migrationEntitySelection;
-  const migrationExtraSpec = migrationEntityPreset
-    ? MIGRATION_EXTRA_DOCS[migrationEntityPreset]
-    : undefined;
-  const requiresMigrationExtra = Boolean(migrationExtraSpec);
 
   useEffect(() => {
     if (migrationEntityValue) {
-      const nextSelection = migrationEntityPreset ?? 'Outras';
+      const nextSelection = migrationEntityPreset ?? '';
       if (migrationEntitySelection !== nextSelection) {
         setMigrationEntitySelection(nextSelection);
       }
       return;
     }
-    if (migrationEntitySelection && migrationEntitySelection !== 'Outras') {
+    if (migrationEntitySelection) {
       setMigrationEntitySelection('');
     }
   }, [migrationEntityValue, migrationEntityPreset, migrationEntitySelection]);
@@ -1225,8 +1203,7 @@ export function CadastroForm({ proposalType }: { proposalType: ProposalType }) {
     form.proposalType !== 'MIGRACAO' ||
     (Boolean(form.migrationEntity.trim().length) &&
       form.migrationConfirmed &&
-      form.documents.desfiliacao.status === 'uploaded' &&
-      (!requiresMigrationExtra || form.documents.migrationExtra.status === 'uploaded'));
+      form.documents.desfiliacao.status === 'uploaded');
   const docsMainValid =
     form.documentChoice === 'RG'
       ? form.documents.rgFront.status === 'uploaded' && form.documents.rgBack.status === 'uploaded'
@@ -1852,48 +1829,20 @@ export function CadastroForm({ proposalType }: { proposalType: ProposalType }) {
                         value={migrationSelectValue}
                         onChange={(event) => {
                           const nextValue = event.target.value;
-                          if (
-                            nextValue !== migrationSelectValue &&
-                            form.documents.migrationExtra.status !== 'idle'
-                          ) {
-                            clearDocument('migrationExtra');
-                          }
                           setMigrationEntitySelection(nextValue);
-                          if (nextValue === '') {
-                            updateForm({ migrationEntity: '' });
-                            return;
-                          }
-                          if (nextValue === 'Outras') {
-                            if (migrationEntityPreset) {
-                              updateForm({ migrationEntity: '' });
-                            }
-                            return;
-                          }
                           updateForm({ migrationEntity: nextValue });
                         }}
                         onBlur={() => handleFieldBlur('migrationEntity')}
                         className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
                       >
                         <option value="">Selecione</option>
-                        {MIGRATION_ENTITY_OPTIONS.map((entity) => (
+                        {MIGRATION_ENTITIES.map((entity) => (
                           <option key={entity} value={entity}>
                             {entity}
                           </option>
                         ))}
                       </select>
                     </label>
-                    {migrationSelectValue === 'Outras' ? (
-                      <label className="flex flex-col gap-2 text-sm text-[color:var(--gray-700)]">
-                        <span className="font-medium">Informe a entidade</span>
-                        <input
-                          value={form.migrationEntity}
-                          onChange={(event) => updateForm({ migrationEntity: event.target.value })}
-                          onBlur={() => handleFieldBlur('migrationEntity')}
-                          className="w-full rounded-xl border border-[var(--gray-300)] bg-[var(--card)] px-3 py-2 text-sm text-[color:var(--gray-900)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]"
-                          placeholder="Digite a entidade"
-                        />
-                      </label>
-                    ) : null}
                   </div>
                 </div>
 
@@ -1939,14 +1888,6 @@ export function CadastroForm({ proposalType }: { proposalType: ProposalType }) {
                     state={form.documents.desfiliacao}
                     onSelect={(file) => handleUpload('DESFILIACAO', file, 'desfiliacao')}
                   />
-                  {migrationExtraSpec ? (
-                    <UploadCard
-                      title={migrationExtraSpec.label}
-                      state={form.documents.migrationExtra}
-                      onSelect={(file) => handleUpload('OUTROS', file, 'migrationExtra')}
-                      description={migrationExtraSpec.hint}
-                    />
-                  ) : null}
                 </div>
 
                 {!form.migrationEntity.trim() ? (
@@ -1957,11 +1898,6 @@ export function CadastroForm({ proposalType }: { proposalType: ProposalType }) {
                 ) : null}
                 {form.documents.desfiliacao.status !== 'uploaded' ? (
                   <p className="text-xs text-red-600">Envie a declaracao de desfiliação.</p>
-                ) : null}
-                {requiresMigrationExtra && form.documents.migrationExtra.status !== 'uploaded' ? (
-                  <p className="text-xs text-red-600">
-                    Envie o documento adicional exigido pela entidade anterior.
-                  </p>
                 ) : null}
               </StepLayout>
             ) : null}

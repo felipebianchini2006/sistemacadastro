@@ -96,6 +96,21 @@ export class AdminProposalsService {
       }
     }
 
+    if (query.profileRoles && query.profileRoles.length > 0) {
+      where.AND = [
+        ...(Array.isArray(where.AND)
+          ? where.AND
+          : where.AND
+            ? [where.AND]
+            : []),
+        {
+          OR: query.profileRoles.map((role) => ({
+            profileRoles: { array_contains: [role] },
+          })),
+        },
+      ];
+    }
+
     this.applySlaFilter(where, query.sla);
 
     const dir = query.sortDir ?? 'desc';
