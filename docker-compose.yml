@@ -97,6 +97,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
+      # Global CORS on MinIO API (avoids bucket-level CORS calls via `mc cors set`)
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-*}
     command: server /data --console-address ":9001"
     ports:
       - '${MINIO_PORT:-9000}:9000'
@@ -127,26 +129,6 @@ services:
 
         echo ">> Ensuring bucket exists..."
         mc mb -p local/${S3_BUCKET:-sistemacadastro} || true
-
-        echo ">> Applying CORS..."
-        cat <<'EOF' > /tmp/cors.xml
-        <?xml version="1.0" encoding="UTF-8"?>
-        <CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-          <CORSRule>
-            <AllowedOrigin>*</AllowedOrigin>
-            <AllowedMethod>GET</AllowedMethod>
-            <AllowedMethod>PUT</AllowedMethod>
-            <AllowedMethod>POST</AllowedMethod>
-            <AllowedMethod>DELETE</AllowedMethod>
-            <AllowedMethod>HEAD</AllowedMethod>
-            <AllowedHeader>*</AllowedHeader>
-            <ExposeHeader>ETag</ExposeHeader>
-            <MaxAgeSeconds>3000</MaxAgeSeconds>
-          </CORSRule>
-        </CORSConfiguration>
-        EOF
-        mc cors set local/${S3_BUCKET:-sistemacadastro} /tmp/cors.xml
-        mc cors info local/${S3_BUCKET:-sistemacadastro} >/dev/null
 
         echo ">> MinIO init done."
     networks:
