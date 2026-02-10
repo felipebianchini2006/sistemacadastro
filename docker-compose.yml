@@ -1,3 +1,5 @@
+version: "3.9"
+
 x-app-env: &app-env
   NODE_ENV: production
   PORT: 3001
@@ -51,8 +53,8 @@ x-runtime-logging: &runtime-logging
   logging:
     driver: json-file
     options:
-      max-size: '10m'
-      max-file: '3'
+      max-size: "10m"
+      max-file: "3"
 
 services:
   postgres:
@@ -63,7 +65,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-sistemacadastro}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
     ports:
-      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -71,8 +73,8 @@ services:
     healthcheck:
       test:
         [
-          'CMD-SHELL',
-          'pg_isready -U ${POSTGRES_USER:-sistemacadastro} -d ${POSTGRES_DB:-sistemacadastro}',
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-sistemacadastro} -d ${POSTGRES_DB:-sistemacadastro}",
         ]
       interval: 10s
       timeout: 5s
@@ -82,11 +84,11 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     networks:
       - backend
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -99,28 +101,40 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
     command: server /data --console-address ":9001"
     ports:
-      - '${MINIO_PORT:-9000}:9000'
-      - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001'
+      - "${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
     networks:
       - backend
 
+  # ✅ CORREÇÃO: minio-init agora espera o MinIO ficar pronto (loop),
+  # fixa a versão do mc e usa formato de CORS mais compatível (array JSON).
   minio-init:
-    image: minio/mc:latest
-    restart: 'no'
+    image: minio/mc:RELEASE.2024-10-29T15-34-59Z
+    restart: "no"
     depends_on:
       minio:
         condition: service_started
     entrypoint:
       - /bin/sh
-      - -c
+      - -lc
       - |
-        sleep 3
-        mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minio} ${MINIO_ROOT_PASSWORD:-minio123}
+        set -e
+
+        echo ">> Waiting MinIO to be ready..."
+        until mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minio} ${MINIO_ROOT_PASSWORD:-minio123} >/dev/null 2>&1; do
+          sleep 2
+        done
+
+        echo ">> Ensuring bucket exists..."
         mc mb -p local/${S3_BUCKET:-sistemacadastro} || true
-        printf '%s' '{"CORSRules":[{"AllowedOrigins":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}' > /tmp/cors.json
+
+        echo ">> Applying CORS..."
+        printf '%s' '[{"AllowedOrigins":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]' > /tmp/cors.json
         mc cors set local/${S3_BUCKET:-sistemacadastro} /tmp/cors.json
+
+        echo ">> MinIO init done."
     networks:
       - backend
 
@@ -142,16 +156,16 @@ services:
       <<: *app-env
       PORT: 3001
     ports:
-      - '${API_PORT:-3001}:3001'
+      - "${API_PORT:-3001}:3001"
     networks:
       - backend
       - frontend
     healthcheck:
       test:
         [
-          'CMD',
-          'node',
-          '-e',
+          "CMD",
+          "node",
+          "-e",
           "fetch('http://127.0.0.1:3001/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 15s
@@ -179,15 +193,15 @@ services:
       NEXT_PUBLIC_CONSENT_VERSION: ${NEXT_PUBLIC_CONSENT_VERSION:-v1}
       NEXT_PUBLIC_PRIVACY_VERSION: ${NEXT_PUBLIC_PRIVACY_VERSION:-v1}
     ports:
-      - '${WEB_PORT:-3000}:3000'
+      - "${WEB_PORT:-3000}:3000"
     networks:
       - frontend
     healthcheck:
       test:
         [
-          'CMD',
-          'node',
-          '-e',
+          "CMD",
+          "node",
+          "-e",
           "fetch('http://127.0.0.1:3000').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 20s
