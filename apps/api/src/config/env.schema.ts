@@ -28,6 +28,7 @@ export const envSchema = z.object({
   CSRF_HEADER_NAME: z.string().default('x-csrf-token'),
 
   S3_ENDPOINT: z.string().optional(),
+  S3_PUBLIC_ENDPOINT: z.string().optional(),
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),
   S3_BUCKET: z.string().optional(),

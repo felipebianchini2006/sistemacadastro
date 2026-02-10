@@ -16,7 +16,43 @@ Monorepo pnpm com frontend (Next.js App Router) e backend (Nest.js), mais pacote
 - pnpm
 - Docker + Docker Compose
 
-## Setup
+## Docker (stack completa)
+
+Sube Web + API + Worker + Postgres + Redis + MinIO com um comando.
+
+1. Opcional: copiar arquivo de variaveis para customizar URLs e segredos
+
+```bash
+copy .env.docker.example .env
+```
+
+2. Build e subida completa
+
+```bash
+docker compose up --build -d
+```
+
+3. Acompanhar logs
+
+```bash
+docker compose logs -f api web worker
+```
+
+4. Parar stack
+
+```bash
+docker compose down
+```
+
+Observacoes para VPS:
+
+- Ajuste `NEXT_PUBLIC_API_BASE_URL` para a URL publica da API (ex: `http://SEU_IP:3001`).
+- Ajuste `S3_PUBLIC_ENDPOINT` para a URL publica do MinIO (ex: `http://SEU_IP:9000`).
+- Ajuste `CORS_ORIGINS` para a URL publica do Web (ex: `http://SEU_IP:3000`).
+- A API executa `prisma migrate deploy` automaticamente ao iniciar o container.
+- `postgres`, `redis` e console do `minio` ficam expostos apenas em `127.0.0.1` por padrao (hardening).
+
+## Desenvolvimento local (sem container para apps)
 
 1. Instalar dependencias
 
@@ -24,13 +60,13 @@ Monorepo pnpm com frontend (Next.js App Router) e backend (Nest.js), mais pacote
 pnpm install
 ```
 
-2. Subir infraestrutura local (Postgres, Redis, MinIO)
+2. Subir apenas infraestrutura (Postgres, Redis, MinIO)
 
 ```bash
-docker compose up -d
+docker compose up -d postgres redis minio minio-init
 ```
 
-3. Copiar envs
+3. Copiar envs das apps
 
 ```bash
 copy apps\api\.env.example apps\api\.env

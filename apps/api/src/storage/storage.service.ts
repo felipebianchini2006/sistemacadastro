@@ -25,6 +25,7 @@ export type PresignPutObjectResult = {
 type StorageConfig = {
   bucket: string;
   endpoint?: string;
+  publicEndpoint?: string;
   region: string;
   accessKey?: string;
   secretKey?: string;
@@ -51,7 +52,10 @@ export class StorageService {
       Metadata: input.metadata,
     });
 
-    const url = await getSignedUrl(this.getClient(), command, { expiresIn });
+    const url = this.resolvePublicUrl(
+      await getSignedUrl(this.getClient(), command, { expiresIn }),
+      config.publicEndpoint,
+    );
 
     return {
       url,
@@ -71,9 +75,12 @@ export class StorageService {
       Bucket: config.bucket,
       Key: key,
     });
-    const url = await getSignedUrl(this.getClient(), command, {
-      expiresIn: ttl,
-    });
+    const url = this.resolvePublicUrl(
+      await getSignedUrl(this.getClient(), command, {
+        expiresIn: ttl,
+      }),
+      config.publicEndpoint,
+    );
     return { url, expiresIn: ttl };
   }
 
@@ -142,6 +149,12 @@ export class StorageService {
     const endpoint = this.configService.get<string>('S3_ENDPOINT', {
       infer: true,
     });
+    const publicEndpoint = this.configService.get<string>(
+      'S3_PUBLIC_ENDPOINT',
+      {
+        infer: true,
+      },
+    );
     const region =
       this.configService.get<string>('S3_REGION', { infer: true }) ??
       'us-east-1';
@@ -163,6 +176,7 @@ export class StorageService {
     this.config = {
       bucket,
       endpoint,
+      publicEndpoint,
       region,
       accessKey,
       secretKey,
@@ -171,5 +185,21 @@ export class StorageService {
     };
 
     return this.config;
+  }
+
+  private resolvePublicUrl(url: string, publicEndpoint?: string): string {
+    if (!publicEndpoint) {
+      return url;
+    }
+
+    try {
+      const signedUrl = new URL(url);
+      const base = new URL(publicEndpoint);
+      signedUrl.protocol = base.protocol;
+      signedUrl.host = base.host;
+      return signedUrl.toString();
+    } catch {
+      return url;
+    }
   }
 }
